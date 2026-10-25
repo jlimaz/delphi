@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == "darwin", "macOS Swift audio regression")
 class AudioNativeTests(unittest.TestCase):
     def test_siri_voice_retries_until_the_voice_test_succeeds(self):
-        source = (ROOT / "Atticus.swift").read_text()
+        source = (ROOT / "Delphi.swift").read_text()
         voice = source[source.index("var siriVoiceTrying"):source.index("// The talk shortcut")]
         before_test = voice[:voice.index("DispatchQueue.global().async")]
         self.assertNotIn('set(true, forKey: "siriVoice")', before_test)
@@ -24,7 +24,7 @@ class AudioNativeTests(unittest.TestCase):
         self.assertIn("p.arguments = sayArguments(words)", drawing)
 
     def test_best_installed_english_voice_prefers_quality_then_region(self):
-        source = (ROOT / "Atticus.swift").read_text()
+        source = (ROOT / "Delphi.swift").read_text()
         policy = source[source.index("struct ReadAloudVoice"):source.index("let installedReadAloudVoice")]
         run_swift(self, """import Foundation
 import AVFoundation
@@ -51,7 +51,7 @@ print("read-aloud voice policy ok")
 """)
 
     def test_say_voice_is_validated_and_compact_tip_is_once(self):
-        source = (ROOT / "Atticus.swift").read_text()
+        source = (ROOT / "Delphi.swift").read_text()
         voice = source[source.index("let usableReadAloudVoice"):source.index("// The talk shortcut")]
         self.assertIn('p.arguments = ["-v", "?"]', voice)
         self.assertIn("sayVoiceName($0.name, names: names)", voice)
@@ -63,7 +63,7 @@ print("read-aloud voice policy ok")
         self.assertIn("Manage Voices", tip)
 
     def test_say_voice_list_parser_handles_spaces_and_rejects_unknown_names(self):
-        source = (ROOT / "Atticus.swift").read_text()
+        source = (ROOT / "Delphi.swift").read_text()
         parser = source[source.index("func sayVoiceNames"):source.index("let usableReadAloudVoice")]
         run_swift(self, "import Foundation\n" + parser + """
 let names = sayVoiceNames("Bad News            en_US    # Hello\\nDaniel (English (UK)) en_GB    # Hello\\n")
@@ -77,7 +77,7 @@ print("say voice list parser ok")
 """)
 
     def test_device_choice_falls_back_without_opening_bluetooth(self):
-        source = (ROOT / "Atticus.swift").read_text()
+        source = (ROOT / "Delphi.swift").read_text()
         policy = source[source.index("struct MicrophoneDevice"):source.index("func listenMic()")]
         run_swift(self, 
             """import Foundation
@@ -106,7 +106,7 @@ print("microphone policy ok")
         self.assertIn("microphoneID: demo ? nil : listenMic()?.uid", source)
 
     def test_quiet_audio_restores_release_and_cancel(self):
-        source = (ROOT / "Atticus.swift").read_text()
+        source = (ROOT / "Delphi.swift").read_text()
         model = source[source.index("struct AudioVolumeSnapshot"):source.index("struct CoreAudioVolume")]
         quiet = source[source.index("final class AudioQuiet"):source.index("enum AudioRecovery")]
         run_swift(self, 

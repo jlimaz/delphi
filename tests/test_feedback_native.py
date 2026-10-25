@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin', 'macOS native feedback worker')
 class FeedbackNativeTests(unittest.TestCase):
     def test_failed_worker_clears_url_and_reports_latest_error_without_crashing(self):
-        source = (ROOT / 'Atticus.swift').read_text()
+        source = (ROOT / 'Delphi.swift').read_text()
         method = source[source.index('    func feedbackPreview('):source.index('    // "Change shortcut":')]
         swift = '''import Cocoa
 func py(_ args:[String])->Process { let p=Process();p.executableURL=URL(fileURLWithPath:CommandLine.arguments[1]+"/missing-worker");return p }
@@ -30,9 +30,9 @@ h.feedbackPreview(true,"");h.feedbackPreview(false,"")
 precondition(h.feedbackURL == nil)
 RunLoop.current.run(until:Date().addingTimeInterval(3));exit(1)
 '''
-        with tempfile.TemporaryDirectory(prefix='atticus-feedback-fixture-') as tmp:
+        with tempfile.TemporaryDirectory(prefix='delphi-feedback-fixture-') as tmp:
             root=Path(tmp);file=root/'feedback.swift';file.write_text(swift);binary=root/'feedback'
             result=subprocess.run(['swiftc',str(file),'-o',str(binary)],capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr)
-            result=subprocess.run([str(binary),tmp],env={**os.environ,'ATTICUS_DIR':tmp},capture_output=True,text=True,timeout=5)
+            result=subprocess.run([str(binary),tmp],env={**os.environ,'DELPHI_DIR':tmp},capture_output=True,text=True,timeout=5)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)

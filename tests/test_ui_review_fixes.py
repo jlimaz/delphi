@@ -31,14 +31,14 @@ def tint(color, alpha, bg='#ffffff'):
 
 class UIReviewFixTests(unittest.TestCase):
     def setUp(self):
-        self.swift = (ROOT / 'Atticus.swift').read_text()
+        self.swift = (ROOT / 'Delphi.swift').read_text()
         self.box = (ROOT / 'ui/ui.html').read_text()
         self.settings = (ROOT / 'ui/settings.html').read_text()
         self.onboarding = (ROOT / 'ui/onboarding.html').read_text()
         self.agents = (ROOT / 'ui/agents.html').read_text()
         self.meeting = (ROOT / 'ui/meeting.html').read_text()
 
-    def test_native_clicks_reach_try_again_the_agents_pill_and_pill_buttons(self):
+    def test_native_clicks_reach_the_agents_pill_and_pill_buttons(self):
         tap = self.box[self.box.index('    tap([x, y])'):self.box.index('    size(h)')]
         node(self, r'''let clicked = '';
 const make = key => { const el = { closest: s => s.split(', ').includes(key) ? el : null, click() { clicked = key; } }; return el; };
@@ -46,7 +46,7 @@ let dictating = false;
 const document = { elementFromPoint: () => current, body: { classList: { contains: c => c === 'dictate' && dictating } } }; let current;
 const $ = () => ({ classList: { contains: () => false }, value: '' }), drop = () => { clicked = 'typing'; }, comp = () => { clicked = 'typing box'; }, post = () => {}, status = () => {}, fit = () => {};
 const ui = {''' + tap + r'''};
-for (const key of ['.redo', '#agents-pill', '.dn button']) { current = make(key); clicked = ''; ui.tap([0, 0]); if (clicked !== key) { console.error(key + ' opened the ' + clicked); process.exit(1); } }
+for (const key of ['#agents-pill', '.dn button']) { current = make(key); clicked = ''; ui.tap([0, 0]); if (clicked !== key) { console.error(key + ' opened the ' + clicked); process.exit(1); } }
 dictating = true; current = make('.dn'); clicked = ''; ui.tap([0, 0]); if (clicked) { console.error('a click on the dictation pill opened the ' + clicked); process.exit(1); }
 ''')
 
@@ -166,7 +166,7 @@ if (away.frames || away.timers || !away.waiting) process.exit(3);
     def test_removed_sonnet_offer_leaves_no_card_branch(self):
         self.assertNotIn('Sonnet', self.box[self.box.index('    respond(text)'):self.box.index('    improve()')])
         self.assertNotIn('"escalate"', self.swift[self.swift.index('func userContentController'):self.swift.index('    func show()')])
-        self.assertNotIn("j.get('off'", (ROOT / 'atticus.py').read_text())
+        self.assertNotIn("j.get('off'", (ROOT / 'delphi.py').read_text())
 
     def test_agent_cost_reads_like_usage(self):
         script = ''
@@ -224,8 +224,8 @@ for (const [cardH, want] of [[540, '126px'], [300, undefined], [900, '60px']]) {
 }
 ''')
 
-    def test_rewrite_actions_sit_above_the_timer_with_one_try_again(self):
-        self.assertIn('.turn:has(.rewrite) .redo { display: none; }', self.box)
+    def test_rewrite_actions_sit_above_the_timer_and_answers_have_no_try_again(self):
+        self.assertNotIn('redo', self.box)   # an answer offers no Try again; the rewrite bar keeps its own
         rewrite = self.box[self.box.index('    rewrite([draft, mode, editable])'):self.box.index('    mini(m)')]
         node(self, r'''let placed = '';
 const clockRow = { before: () => { placed = 'above the timer'; } }, d = { querySelector: s => s === '.elapsed' ? clockRow : null, append: () => { placed = 'last'; } };

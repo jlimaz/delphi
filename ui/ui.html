@@ -1,6 +1,6 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
-<!-- Atticus overlay. Atticus.app loads this, puts orbs.js in place of the marker below, and calls window.ui.* -->
+<!-- Delphi overlay. Delphi.app loads this, puts orbs.js in place of the marker below, and calls window.ui.* -->
 <style>
   :root { color-scheme: dark; --fg2: #c7c7cc; --accent: #006bd6; --ease: cubic-bezier(.2,.8,.2,1); --spring: cubic-bezier(.34,1.56,.64,1); }
   html, body { margin: 0; background: transparent; overflow: hidden; -webkit-user-select: none; cursor: default;
@@ -17,8 +17,6 @@
   #status { flex: 1 0 64px; min-width: 64px; font-size: 12.5px; line-height: 22px; color: var(--fg2); white-space: nowrap; overflow: hidden;
     text-overflow: ellipsis; }
   .elapsed { display: flex; align-items: baseline; gap: 6px; margin-top: 16px; color: var(--fg2); font-size: 10.5px; line-height: 16px; animation: in .25s var(--ease) both; }
-  .elapsed .redo { margin-left: auto; padding: 0; border: 0; background: none; font: 500 11px -apple-system, system-ui, sans-serif; color: var(--fg2); cursor: pointer; transition: color .2s; }
-  .elapsed .redo:is(:hover,.hot) { color: #f5f5f7; }
   .elapsed b { color: var(--fg2); font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; }
   #status span { display: inline-block; max-width: 100%; vertical-align: top; overflow: hidden; text-overflow: ellipsis; animation: in .35s var(--ease) both; }
   #status.live span { background: linear-gradient(90deg, var(--fg2) 0%, #fff 45%, var(--fg2) 90%); background-size: 200% 100%;
@@ -158,18 +156,11 @@
   .step.cut { color: var(--fg2); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.2); }
 
   #x { position: relative; flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid;
-    place-items: center; opacity: .7;
-    background: radial-gradient(120% 120% at 30% 15%, rgba(255,255,255,.30), rgba(255,255,255,.07) 55%, rgba(255,255,255,.03));
-    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.35), inset 0 -1.5px 2px rgba(0,0,0,.28), 0 2px 6px rgba(0,0,0,.22);
-    transition: transform .45s var(--spring), opacity .25s, box-shadow .3s, background .3s; }
-  #x svg { width: 8px; height: 8px; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; transition: transform .45s var(--spring); }
-  #x.hot { transform: scale(1.28); opacity: 1;
-    background: radial-gradient(120% 120% at 30% 15%, rgba(255,255,255,.5), rgba(255,255,255,.14) 55%, rgba(255,255,255,.06));
-    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.3), 0 0 0 4px rgba(255,255,255,.05),
-      0 4px 14px rgba(0,0,0,.35); }
-  #x.hot svg { transform: rotate(90deg); }
+    place-items: center; opacity: .6; background: rgba(255,255,255,.1); }
+  #x svg { width: 8px; height: 8px; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; }
+  #x.hot { opacity: 1; background: rgba(255,255,255,.16); }
 
-  /* safe mode: Atticus asks before it deletes, sends or buys */
+  /* safe mode: Delphi asks before it deletes, sends or buys */
   .ok { margin-top: 14px; padding: 13px 14px 14px; border-radius: 14px; background: rgba(255,255,255,.07); cursor: pointer;
     box-shadow: inset 0 0 0 .5px rgba(255,255,255,.14); animation: grow .32s var(--spring) both; overflow: hidden; max-height: 320px;
     transition: max-height .34s var(--ease), opacity .25s, margin .34s var(--ease), padding .34s var(--ease), background .2s; }
@@ -223,7 +214,7 @@
 
   .a.draft { white-space: pre-wrap; }
   .rewrite { display: flex; gap: 8px; margin-top: 16px; }
-  .rewrite button:disabled { opacity: .45; cursor: default; } .turn:has(.rewrite) .redo { display: none; }   /* the bar has its own Try again */
+  .rewrite button:disabled { opacity: .45; cursor: default; }
   .rewrite-note { color: var(--fg2); font-size: 12px; margin-top: 10px; }
   .rewrite button.del { background: #c92b24; }
   .sel { font-size: 11.5px; color: var(--fg2); margin-bottom: 10px; padding-left: 8px; border-left: 2px solid rgba(10,132,255,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -293,34 +284,23 @@
   #comp.pick #models { pointer-events: auto; }
   #comp.pick #models button { opacity: 1; transform: none; transition-duration: .2s, .25s, .22s, .38s; transition-delay: 0s, 0s, calc(var(--i) * 30ms), calc(var(--i) * 30ms); }
   #ask { transform-origin: left center; } #comp.pick #ask { opacity: 0; transform: scale(.97); pointer-events: none; }
-  #comp.pick #model, #comp.pick #point, #comp.pick #mic { opacity: 0; transform: scale(.8); pointer-events: none; }
+  #comp.pick #model { opacity: 0; transform: scale(.8); pointer-events: none; }
   #ask { flex: 1; min-width: 0; height: 34px; box-sizing: border-box; padding: 0 13px; border: 0; outline: 0; border-radius: 17px;
     font: 13.5px -apple-system, system-ui, sans-serif; color: #fff; caret-color: #0a84ff; -webkit-user-select: text; cursor: text;
     background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.14); transition: background .25s, box-shadow .25s, opacity .22s var(--ease), transform .38s var(--ease); }
   #ask::placeholder { color: var(--fg2); }
   #ask:focus { background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.22), 0 0 0 3px rgba(10,132,255,.35); }
-  #point, #mic { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer;
-    background: radial-gradient(120% 120% at 30% 15%, rgba(255,255,255,.26), rgba(255,255,255,.07) 60%);
-    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.3), 0 2px 6px rgba(0,0,0,.22); transition: transform .35s var(--spring), background .25s, opacity .22s var(--ease); }
-  #point:is(:hover,.hot), #mic:is(:hover,.hot) { transform: scale(1.1); background: radial-gradient(120% 120% at 30% 15%, rgba(255,255,255,.4), rgba(255,255,255,.12) 60%); }
-  #point:active, #mic:active { transform: scale(.94); }
-  #point svg, #mic svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  #point.active, #point.marked { background: rgba(10,132,255,.55); }
-  /* Point at your screen: one row over the typing box. on: the hint; marked: the crop's chip; coach: the one-time intro */
+  /* one of Delphi's marks you clicked: its crop's chip, one row over the typing box */
   #pointbar { display: none; align-items: center; gap: 8px; min-height: 28px; margin-top: 12px; font: 12px -apple-system, system-ui, sans-serif; color: var(--fg2); }
   #pointbar[data-s] { display: flex; animation: in .3s var(--spring) both; }
-  #pointbar .hint { flex: 1; min-width: 0; line-height: 1.35; } #pointbar .hint b { color: #f5f5f7; font-weight: 600; }
-  #pointbar .hint svg, #pointbar .chip i svg { width: 13px; height: 13px; margin: 0 1px -2px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  #pointbar .keys { margin: 0 0 0 auto; }
+  #pointbar .chip i svg { width: 13px; height: 13px; margin: 0 1px -2px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   #pointbar .chip { display: none; align-items: center; gap: 7px; height: 28px; padding: 0 3px 0 3px; border-radius: 9px; color: #f5f5f7;
     background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.14); }
   #pointbar .chip img, #pointbar .chip i { flex: none; width: 34px; height: 22px; border-radius: 6px; object-fit: cover; display: grid; place-items: center; background: rgba(255,255,255,.1); }
   #pointbar .chip img[hidden], #pointbar .chip img:not([hidden]) + i { display: none; }
   #pointbar .rm { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; display: grid; place-items: center; background: none; color: var(--fg2); cursor: pointer; }
   #pointbar .rm:is(:hover,.hot) { color: #fff; background: rgba(255,255,255,.1); } #pointbar .rm svg { width: 9px; height: 9px; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
-  #pointbar.has .chip { display: inline-flex; } #pointbar.has .hint { display: none; }
-  #pointbar:not([data-s=coach]) .gotit { display: none; }
-  #pointbar[data-s=coach] + #comp #point { box-shadow: inset 0 0 0 .5px rgba(255,255,255,.3), 0 0 0 2px rgba(10,132,255,.8); }
+  #pointbar.has .chip { display: inline-flex; }
 
   /* resize: drag the bottom-right corner */
   #grip { position: absolute; right: 4px; bottom: 4px; width: 12px; height: 12px; opacity: 0; transition: opacity .25s; cursor: nwse-resize; }
@@ -396,12 +376,9 @@
   <div id="thread"></div>
   <svg id="lock" viewBox="0 0 10 13" role="img" aria-label="Locked. Press the shortcut to finish."><path d="M2.5 6V4a2.5 2.5 0 0 1 5 0v2"/><rect x="0" y="5.5" width="10" height="7.5" rx="2"/></svg>
   <i id="check"></i><div class="dn" id="dn" role="status"></div>
-  <div id="pointbar" role="group" aria-label="Point at your screen"><span class="chip"><img alt="What you marked" hidden><i></i><span>Marked</span><button class="rm" title="Remove mark" aria-label="Remove mark"><svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2L2 8"/></svg></button></span>
-    <span class="hint" aria-live="polite"></span><span class="keys"><button class="go gotit">Got it</button></span></div>
-  <div id="comp" inert><input id="ask" placeholder="Ask Atticus…" autocomplete="off" spellcheck="false" aria-label="Ask Atticus">
-    <div id="models" role="menu" aria-label="Model"></div><button id="model" title="Model" aria-label="Model" hidden></button>
-    <button id="point" title="Point at your screen" aria-label="Point at your screen" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M9 8l11 4.5-4.6 1.9L13.5 19z"/><path d="M5.1 11.9A5.5 5.5 0 0 1 12.9 4.1"/></svg></button>
-    <button id="mic" title="Talk instead" aria-label="Talk instead"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button></div>
+  <div id="pointbar" role="group" aria-label="What you marked"><span class="chip"><img alt="What you marked" hidden><i><svg viewBox="0 0 24 24"><path d="M9 8l11 4.5-4.6 1.9L13.5 19z"/><path d="M5.1 11.9A5.5 5.5 0 0 1 12.9 4.1"/></svg></i><span>Marked</span><button class="rm" title="Remove mark" aria-label="Remove mark"><svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2L2 8"/></svg></button></span></div>
+  <div id="comp" inert><input id="ask" placeholder="Ask Delphi…" autocomplete="off" spellcheck="false" aria-label="Ask Delphi">
+    <div id="models" role="menu" aria-label="Model"></div><button id="model" title="Model" aria-label="Model" hidden></button></div>
 </div>
 <div class="e" id="eL"></div><div class="e" id="eR"></div><div class="e" id="eT"></div><div class="e" id="eB"></div>
 <div class="e" id="cTL"></div><div class="e" id="cTR"></div><div class="e" id="cBL"></div><div class="e" id="cBR"></div>
@@ -416,8 +393,8 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   reduced.addEventListener('change',()=>{if(reduced.matches)document.querySelectorAll('.step').forEach(e=>e.getAnimations().forEach(a=>a.cancel()));});
   let visible = true;
-  let preset = E.r('breathing', S), state = 'breathing', boost = 1, t = 0, prev = performance.now();
-  const setState = s => { if (s !== state) { state = s; preset = E.r(s, S); } };
+  const preset = E.r('breathing', S), setState = () => {};   // every state draws the resting ring; the voice speeds it up while listening
+  let boost = 1, t = 0, prev = performance.now();
   (function frame(now) {
     if (visible) {
       t += Math.min(0.05, (now - prev) / 1000) * preset.speed * boost * (reduced.matches ? 0 : 1);
@@ -466,7 +443,6 @@
       compFrame = requestAnimationFrame(resize);
     }
     if (on && focus) $('ask').focus(); else if (!on) $('ask').blur();
-    if (on) coachShow(); else if (bar.dataset.s === 'coach') { delete bar.dataset.s; fit(); }
   };
   // Clicking in or typing (not the cursor landing there from the shortcut): typing wins, so the mic stops and what was heard goes
   const drop = () => {
@@ -511,23 +487,10 @@
     pickTimer = setTimeout(() => pickRow(false), reduced.matches ? 0 : 170);
   };
   $('models').onkeydown = e => { if (e.key === 'Escape') { e.preventDefault(); pickRow(false); $('model').focus(); } };
-  // Point at your screen. The app owns the mark; the page shows its state. coachPending: the one-time intro until Got it or first use
-  const POINTER = $('point').innerHTML, bar = $('pointbar');
-  bar.querySelector('.chip i').innerHTML = POINTER;
-  let coachPending = false;
-  const coachDone = () => {
-    if (coachPending) { coachPending = false; post({ pointCoached: 1 }); }
-    if (bar.dataset.s === 'coach') { delete bar.dataset.s; fit(); }
-  };
-  const coachShow = () => {
-    if (!coachPending || bar.dataset.s) return;
-    bar.dataset.s = 'coach'; bar.querySelector('.hint').innerHTML = '<b>Point at your screen:</b> click ' + POINTER + ' below, then circle, click or scribble on anything and type or say your question.'; fit();
-  };
-  $('point').onclick = () => { if (working) return status('Finish or stop the current answer first'); coachDone(); post({ point: 1 }); };   // a refused click keeps the coach
+  // One of Delphi's marks you clicked. The app owns the mark; the page shows its chip until the next ask carries it
+  const bar = $('pointbar');
   bar.querySelector('.rm').onclick = () => post({ pointClear: 1 });
-  bar.querySelector('.gotit').onclick = coachDone;
   const markShot = () => { const img = bar.querySelector('img'); return bar.classList.contains('has') && !img.hidden && img.src; };   // the crop the next ask carries into its bubble
-  $('mic').onclick = () => { $('ask').value = ''; comp(false); post({ mic: 1 }); };
   const status = (s, live) => {
     if (s && listening) s = 'Listening…';   // early AI notes never replace it while the user talks
     $('status').className = live ? 'live' : '';
@@ -682,12 +645,12 @@
   const clockBegin = () => {
     if (clockStart !== null || clockHeld !== null || !turn()) return;
     clock = document.createElement('div'); clock.className = 'elapsed';
-    clock.title = 'Time Atticus spent working. Waiting for your pick or approval is not counted.';
+    clock.title = 'Time Delphi spent working. Waiting for your pick or approval is not counted.';
     clock.innerHTML = '<b></b>';
     turn().append(clock); clockStart = performance.now(); clockTick();
   };
 
-  // One line from Atticus beside the agent's own orb (the chip's hue), in place of this turn's answer.
+  // One line from Delphi beside the agent's own orb (the chip's hue), in place of this turn's answer.
   const agentAck=(a,row,text)=>{a.className='a agent-ack';a.replaceChildren();a.dataset.answer=text;
     if(row?.id){const c=document.createElement('canvas'),p=E.r('breathing',32);c.width=c.height=64;c.dataset.agent=row.id;c.style.filter='hue-rotate('+(parseInt(row.id.slice(0,4),16)%90-45)+'deg)';const ctx=c.getContext('2d');ctx.scale(2,2);E.p(ctx,E.M[p.mode](32,0,p.opts),true,null);a.append(c);}
     a.append(el('span','',text));};
@@ -739,13 +702,13 @@
     moveFailed(){status('Could not move');fit();},
     paused(on=true){
       $('thread').querySelector('.paused')?.remove();
-      if(!on){status('Atticus resumed');fit();return}
-      const d=document.createElement('div');d.className='ok offer paused';d.innerHTML='<b>Atticus is paused</b><div><button class="go">Resume</button></div>';d.querySelector('button').onclick=()=>post({resume:true});
+      if(!on){status('Delphi resumed');fit();return}
+      const d=document.createElement('div');d.className='ok offer paused';d.innerHTML='<b>Delphi is paused</b><div><button class="go">Resume</button></div>';d.querySelector('button').onclick=()=>post({resume:true});
       $('thread').append(d);status('Paused');fit();
     },
     workerFailed(){
       working=false;clockStop();settle();status('Couldn’t start');
-      const d=document.createElement('div');d.className='ok offer worker';d.innerHTML='<b>Atticus’s helper couldn’t start</b><p>Retry, or open Setup & Permissions to repair it.</p><div><button>Open Setup</button><button class="go">Retry</button></div>';
+      const d=document.createElement('div');d.className='ok offer worker';d.innerHTML='<b>Delphi’s helper couldn’t start</b><p>Retry, or open Setup & Permissions to repair it.</p><div><button>Open Setup</button><button class="go">Retry</button></div>';
       const [setup,retry]=d.querySelectorAll('button');setup.onclick=()=>post({setup:true});retry.onclick=()=>{retry.disabled=true;status('Starting…',true);post({workerRetry:true})};
       (turn()||$('thread')).append(d);fit();
     },
@@ -763,7 +726,7 @@
     agentCount(value){const count=typeof value==='number'?value:value.count,pill=$('agents-pill'),label=count+' agent'+(count===1?'':'s');pill.hidden=!count;pill.classList.toggle('attention',!!value.attention);
       pill.lastChild.textContent=label;pill.title=value.attention?'An agent needs you':'Open Agents';pill.setAttribute('aria-label',label+(value.attention?', one needs you':' running')+'. Open Agents');fit();},
     agentEscape(){const b=$('thread').querySelector('.agent-card [data-esc]');if(b)b.click();else post({agentGone:true});},   // Esc is a native hotkey: it picks the card's quiet choice
-    selected(t) {   // the text Atticus is working from, so the user knows it saw the right thing
+    selected(t) {   // the text Delphi is working from, so the user knows it saw the right thing
       const d = turn(); if (!d || !t.trim()) return;
       const s = document.createElement('div'); s.className = 'sel'; s.textContent = 'Selected: “' + t.trim().replace(/\s+/g, ' ') + '”';
       d.prepend(s); fit();
@@ -777,7 +740,7 @@
       for (const [label, action] of actions) {
         const b = document.createElement('button'); b.textContent = label;
         if (mode === 'draft' && action === 'copy' && !editable) b.className = 'go';
-        if (action === 'replace') { b.className = mode === 'delete' ? 'go del' : 'go'; b.disabled = !editable; b.title = !editable ? 'This app does not let Atticus edit here. Use Copy.' : mode === 'draft' ? 'Insert at your cursor' : label + ' the selected text'; }
+        if (action === 'replace') { b.className = mode === 'delete' ? 'go del' : 'go'; b.disabled = !editable; b.title = !editable ? 'This app does not let Delphi edit here. Use Copy.' : mode === 'draft' ? 'Insert at your cursor' : label + ' the selected text'; }
         b.onclick = e => { e.stopPropagation(); post(action === 'copy' ? {copy: draft} : {[action]: true}); };
         bar.append(b);
       }
@@ -792,22 +755,16 @@
       bar.querySelector('.go').disabled = true; fit();
     },
     mini(m) { miniUpdate(m); },
-    point(value) {   // {active, marked, picked, thumb}: pointing now, a mark is waiting, it is one of Atticus's marks, a picture of it; false: none
-      const active = !!value?.active, marked = !!value?.marked, button = $('point'), img = bar.querySelector('img'), was = $('status').textContent;
-      button.classList.toggle('active', active); button.classList.toggle('marked', marked);
-      button.setAttribute('aria-pressed', active);
+    point(value) {   // {marked, thumb}: one of Delphi's marks you clicked waits for the next ask, with a picture of it; false: none
+      const marked = !!value?.marked, img = bar.querySelector('img'), was = $('status').textContent;
       if (typeof value?.thumb === 'string') { img.hidden = !value.thumb; img.src = value.thumb; }
       if (!marked) { img.hidden = true; img.removeAttribute('src'); }
-      if (active || marked) coachDone();
-      if (active || marked) bar.dataset.s = active ? 'on' : 'marked'; else delete bar.dataset.s;
+      if (marked) bar.dataset.s = 'marked'; else delete bar.dataset.s;
       bar.classList.toggle('has', marked);
-      bar.querySelector('.hint').textContent = active && !marked ? 'Click, circle or scribble on anything, then ask' : '';
-      if (active) { status('Pointing…'); comp(true, true); }   // the cursor waits in the box: draw, then type
-      else if (marked) { status('Marked'); if (value?.picked) comp(true, true); }   // clicked a drawn mark: ask about it next
-      else if (was === 'Pointing…' || was === 'Marked') status('');
+      if (marked) { status('Marked'); comp(true, true); }   // ask about it next
+      else if (was === 'Marked') status('');
       fit();
     },
-    pointCoach(open) { coachPending = true; if (open) comp(true); else if ($('comp').classList.contains('open')) coachShow(); },   // open: the first ask after setup shows it without a hover
     finished() { clockStop(); miniFinish(false); unstream(); },
     dictate(on) { dictateMode(on); },   // the last dictation's wave must not show on the next; its empty turn never reaches the box
     locked(on) { document.body.classList.toggle('locked', !!on); fit(false); },   // a double tap: hands-free until the next press; the pill makes room for the lock
@@ -919,13 +876,6 @@
         working = false;
         settle(); part('q')?.classList.remove('live'); status('');
         const a = part('a'); if (a) { const shown = a.classList.contains('streaming'); a.classList.remove('streaming'); a.dataset.answer = s; reveal(a, s, shown); if (shown) top = a; } setState('breathing');   // words already on screen do not fade in again
-        document.querySelectorAll('.redo').forEach(e => e.remove());   // only the latest answer offers it
-        const q = part('q')?.textContent.trim();
-        if (q && clock?.closest('.turn') === turn()) {   // "That's wrong" also drops a learned shortcut that did the wrong thing
-          const b = document.createElement('button'); b.className = 'redo'; b.textContent = 'Try again';
-          b.onclick = e => { e.stopPropagation(); b.remove(); post({ send: `That's wrong, try again: ${q}\n(If it isn't clear what to change, ask me what was wrong.)` }); };
-          clock.append(b);
-        }
       } else if (tag === '✎' && turn()) { try { receipt(JSON.parse(s)); } catch {}
       } else if (tag === 'i' && turn()) {
         const learned = s.startsWith('Learned: '), kofi = s.startsWith('Support: '), d = document.createElement('div');   // "Learned" when it saved a rule, the Ko-fi line, else "Tip"
@@ -971,7 +921,7 @@
     compose(on) { comp(on, on); },
     draft(t) { $('ask').value = t; comp(true, true); },
     tap([x, y]) {   // a click on the box, not a drag: on the answer = copy it, anywhere else = type
-      const el = document.elementFromPoint(x, y), b = el?.closest('a[href], .ok button, .ok, .pk button, .pk, .rewrite button, .mini-view, .mem-i, .mem-h, .mem, .shot, #pointbar button, .redo, #agents-pill, .dn button');
+      const el = document.elementFromPoint(x, y), b = el?.closest('a[href], .ok button, .ok, .pk button, .pk, .rewrite button, .mini-view, .mem-i, .mem-h, .mem, .shot, #pointbar button, #agents-pill, .dn button');
       const field = el?.closest('.ok input, .ok textarea, .pk input, .pk textarea');   // "Something else…": a text field in a card takes the cursor
       if (field) return field.focus();
       if (b) return b.click();
@@ -1044,7 +994,7 @@
     improve() {   // once, after a task that worked: people who updated never saw setup's question
       $('thread').querySelectorAll('.ok.improve').forEach(e => e.remove());
       const d = document.createElement('div'); d.className = 'ok offer improve';
-      d.innerHTML = '<b>Help make Atticus better?</b><p>When a task fails, send what you asked, the steps and why. Anonymous, cleaned first. Change it in Settings.</p><div><button>Not Now</button><button class="go">Help Improve</button></div>';
+      d.innerHTML = '<b>Help make Delphi better?</b><p>When a task fails, send what you asked, the steps and why. Anonymous, cleaned first. Change it in Settings.</p><div><button>Not Now</button><button class="go">Help Improve</button></div>';
       d.querySelectorAll(':scope > div > button').forEach((b, i) => b.onclick = e => {
         e.stopPropagation(); if (d.classList.contains('gone')) return;
         post({ improve: !!i }); status(i ? 'Thank you' : '', true);

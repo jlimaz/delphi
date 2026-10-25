@@ -1,5 +1,5 @@
 {
-  description = "Atticus: macOS voice and AI assistant";
+  description = "Delphi: macOS voice and AI assistant";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -38,7 +38,7 @@
           pkgs = pkgsFor system;
         in
         pkgs.writeShellApplication {
-          name = "atticus";
+          name = "delphi";
           runtimeInputs = [ pkgs.python313 ];
           text = ''
             set -euo pipefail
@@ -48,24 +48,24 @@
                 exec bash "$src/build.sh"
                 ;;
               --check)
-                python3 -c 'import pathlib, sys; compile(pathlib.Path(sys.argv[1]).read_text(), sys.argv[1], "exec")' "$src/atticus.py"
+                python3 -c 'import pathlib, sys; compile(pathlib.Path(sys.argv[1]).read_text(), sys.argv[1], "exec")' "$src/delphi.py"
                 bash -n "$src/build.sh"
                 bash -n "$src/install.sh"
-                printf '%s\n' 'atticus source checks passed'
+                printf '%s\n' 'delphi source checks passed'
                 ;;
               --version)
-                printf '%s\n' "atticus ${version}"
+                printf '%s\n' "delphi ${version}"
                 ;;
               --help|-h|help)
                 cat <<'EOF'
-            Atticus launcher for macOS.
+            Delphi launcher for macOS.
 
             Usage:
-              atticus              Install or update Atticus.app
-              atticus --install    Install or update Atticus.app
-              atticus --check      Run packaged source checks
-              atticus --version    Print the packaged version
-              atticus --help       Show this help
+              delphi              Install or update Delphi.app
+              delphi --install    Install or update Delphi.app
+              delphi --check      Run packaged source checks
+              delphi --version    Print the packaged version
+              delphi --help       Show this help
 
             Building requires macOS 26 or later and Apple's command line tools.
             Full use also requires Claude Code (with Claude or a custom server), Devin, or Pi.
@@ -78,10 +78,10 @@
             esac
           '';
           meta = with pkgs.lib; {
-            description = "Atticus macOS app launcher";
+            description = "Delphi macOS app launcher";
             homepage = "https://github.com/SaarthurR/atticus-mac";
             license = licenses.mit;
-            mainProgram = "atticus";
+            mainProgram = "delphi";
             platforms = targetSystems;
           };
         };
@@ -90,30 +90,30 @@
       packages = forEachSystem (
         system:
         let
-          atticus = packageFor system;
+          delphi = packageFor system;
         in
         {
-          inherit atticus;
-          atticus-mac = atticus;
-          source = atticus;
-          default = atticus;
+          inherit delphi;
+          delphi-mac = delphi;
+          source = delphi;
+          default = delphi;
         }
       );
 
       apps = forEachSystem (
         system:
         let
-          atticus = self.packages.${system}.default;
-          program = "${atticus}/bin/atticus";
+          delphi = self.packages.${system}.default;
+          program = "${delphi}/bin/delphi";
           app = {
             type = "app";
             inherit program;
-            inherit (atticus) meta;
+            inherit (delphi) meta;
           };
         in
         {
-          atticus = app;
-          atticus-mac = app;
+          delphi = app;
+          delphi-mac = app;
           default = app;
         }
       );
@@ -133,7 +133,7 @@
               pkgs.act
             ];
             shellHook = ''
-              echo "Atticus development shell. Building the app requires Apple's command line tools."
+              echo "Delphi development shell. Building the app requires Apple's command line tools."
             '';
           };
       });

@@ -12,21 +12,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SwiftReviewFixTests(unittest.TestCase):
     def setUp(self):
-        self.swift = (ROOT / "Atticus.swift").read_text()
+        self.swift = (ROOT / "Delphi.swift").read_text()
         self.agents = (ROOT / "ui/agents.html").read_text()
         self.overlay = (ROOT / "ui/ui.html").read_text()
         self.settings = (ROOT / "ui/settings.html").read_text()
 
     def test_fn_key_match_is_exact_and_modifier_prefixes_conflict(self):
-        helpers = self.swift[self.swift.index("let atticusFnKey"):self.swift.index("func configuredHotkey")]
+        helpers = self.swift[self.swift.index("let delphiFnKey"):self.swift.index("func configuredHotkey")]
         matcher = self.swift[self.swift.index("func specialHotkey"):self.swift.index("func handleSpecialHotkeys")]
         self.assertIn("func hotkeysConflict", matcher)
         recorder = self.swift[self.swift.index("    func done("):self.swift.index("    func say(", self.swift.index("    func done("))]
         self.assertIn("hotkeysConflict(hotkey(),dictateHotkey())", recorder)
         harness = "import Cocoa\nimport Carbon\n" + helpers + "\nvar specialGlobalHotkeys: Any?, specialLocalHotkeys: Any?, specialMainDown = false, specialDictateDown = false\n" + matcher + r'''
-let fnD = (code: 2, mods: atticusFnKey, flags: NSEvent.ModifierFlags.function)
-let fnShiftD = (code: 2, mods: atticusFnKey | shiftKey, flags: NSEvent.ModifierFlags([.function, .shift]))
-let fnOnly = (code: -2, mods: atticusFnKey, flags: NSEvent.ModifierFlags.function)
+let fnD = (code: 2, mods: delphiFnKey, flags: NSEvent.ModifierFlags.function)
+let fnShiftD = (code: 2, mods: delphiFnKey | shiftKey, flags: NSEvent.ModifierFlags([.function, .shift]))
+let fnOnly = (code: -2, mods: delphiFnKey, flags: NSEvent.ModifierFlags.function)
 precondition(!hotkeysConflict(fnD, fnShiftD))
 precondition(hotkeysConflict(fnOnly, fnD))
 var down = false, fired: [Bool] = []
@@ -98,12 +98,10 @@ console.log(heard);
         result = subprocess.run(["node", "--input-type=module"], input=script, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_point_capture_failure_preserves_answer_and_guides_can_be_replaced(self):
+    def test_point_capture_failure_preserves_answer(self):
         finish = self.swift[self.swift.index("    func finishPoint("):self.swift.index("    func pointThumb")]
-        start = self.swift[self.swift.index("    func startPointing()"):self.swift.index("    func finishPointing()")]
         self.assertIn('js("notice","Couldn’t capture that mark.")', finish)
         self.assertNotIn('js("msg","Couldn’t capture that mark.")', finish)
-        self.assertNotIn("drawing.clear()", start)   # pointing keeps a guide up: its marks can be clicked and asked about
         self.assertIn("notice(s)", self.overlay)
 
     def test_hidden_rewrite_keeps_its_target(self):
@@ -135,7 +133,7 @@ print("hidden rewrite target kept")
         self.assertIn("hidden rewrite target kept", run_swift(self, harness))
 
     def test_pointer_respects_reduce_motion(self):
-        pointer = self.swift[self.swift.index("func pointAt("):self.swift.index("// Restart Atticus", self.swift.index("func pointAt("))]
+        pointer = self.swift[self.swift.index("func pointAt("):self.swift.index("// Restart Delphi", self.swift.index("func pointAt("))]
         self.assertIn("let still = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion\n    if !still {", pointer)
         self.assertLess(pointer.index("accessibilityDisplayShouldReduceMotion"), pointer.index("l.add(pulse"))
         self.assertIn("if let box, lead(from: box, to: w.frame.insetBy(dx: 8, dy: 8)) {", pointer)
@@ -169,7 +167,7 @@ print("hidden rewrite target kept")
 
     def test_voice_ask_that_heard_nothing_ends_quietly(self):
         # Oct 20, 2026: a tap, or clicking in to type after letting go, ended in "Didn't catch that." / an empty review.
-        finish = self.swift[self.swift.index("    func finish() {"):self.swift.index("    // atticus.py --wait, started")]
+        finish = self.swift[self.swift.index("    func finish() {"):self.swift.index("    // delphi.py --wait, started")]
         self.assertNotIn("Didn't catch that", finish)
         self.assertIn('if did.isEmpty { js("msg", ""); return hide(after: 0.2) }', finish)
         stop = self.swift[self.swift.index("    func stop() {"):self.swift.index("    func applyReplacement()")]
@@ -200,7 +198,7 @@ print("hidden rewrite target kept")
         self.assertIn("kVK_Return", monitor)   # Return itself must still reach the card
 
     def test_a_finish_opens_its_own_chip_and_never_the_box(self):
-        # Oct 21: "when the agents finish, the original Atticus box pops up ... just have the regular agent box pop up"
+        # Oct 21: "when the agents finish, the original Delphi box pops up ... just have the regular agent box pop up"
         panels = self.swift[self.swift.index("final class AgentPanels"):self.swift.index("final class RoutineWake")]
         ping = panels[panels.index('} else if kind == "ping"'):panels.index('} else if kind == "steered"')]
         self.assertIn('row["status"] as? String == "done"', ping)
@@ -364,7 +362,7 @@ print("shelf follows")
         # every change is saved, only for agents that could still show: working, or finished/seen in the last 10 minutes
         self.assertIn('didSet { if dismissed != oldValue { Prefs.set("agentDismissed", dismissed.filter { rows[$0].map { Self.live.contains($0["status"] as? String ?? "") || Self.lingers($0) } ?? false }', panels)
         dismiss = panels[panels.index('        case "dismiss":'):panels.index('        case "stack":')]
-        self.assertLess(dismiss.index('rows[id]?["seenAt"] = Date().timeIntervalSince1970'), dismiss.index("dismissed.insert(id)"))   # × restarts its 10 minutes, as atticus.py saves it
+        self.assertLess(dismiss.index('rows[id]?["seenAt"] = Date().timeIntervalSince1970'), dismiss.index("dismissed.insert(id)"))   # × restarts its 10 minutes, as delphi.py saves it
         self.assertIn('if row["status"] as? String == "needs-you" || finished { dismissed.remove(id) }', panels)   # a finish shows again, as on the page
         self.assertIn('let finished = Self.live.contains(rows[id]?["status"] as? String ?? "") && Self.lingers(row)', panels)
         self.assertIn('js(surface,"prefs",["dismissed":Array(dismissed)', panels)
@@ -454,7 +452,7 @@ print("shelf follows")
         visible = self.swift[start:self.swift.index("\n    }\n", self.swift.index("    static func paintRect(", start)) + 6]
         lookup = self.swift[self.swift.index('["--window-target","--target-app"].contains'):]
         self.assertIn('target["visible"] = onScreen && target["minimized"] as? Bool != true &&', lookup[:lookup.index("\n    exit(0)\n}")])
-        look = self.swift[self.swift.index('CommandLine.arguments[1] == "--look"'):self.swift.index('// `Atticus --text <app>')]
+        look = self.swift[self.swift.index('CommandLine.arguments[1] == "--look"'):self.swift.index('// `Delphi --text <app>')]
         self.assertIn("SCContentFilter(desktopIndependentWindow: w)", look)   # the window's own pixels: right even when covered
         self.assertIn("MiniScreen.paintRect(w.frame, display: d.frame, pictureHeight: img.height)", look)
         self.assertLess(look.index("c.draw(shot, in: spot)"), look.index('print("window")'))   # it says painted only after painting

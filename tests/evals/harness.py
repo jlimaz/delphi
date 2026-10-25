@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Atticus task evals against a fake Mac. --dry uses scripted Claude; --live uses real claude -p."""
+"""Run Delphi task evals against a fake Mac. --dry uses scripted Claude; --live uses real claude -p."""
 import argparse
 import contextlib
 import io
@@ -20,25 +20,25 @@ ROOT = Path(__file__).resolve().parents[2]
 EVALS = Path(__file__).resolve().parent
 
 
-def _import_atticus(repo):
+def _import_delphi(repo):
     repo = Path(repo).resolve()
     if str(repo) not in sys.path:
         sys.path.insert(0, str(repo))
     for mod in list(sys.modules):
-        if mod == 'atticus' or mod.startswith('atticus.'):
+        if mod == 'delphi' or mod.startswith('delphi.'):
             del sys.modules[mod]
-    import atticus  # noqa: F401
+    import delphi  # noqa: F401
 
-    return sys.modules['atticus']
+    return sys.modules['delphi']
 
 
-def _fake_app_script(path, atticus_py):
-    path.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{atticus_py}" "$@"\n')
+def _fake_app_script(path, delphi_py):
+    path.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{delphi_py}" "$@"\n')
     path.chmod(0o755)
 
 
 def _write_fake_osascript(bin_dir):
-    """Headless answers for relay pick / Allow dialogs (child --pick uses the same ATTICUS_ASK relay)."""
+    """Headless answers for relay pick / Allow dialogs (child --pick uses the same DELPHI_ASK relay)."""
     script = bin_dir / 'osascript'
     script.write_text(r'''#!/bin/sh
 if [ "$1" = "-e" ]; then
@@ -53,8 +53,8 @@ exec /usr/bin/osascript "$@"
 
 
 def _auto_allow(directory, stop):
-    import atticus
-    q = Path(atticus.question_path(directory))
+    import delphi
+    q = Path(delphi.question_path(directory))
     while not stop.is_set():
         if q.exists():
             try:
@@ -62,7 +62,7 @@ def _auto_allow(directory, stop):
             except (OSError, ValueError):
                 j = {}
             q.unlink(missing_ok=True)
-            a = Path(atticus.question_answer_path(directory, j))
+            a = Path(delphi.question_answer_path(directory, j))
             if 'pick' in j:
                 a.write_text('1')
             else:
@@ -87,7 +87,7 @@ def _write_fake_claude(bin_dir, scenario, me):
         use_id = f'toolu_{tid:03d}'
         chunks.append(json.dumps({'type': 'assistant', 'message': {'role': 'assistant', 'content': [
             {'type': 'text', 'text': 'Working.'},
-            {'type': 'tool_use', 'id': use_id, 'name': 'Bash', 'input': {'command': cmd.replace('$ATTICUS_ME', me)}},
+            {'type': 'tool_use', 'id': use_id, 'name': 'Bash', 'input': {'command': cmd.replace('$DELPHI_ME', me)}},
         ]}}))
         chunks.append(json.dumps({'type': 'user', 'message': {'role': 'user', 'content': [
             {'type': 'tool_result', 'tool_use_id': use_id, 'content': 'ok'},
@@ -182,15 +182,15 @@ def run_scenario(scenario, repo, live=False):
     from tests.evals.scenarios import initial_state
 
     repo = Path(repo).resolve()
-    atticus_path = repo / 'atticus.py'
-    if not atticus_path.is_file():
-        raise FileNotFoundError(atticus_path)
+    delphi_path = repo / 'delphi.py'
+    if not delphi_path.is_file():
+        raise FileNotFoundError(delphi_path)
 
-    scratch = tempfile.TemporaryDirectory(prefix='atticus-eval-')  # kept until run_scenario returns
+    scratch = tempfile.TemporaryDirectory(prefix='delphi-eval-')  # kept until run_scenario returns
     state_path = os.path.join(scratch.name, 'state.json')
     log_path = os.path.join(scratch.name, 'tool-log.jsonl')
-    fake_app = Path(scratch.name) / 'fake-atticus-app'
-    _fake_app_script(fake_app, atticus_path)
+    fake_app = Path(scratch.name) / 'fake-delphi-app'
+    _fake_app_script(fake_app, delphi_path)
     state = initial_state(scenario)
     with open(state_path, 'w') as f:
         json.dump(state, f)
@@ -200,32 +200,32 @@ def run_scenario(scenario, repo, live=False):
     fake_claude = str(bin_dir / 'claude')
     _write_fake_osascript(bin_dir)
     if not live:
-        _write_fake_claude(bin_dir, scenario, str(atticus_path))
+        _write_fake_claude(bin_dir, scenario, str(delphi_path))
     environment = {
-        'ATTICUS_DIR': scratch.name,
-        'ATTICUS_APP': str(fake_app),
-        'ATTICUS_FRONT': scenario.get('front_app', 'Fixture'),
-        'ATTICUS_COMMIT': os.path.join(scratch.name, 'commit'),
-        'ATTICUS_UI': '0',
-        'ATTICUS_EVAL_STATE': state_path,
-        'ATTICUS_EVAL_LOG': log_path,
-        'ATTICUS_EVAL_ME': str(atticus_path),
+        'DELPHI_DIR': scratch.name,
+        'DELPHI_APP': str(fake_app),
+        'DELPHI_FRONT': scenario.get('front_app', 'Fixture'),
+        'DELPHI_COMMIT': os.path.join(scratch.name, 'commit'),
+        'DELPHI_UI': '0',
+        'DELPHI_EVAL_STATE': state_path,
+        'DELPHI_EVAL_LOG': log_path,
+        'DELPHI_EVAL_ME': str(delphi_path),
         'PATH': path_prefix,
         'PYTHONPATH': str(EVALS) + os.pathsep + os.environ.get('PYTHONPATH', ''),
     }
     if not live:
-        environment['ATTICUS_CLAUDE'] = fake_claude
+        environment['DELPHI_CLAUDE'] = fake_claude
     stack = contextlib.ExitStack()
     stack.enter_context(mock.patch.dict(os.environ, environment))
-    stack.enter_context(mock.patch.dict(sys.modules))  # put back the atticus module other tests patch
-    for key in ('ATTICUS_ASK', 'ATTICUS_HANDS_STATE', 'ATTICUS_RELAY_OWNER', 'ATTICUS_LIVE'):
+    stack.enter_context(mock.patch.dict(sys.modules))  # put back the delphi module other tests patch
+    for key in ('DELPHI_ASK', 'DELPHI_HANDS_STATE', 'DELPHI_RELAY_OWNER', 'DELPHI_LIVE'):
         os.environ.pop(key, None)
     if live:
-        os.environ.pop('ATTICUS_CLAUDE', None)
-    Path(os.environ['ATTICUS_COMMIT']).write_text('1')
+        os.environ.pop('DELPHI_CLAUDE', None)
+    Path(os.environ['DELPHI_COMMIT']).write_text('1')
 
     try:
-        att = _import_atticus(repo)
+        att = _import_delphi(repo)
     except BaseException:
         stack.close()
         raise
@@ -253,7 +253,7 @@ def run_scenario(scenario, repo, live=False):
 
     def watch_ask():
         while not relay_stop.is_set():
-            d = os.environ.get('ATTICUS_ASK')
+            d = os.environ.get('DELPHI_ASK')
             if d:
                 _auto_allow(d, relay_stop)
             time.sleep(0.05)
@@ -293,7 +293,7 @@ def run_scenario(scenario, repo, live=False):
         mock.patch.object(att, 'POSTHOG_KEY', ''),
         mock.patch.object(att, 'pref', side_effect=lambda k, d: True if k in ('safe', 'improveAsked') else d),
         mock.patch.object(att, 'ask_user', side_effect=auto_ask),
-        mock.patch('sys.argv', [str(atticus_path), scenario['task']]),
+        mock.patch('sys.argv', [str(delphi_path), scenario['task']]),
         mock.patch('sys.stdout', io.StringIO()),
         mock.patch.object(att.os, 'setpgrp'),
         mock.patch.object(att.signal, 'signal'),
@@ -364,8 +364,8 @@ def print_table(rows):
 def main():
     from tests.evals.scenarios import SCENARIOS
 
-    p = argparse.ArgumentParser(description='Atticus task eval harness')
-    p.add_argument('--repo', default=str(ROOT), help='Atticus worktree (atticus.py root)')
+    p = argparse.ArgumentParser(description='Delphi task eval harness')
+    p.add_argument('--repo', default=str(ROOT), help='Delphi worktree (delphi.py root)')
     p.add_argument('--dry', action='store_true', help='Scripted Claude (CI / VM)')
     p.add_argument('--live', action='store_true', help='Real claude -p on this Mac')
     p.add_argument('--id', action='append', help='Run only these scenario ids')

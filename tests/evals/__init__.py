@@ -1,1 +1,1 @@
-# Task eval harness for Atticus (fake Mac + optional live Claude).
+# Task eval harness for Delphi (fake Mac + optional live Claude).
