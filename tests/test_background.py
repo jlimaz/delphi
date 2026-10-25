@@ -179,108 +179,6 @@ class BackgroundTests(unittest.TestCase):
             delphi.keep_behind('Editor', 'Fixture')
             osa.assert_not_called()
 
-    def test_agent_reads_reuse_one_own_window_and_close_it_at_task_end(self):
-        scripts=[]; url=['']
-        def result(args,**kw):
-            if args[0]=='pgrep': return subprocess.CompletedProcess(args,0)
-            self.assertEqual(args[0],'osascript'); script=args[2]; scripts.append(args)
-            self.assertNotRegex(script,r'(?i)activate|AXRaise|frontmost|keystroke|key code')
-            if 'make new tab' in script: return subprocess.CompletedProcess(args,0,'77\t'+str(len(scripts))+('\tnew' if args[-1]=='0' else '\t'),'')
-            if 'get {name, bounds}' in script: out='Fixture, 0, 0, 300, 200'
-            elif 'close window' in script: out=''
-            else:
-                self.assertIn('window id 77',script)
-                out=json.dumps({'signature':url[0]+'|ready'}) if '"ready", ' in args[-1][-35:] else 'page text'
-            return subprocess.CompletedProcess(args,0,out,'')
-        with patch.dict(os.environ,{'DELPHI_AGENT':'fixture'}),patch.object(delphi,'browser_adapter',return_value='chromium'),patch.object(delphi,'page_ready',return_value=True), \
-             patch.object(delphi,'preview_app',return_value=None),patch.object(delphi,'hands_map'),patch.object(delphi,'osa',return_value='Editor'), \
-             patch.object(delphi,'keep_behind') as behind,patch.object(delphi.subprocess,'run',side_effect=result):
-            for i in range(2):
-                url[0]='https://fixture.example/'+str(i)
-                self.assertIn('page text',delphi.web('read',url[0],app='Fixture Browser'))
-            first,second=[a for a in scripts if 'make new tab' in a[2]]
-            self.assertEqual((first[-1],second[-1]),('0','77'))   # the second page reuses the task's window
-            self.assertIn('make new window',first[2]);self.assertIn('set index of prior to 1',first[2])
-            behind.assert_called_once_with('Editor','Fixture Browser',wait=.5)
-            saved=Path(delphi.agent_gate_dir(os.environ['DELPHI_ASK']),'browser-window.json')
-            self.assertEqual(json.loads(saved.read_text()),{'app':'Fixture Browser','window':77});self.assertEqual(saved.stat().st_mode&0o777,0o600)
-            delphi.close_agent_window(os.environ['DELPHI_ASK'])
-            self.assertIn('close window id 77',scripts[-1][2]);self.assertFalse(saved.exists())
-            count=len(scripts);delphi.close_agent_window(os.environ['DELPHI_ASK']);self.assertEqual(len(scripts),count)   # never a window it did not open
-
-    def test_agent_site_placement_uses_main_open_path_only_when_requested(self):
-        url = 'https://unseen.example/catalog'
-        with patch.dict(os.environ, {'DELPHI_AGENT': 'fixture'}), \
-             patch.object(delphi, 'pref', side_effect=lambda k, d: 'front' if k == 'workIn' else d), \
-             patch.object(delphi, 'show', return_value='opened ' + url + ' in front') as show, \
-             patch.object(delphi, 'browser_adapter', return_value=''):
-            delphi.web('read', url, app='Unseen Browser')
-            show.assert_called_once_with(url, bg=True)
-            self.assertTrue(delphi.wants_focus(sites=True))
-            self.assertFalse(delphi.wants_focus('Show this browser'))
-            delphi.save_request(os.environ['DELPHI_ASK'], 'Research in the background')
-            show.reset_mock()
-            delphi.web('read', url, app='Unseen Browser')
-            show.assert_not_called()
-
-    def test_agent_show_in_front_does_not_reenter_url_reader(self):
-        with patch.dict(os.environ, {'DELPHI_AGENT': 'fixture'}), \
-             patch.object(delphi, 'DIR', os.environ['DELPHI_ASK']), \
-             patch.object(delphi, 'pref', side_effect=lambda k, d: 'front' if k == 'workIn' else d), \
-             patch.object(delphi, 'osa', return_value='Fixture Editor'), \
-             patch.object(delphi, 'preview_app', return_value={'app': 'Unseen Browser'}), \
-             patch.object(delphi.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '', '')) as run, \
-             patch.object(delphi, 'web', return_value='Page ready.') as web:
-            self.assertIn('in front', delphi.show('https://unseen.example', bg=True))
-            self.assertIn(unittest.mock.call(['open', 'https://unseen.example']), run.call_args_list)
-            web.assert_called_once_with('wait', text='https://unseen.example', app='Unseen Browser', fresh=True)
-
-    def test_agent_background_show_and_window_reads_preserve_their_pin(self):
-        Path(os.environ['DELPHI_ASK'],'window-summary.json').write_text(json.dumps({'app':'Fixture Browser','web':True}))
-        with patch.dict(os.environ,{'DELPHI_AGENT':'fixture'}),patch.object(delphi,'web',return_value='Page\nControls:') as web:
-            delphi.show('https://fixture.example')
-            web.assert_called_with('read','https://fixture.example')
-            delphi.window_text('Fixture Browser')
-            web.assert_called_with('read',app='Fixture Browser',fresh=False)
-
-    def test_agent_front_stays_background_and_show_respects_user_intent(self):
-        with patch.dict(os.environ, {'DELPHI_AGENT': 'fixture'}), patch.object(delphi, 'preview_app',return_value=None) as preview, patch.object(delphi, 'hands_map', return_value={'description': 'Notes map'}) as mapped, \
-             patch.object(delphi, 'window_target', return_value=self.target), patch.object(delphi, 'look', return_value=[('/fake.jpg', 'Screen 1')]) as looked, \
-             patch.object(delphi, 'osa') as osa, patch('sys.argv', ['delphi.py', '--front', 'Notes', '--asked']), patch('sys.stdout', new_callable=io.StringIO) as out:
-            delphi.main()   # the model's --asked never brings an agent forward: only the user's words do
-            osa.assert_not_called(); self.assertEqual(out.getvalue().strip(), 'Notes map\nScreen 1: /fake.jpg')
-            preview.assert_called_once(); mapped.assert_called_once_with('Notes', target=self.target); looked.assert_called_once_with(cleanup=False, window=self.target)
-        with patch.object(delphi, 'show') as show, patch('sys.stdout', new_callable=io.StringIO), patch('sys.argv', ['delphi.py', '--show', 'Notes']):
-            delphi.main(); show.assert_called_with('Notes', True)
-            delphi.save_request(os.environ['DELPHI_ASK'], 'Open Notes')
-            delphi.main(); show.assert_called_with('Notes', False)
-
-    def test_agent_front_work_follows_only_the_users_words_and_uses_the_real_path(self):
-        self.assertTrue(delphi.asks_front('fill the form in front of me') and delphi.asks_front('do it in the foreground'))
-        self.assertFalse(delphi.asks_front('fill the form in the background'))
-        agents = delphi.Agents(emit=lambda event: None)
-        def started(words=None, brief='Open Keynote and show the deck', **extra):
-            row = agents.new(); row.update(brief=brief, status='offered', **({'request': words} if words else {}), **extra); agents.rows[row['id']] = row
-            agents.start(row['id'])
-            return row, Path(delphi.agent_gate_dir(row['directory']), 'focus-requested')
-        with patch.object(agents, 'warm'), patch.object(agents, 'send'), patch.object(agents, 'save'):
-            self.assertFalse(started('Research flights to Lisbon')[1].exists())
-            self.assertFalse(started()[1].exists())   # a model-written brief alone never brings an agent forward
-            self.assertTrue(started('keep going', focus=True)[1].exists())   # a moved ask that already worked in front
-            row, marker = started('Build the deck in Keynote and show it to me in front')
-        self.assertTrue(marker.exists())
-        with patch.dict(os.environ, {'DELPHI_AGENT': row['id'], 'DELPHI_ASK': row['directory']}):
-            self.assertTrue(delphi.wants_focus())
-            with patch.object(delphi, 'osa') as osa, patch.object(delphi, 'free_focus'), patch.object(delphi, 'look', return_value=[('/fake.jpg', 'Screen')]), \
-                 patch.object(delphi.time, 'sleep'), patch('sys.stdout', new_callable=io.StringIO), patch('sys.argv', ['delphi.py', '--front', 'Keynote']):
-                delphi.main()
-                osa.assert_any_call('tell application "Keynote" to activate')
-            marker.unlink(); Path(row['directory'], 'focus-requested').touch()   # the agent's own folder is writable by the agent: it does not count
-            self.assertFalse(delphi.wants_focus())
-        delphi.save_request(os.environ['DELPHI_ASK'], 'open Keynote and build three slides')
-        move = delphi.MainMove('Request: open Keynote and build three slides', type('Worker', (), {'ask': os.environ['DELPHI_ASK']})())
-        self.assertTrue(move.handoff()['focus'])
-
     def test_front_carries_model_intent_in_any_language(self):
         marker = Path(os.environ['DELPHI_ASK'], 'focus-requested')
         with patch.object(delphi.shutil, 'which', return_value='/fake/claude'), \
@@ -314,10 +212,7 @@ class BackgroundTests(unittest.TestCase):
                     popen.return_value.communicate.return_value = ('', '')
                     delphi.hands_call(['see'])
                     self.assertEqual(popen.call_args.kwargs['env']['DELPHI_FOCUS_REQUESTED'], '1')
-                marker.unlink(missing_ok=True)   # this fixture's agent gate folder is the ask folder itself
-                with patch.dict(os.environ, {'DELPHI_AGENT': 'fixture'}):
-                    self.assertFalse(delphi.wants_focus())
-                    self.assertTrue(delphi.wants_focus(sites=True))
+                marker.unlink(missing_ok=True)
 
     def test_front_works_on_a_window_in_any_state_without_raising_it(self):
         # Oct 21: a page on his second display, not key, was raised by --front although he kept working on the laptop. Any app, any state.

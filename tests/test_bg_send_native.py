@@ -183,41 +183,6 @@ for _ in 0..<count {
         self.assertEqual(self.status("agent-ignore")["value"], prompt)
         self.assertFalse((self.root / "agent-ignore-submitted").exists())
 
-    def test_delphi_agent_steer_uses_stdin_without_touching_the_user_app(self):
-        worker = self.root / "steer-worker.py"
-        received = self.root / "steer-received.jsonl"
-        worker.write_text("""import json,sys,time
-path=sys.argv[1]
-for line in sys.stdin:
- with open(path,'a') as out: out.write(line)
- time.sleep(.1)
-""")
-        events = []
-        with patch.object(delphi, "DIR", str(self.root / "agents-state")), \
-             patch.object(delphi, "pref", side_effect=lambda key, default: default):
-            manager = delphi.Agents(emit=lambda event: events.append(event))
-            self.addCleanup(manager.close)
-            row = manager.new()
-            row.update(status="running", title="Fixture agent", brief="Original task")
-            manager.rows[row["id"]] = row
-            process = subprocess.Popen([sys.executable, str(worker), str(received)], stdin=subprocess.PIPE,
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True, start_new_session=True)
-            manager.processes[row["id"]] = process
-            manager.inputs[row["id"]] = threading.Lock()
-            words = "also run the tests"
-            _, elapsed = self.user_types_during(lambda: manager.steer({
-                "steer": row["id"], "brief": words, "context": words, "ack": "Sent: also run the tests"
-            }))
-            deadline = time.monotonic() + 2
-            while (not received.exists() or not received.read_text()) and time.monotonic() < deadline:
-                time.sleep(.01)
-            sent = json.loads(received.read_text().splitlines()[-1])
-            self.assertEqual(sent["message"]["content"], words)
-            ack = next(event["agent"]["steer"]["ack"] for event in reversed(events) if event["event"] == "steered")
-            self.assertEqual(ack, "Sent: also run the tests")
-            self.assertNotIn("\n", ack)
-            print(f"BACKGROUND SEND Delphi steer: {elapsed:.1f} ms, focus loss {self.status('user')['longestFocusLoss'] * 1000:.1f} ms", flush=True)
-
     def test_orca_cli_receipt_needs_no_window_and_does_not_touch_user_input(self):
         fake = self.root / "orca"
         record = self.root / "orca-send.json"

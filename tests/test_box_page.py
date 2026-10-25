@@ -1,4 +1,4 @@
-"""ui/ui.html in a real WKWebView that is never put in a window: a streamed answer, the Learned pill and an agent's done card."""
+"""ui/ui.html in a real WKWebView that is never put in a window: a streamed answer, math, the pointer tint and the Learned pill."""
 import json
 from pathlib import Path
 import subprocess
@@ -6,9 +6,35 @@ import sys
 import tempfile
 import unittest
 
-from tests.test_shelf_page import HARNESS
-
 ROOT = Path(__file__).resolve().parents[1]
+HARNESS = r'''import Cocoa
+import WebKit
+// Loads the box page; on its "ready" post runs argv[2] as an async function body, prints {"result", "posts"}.
+final class Harness: NSObject, WKScriptMessageHandler {
+    var posts: [Any] = [], web: WKWebView!
+    func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
+        if m.name == "errors" { posts.append(["error": m.body]); return }
+        posts.append(m.body)
+        guard (m.body as? [String: Any])?["ready"] != nil else { return }
+        web.callAsyncJavaScript(CommandLine.arguments[2], arguments: [:], in: nil, in: .page) { r in
+            switch r {
+            case .success(let x):
+                let out = try! JSONSerialization.data(withJSONObject: ["result": x ?? NSNull(), "posts": self.posts])
+                print(String(data: out, encoding: .utf8)!); exit(0)
+            case .failure(let e): print(e); exit(1)
+            }
+        }
+    }
+}
+NSApplication.shared.setActivationPolicy(.prohibited)   // no Dock icon, no menu, no window
+let h = Harness(), cfg = WKWebViewConfiguration()
+cfg.userContentController.add(h, name: "c"); cfg.userContentController.add(h, name: "h"); cfg.userContentController.add(h, name: "errors")
+cfg.userContentController.addUserScript(WKUserScript(source: "addEventListener('error',e=>webkit.messageHandlers.errors.postMessage(String(e.message)));addEventListener('unhandledrejection',e=>webkit.messageHandlers.errors.postMessage(String(e.reason)))", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+h.web = WKWebView(frame: NSRect(x: 0, y: 0, width: 260, height: 400), configuration: cfg)
+h.web.loadHTMLString(try! String(contentsOfFile: CommandLine.arguments[1], encoding: .utf8), baseURL: nil)
+DispatchQueue.main.asyncAfter(deadline: .now() + 50) { print("timeout"); exit(1) }
+NSApplication.shared.run()
+'''
 SCRIPT = r'''
 const a = () => document.querySelector('#thread .turn:last-child .a'), out = {};
 ui.listen(); ui.words('what is it'); ui.think();
@@ -19,22 +45,8 @@ ui.line('✓ It [the link](https://x.co) and more.'); out.final = [a().textConte
 ui.listen(); ui.words('area'); ui.think(); out.math = [];
 for (const s of ['the area is $', 'the area is $\\pi r', 'the area is $\\pi r^2', 'the area is $\\pi r^2$ cm', 'the area is $\\pi r^2$ cm and costs $5 today']) { ui.line('… ' + s); out.math.push(a().textContent.trim()); }
 out.math.push(!!a().querySelector('math'));
-ui.agentDone({id: 'x', title: 'Compare phones', status: 'done', result: 'Found **three** phones [1].', summary: ''});
-const card = document.querySelector('.agent-card');
-out.card = [card.querySelector('b').textContent, card.querySelector('.a').textContent.trim(), [...card.querySelectorAll('.agent-actions button')].map(b => b.textContent)];
-const later = card.querySelector('.agent-actions button:not(.go)'), settle = () => document.getAnimations().filter(a => a.effect.getTiming().iterations !== Infinity).forEach(a => a.finish());   // no window: WebKit never advances motion
-later.scrollIntoView(); const r = later.getBoundingClientRect(), rest = getComputedStyle(later).backgroundColor;
-out.hot = [ui.pointer([r.x + r.width / 2, r.y + r.height / 2], false), later.classList.contains('hot'), card.classList.contains('hot')]; settle(); out.hot.push(rest !== getComputedStyle(later).backgroundColor);
 out.off = [ui.pointer([]), document.querySelectorAll('.hot').length];
-out.x = [ui.pointer([1, 1], true), document.getElementById('x').classList.contains('hot'), later.classList.contains('hot')]; ui.pointer([]);
-ui.agentDone({id:'setup', title:'Set up focus time', summary:'Ready.', learned:'focus time'});
-out.agentLearned = [document.querySelector('.agent-card .tip.learned')?.dataset.k, document.querySelector('.agent-card .tip.learned')?.textContent];
-ui.agentDone({id:'other', title:'Other task', summary:'Done.'}); out.noStaleLearned = !document.querySelector('.agent-card .tip.learned');
-const ack = () => document.querySelector('#thread .turn:last-child .agent-ack span').textContent;
-ui.listen(); ui.agentSteered({id: 'b1', title: 'Ebikes', steer: {text: 'under $1500'}}); ui.agentStarted({id: 'c1', title: 'Bike locks', status: 'running'});
-out.steerAndNew = ack();
-ui.listen(); ui.agentStarted({id: 'c1', title: 'Ebikes', status: 'running'}); ui.agentStarted({id: 'd1', title: 'Helmets', status: 'queued'}); out.two = ack();
-ui.listen(); ui.agentStarted({id: 'e1', title: 'Tents', status: 'queued'}); ui.agentStarted({id: 'f1', title: 'Stoves', status: 'running'}); ui.agentStarted({id: 'g1', title: 'Maps', status: 'running'}); out.mix = ack();
+out.x = [ui.pointer([1, 1], true), document.getElementById('x').classList.contains('hot')]; ui.pointer([]);
 ui.dictate(true); ui.learned('Delphi'); const dn = document.getElementById('dn');
 out.learned = [dn.textContent, getComputedStyle(dn).display, dn.className];
 return out;
@@ -44,9 +56,7 @@ return out;
 @unittest.skipUnless(sys.platform == 'darwin', 'macOS WebKit page check')
 class BoxPageTests(unittest.TestCase):
     def test_box_on_real_webkit(self):
-        harness = HARNESS.replace('cfg.userContentController.add(h, name: "agents")', 'cfg.userContentController.add(h, name: "c"); cfg.userContentController.add(h, name: "h")')
-        harness = harness.replace('?["action"] as? String == "ready"', '?["ready"] != nil')
-        self.assertEqual(harness.count('name: "c"') + harness.count('["ready"] != nil'), 2)   # the shelf harness, pointed at the box's bridge
+        harness = HARNESS
         with tempfile.TemporaryDirectory() as tmp:
             page, src, binary = Path(tmp) / 'ui.html', Path(tmp) / 'page.swift', Path(tmp) / 'page'
             page.write_text((ROOT / 'ui/ui.html').read_text().replace('/*ORBS*/', (ROOT / 'ui/orbs.js').read_text()))
@@ -62,20 +72,12 @@ class BoxPageTests(unittest.TestCase):
         self.assertEqual(out['open'], 'It')   # a link still arriving waits
         self.assertEqual(out['link'], ['the link', 'It the link'])
         self.assertEqual(out['final'], ['It the link and more.', False])
-        self.assertEqual(out['card'][:2], ['Compare phones', 'Found three phones [1].'])
-        self.assertIn('Later', ' '.join(out['card'][2]))
-        self.assertEqual(out['hot'], [True, True, True, True])   # the box never activates: the native pointer tints a card button and asks for the hand
         self.assertEqual(out['off'], [False, 0])   # off the box: arrow, no tint
-        self.assertEqual(out['x'], [True, True, False])   # native's × corner lights the ×
-        self.assertEqual(out['agentLearned'], ['Learned', 'Say “focus time” any time.'])
-        self.assertTrue(out['noStaleLearned'])
-        self.assertEqual(out['steerAndNew'], 'Told the Ebikes agent: under $1500. I started an agent on “Bike locks”. I’ll ping you when it’s done.')   # one ask, both parts
+        self.assertEqual(out['x'], [True, True])   # native's × corner lights the ×
         self.assertEqual(out['math'][:3], ['the area is', 'the area is', 'the area is'])   # math still arriving waits, never a raw $
         self.assertNotIn('$', out['math'][3]); self.assertTrue(out['math'][3].startswith('the area is π'))
         self.assertTrue(out['math'][4].endswith('and costs $5'))   # a price shows at once
         self.assertTrue(out['math'][5])
-        self.assertEqual(out['two'], 'I started an agent on “Ebikes”. I’ll ping you when it’s done. Queued an agent for “Helmets”. It starts when another one finishes.')   # the queued one is not called started
-        self.assertEqual(out['mix'], 'Queued an agent for “Tents”. It starts when another one finishes. I started agents on “Stoves” and “Maps”. I’ll ping you when they’re done.')
         self.assertEqual(out['learned'], ['Learned “Delphi” Undo', 'flex', 'dn tick'])
 
 

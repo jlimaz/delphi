@@ -25,9 +25,9 @@ try {
  <div class="rewrite"><button class="go">Replace</button><button class="del">Delete</button></div><div class="rewrite-note">Selection changed</div><div class="sel">Selected text</div>
  <div class="tip" data-k="Tip">Tip text<button class="off">Turn off tips</button></div><div class="tip learned" data-k="Learned">Learned text</div>
  <div class="mem open"><button class="mem-h"><b>Memory</b><span class="cat">Category</span></button><div class="mem-card"><div class="mem-c">Category</div><button class="mem-i">Memory text<em>Forget</em></button></div></div>
- <div class="ok agent-card"><div class="eyebrow">Agent</div><div class="usage">Usage</div><div class="made"><button><span><b>File</b><small>Details</small></span></button></div><div class="keys"><button class="go">Open<kbd>Return</kbd></button><button>Cancel<kbd>Esc</kbd></button></div></div></div>`;
+`;
  d.getElementById('status').innerHTML='<span>Thinking…</span>';
- w.ui.mode(false);w.ui.agentCount(2);
+ w.ui.mode(false);
  w.ui.hover(true);w.ui.models({list:['haiku','sonnet'],pick:'haiku'});
  const rgba=s=>s.match(/[\d.]+/g).map(Number), over=(fg,bg)=>fg.slice(0,3).map((v,i)=>v*(fg[3]??1)+bg[i]*(1-(fg[3]??1)));
  const lum=c=>c.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);

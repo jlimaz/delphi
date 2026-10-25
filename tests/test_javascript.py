@@ -19,27 +19,6 @@ class JavaScriptTests(unittest.TestCase):
                     p = subprocess.run(['node', '--check', '--input-type=module'], input=code, capture_output=True, text=True)
                     self.assertEqual(p.returncode, 0, p.stderr)
 
-    def test_failed_meeting_stream_restores_retry(self):
-        source = (Path(__file__).resolve().parents[1] / 'ui' / 'meeting.html').read_text()
-        helper = re.search(r'const retryAnswer=.*?;\n', source).group(0)
-        script = '''
-let sent, touched=new Set(), post=value=>sent=value;
-const old={removed:false,remove(){this.removed=true}};
-const body={button:null,append(value){this.button=value}};
-const card={dataset:{id:'q1',question:'Question?'},querySelector(selector){
- if(selector==='.response.streaming')return old;
- if(selector==='.answer')return body.button;
- if(selector==='.body')return body;
-}};
-const document={createElement:()=>({className:'',classList:{remove(){}},disabled:true,textContent:'',onclick:null})};
-''' + helper + '''
-const button=retryAnswer(card);
-button.onclick();
-if(!old.removed||button.disabled||button.textContent!=='Try again'||sent.id!=='q1'||sent.text!=='Question?'||!touched.has('q1'))process.exit(1);
-'''
-        result = subprocess.run(['node', '--input-type=module'], input=script, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-
     def test_dictation_pill_shows_the_wave_not_the_words(self):
         source = (Path(__file__).resolve().parents[1] / 'ui' / 'ui.html').read_text()
         native = (Path(__file__).resolve().parents[1] / 'Delphi.swift').read_text()
@@ -116,7 +95,7 @@ expect(md('snake_case_name and _em_'),'<p>snake_case_name and <em>em</em></p>','
         self.assertIn("post({setup:true})", page)
         self.assertIn('pinned = true; js("workerFailed"); show()', native)
         self.assertIn('if b["workerRetry"] != nil, !busy', native)
-        failed = page[page.index('    workerFailed(){'):page.index('    agentDone(row)')]
+        failed = page[page.index('    workerFailed(){'):page.index('    selected(t) {')]
         self.assertNotIn('retry', re.search(r"className='([^']*)'", failed).group(1), 'typed asks are not answers to this card')
         self.assertIn("'.rewrite, .paused, .worker'", page)
 

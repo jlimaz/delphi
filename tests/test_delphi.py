@@ -181,10 +181,8 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
             with self.subTest(prefs=prefs), patch.object(delphi, 'pref', side_effect=lambda k,d:prefs.get(k,d)):
                 self.assertEqual(delphi.routing_mode(), expected)
                 self.assertEqual(delphi.main_model(), delphi.work_model() if expected == 'capable' else 'haiku')
-                self.assertEqual(delphi.agent_model(), 'haiku' if expected == 'cheapest' else delphi.work_model())
         with patch.object(delphi, 'pref', side_effect=lambda k,d:{'apiBase':'https://fixture.invalid', 'routing':'capable', 'model':'haiku', 'apiModel':'custom'}.get(k,d)):
             self.assertEqual(delphi.main_model(), 'haiku')  # server() maps the alias to its chosen model
-            self.assertEqual(delphi.agent_model(), 'custom')
 
     def routing_ask(self, prefs, outcomes, *, quick=None, retry='n', tip=None, why=''):
         def attempt(*args, **kwargs):
@@ -369,53 +367,6 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
         self.assertEqual(brain.call_count,2); start.assert_called_once_with('haiku'); ask.assert_called_once()
         self.assertIn('Verified fixture state', brain.call_args.args[0])
         self.assertEqual(brain.prior['observations'], [{'action': 'inspect', 'result': 'Verified fixture state', 'error': False}])
-
-    def test_escalation_and_retry_handoffs_are_terminal_with_unknown_usage(self):
-        # offers start without a card, so a directive hand-off is a move too; a steer only updates an agent
-        for first, handoff, said in (('[sonnet]', {'accepted': True}, 'Moved the task to a background agent.'),
-                                     ('Failed attempt.', {'accepted': True}, 'Moved the task to a background agent.'),
-                                     ('[sonnet]', {'title': 'Research', 'brief': 'Research'}, 'Moved the task to a background agent.'),
-                                     ('[sonnet]', {'steer': 'fixture', 'brief': 'Shorter'}, 'Updated a background agent.'),
-                                     ('[sonnet]', [{'title': 'Ebikes', 'brief': 'E'}, {'title': 'Helmets', 'brief': 'H'}], 'Started agents: Ebikes; Helmets.'),
-                                     ('[sonnet]', [{'steer': 'fixture', 'brief': 'S'}, {'title': 'Helmets', 'brief': 'H'}],
-                                      'Updated a background agent. Started an agent: Helmets.')):
-            with self.subTest(first=first, handoff=handoff):
-                def attempt(*args, **kwargs):
-                    brain.ok = False; brain.cmds = []; brain.ran = ['attempt']
-                    brain.handoffs = handoff if isinstance(handoff, list) else [handoff]
-                    brain.handoff = brain.handoffs[0] if brain.call_count == 2 else None
-                    return ('', None, ['moved']) if brain.handoff else (first, .001, [])
-                brain = unittest.mock.Mock(side_effect=attempt)
-                with patch.multiple(delphi, licensed=lambda: True, ping=lambda: None, fast=lambda _: None,
-                                    front=lambda: ('Fixture', 'Scratch'), osa=lambda *a: '', screens=lambda: [],
-                                    selection_context=lambda: '', relevant_rules=lambda _: '', recent=lambda: [],
-                                    workflows=lambda *a: '', screen_for=lambda *a: None, wait_commit=lambda: True,
-                                    run=brain, start_ai=lambda *a: None, remember_turn=unittest.mock.Mock()), \
-                     patch.object(delphi,'pref',side_effect=lambda k,d: {'escalateAuto':True}.get(k,d)), \
-                     patch.object(delphi,'log_turn') as log,patch.object(delphi,'remember_workflow') as learn, \
-                     patch.object(delphi.threading,'Thread'),patch.dict(os.environ,{'DELPHI_UI':'1','DELPHI_ASK':delphi.DIR}), \
-                     patch('sys.argv',['delphi.py','Fixture task']),patch('sys.stdout',io.StringIO()):
-                    delphi.main()
-                    self.assertEqual(delphi.remember_turn.call_args.args[1],said)   # a follow-up ("what did they say?") sees this turn
-                self.assertEqual(brain.call_count,2)
-                self.assertIsNone(log.call_args.args[3]);self.assertEqual(log.call_args.args[4],['moved'])
-                self.assertEqual(log.call_args.args[1],said)
-                self.assertEqual(log.call_args.kwargs['attempt_usd'],[.001])
-                learn.assert_not_called()
-
-    def test_partial_request_handoff_keeps_one_original_log_row(self):
-        brain=unittest.mock.Mock(return_value=('',None,[]));brain.handoff={'accepted':True};brain.handoffs=[brain.handoff];brain.ran=[];brain.ok=True
-        request=json.dumps({'front':'Fixture','task':'Original request','done':['Opened fixture.'],'remaining':'Finish it'})
-        with patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,allow_focus=lambda _:None,
-                            front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],selection_context=lambda:'',
-                            relevant_rules=lambda _:'',recent=lambda:[],workflows=lambda *a:'',screen_for=lambda *a:None,
-                            wait_commit=lambda:True,run=brain,start_ai=lambda *a:None), \
-             patch.object(delphi,'log_turn') as log,patch.object(delphi.threading,'Thread'),patch.object(delphi.os,'setpgrp'), \
-             patch.object(delphi.signal,'signal'),patch('sys.argv',['delphi.py','--wait']),patch('sys.stdin',io.StringIO(request+'\n')), \
-             patch.dict(os.environ,{'DELPHI_UI':'1','DELPHI_COMMIT':''}),patch('sys.stdout',io.StringIO()):
-            delphi.main()
-        self.assertEqual(log.call_args.args[0],'Original request')
-        self.assertEqual(log.call_args.kwargs['attempt_usd'],[])
 
     def test_summary_deadline_does_not_start_a_late_unused_capture(self):
         class NoThread:
@@ -724,15 +675,12 @@ print(json.dumps(delphi.look(cleanup=sys.argv[3] != 'standalone')))
         with tempfile.TemporaryDirectory() as root:
             denied = json.loads(gate(DELPHI_ASK=root))['hookSpecificOutput']
             self.assertEqual(denied['permissionDecision'], 'deny'); self.assertIn(delphi.SEARCH, denied['permissionDecisionReason'])
-            agent = json.loads(gate(DELPHI_ASK=root, DELPHI_AGENT='fixture'))['hookSpecificOutput']
-            self.assertEqual(agent['permissionDecision'], 'deny'); self.assertIn(delphi.SEARCH, agent['permissionDecisionReason'])
             with patch.dict(os.environ, {'DELPHI_ASK': root}), patch.object(delphi, 'search', return_value='no results'), \
                  patch('sys.argv', ['delphi.py', '--search', 'fixture']), patch('sys.stdout', new_callable=io.StringIO):
                 delphi.main()
-            allowed = json.loads(gate(DELPHI_ASK=root, DELPHI_AGENT='fixture'))['hookSpecificOutput']
-            self.assertEqual(allowed['permissionDecision'], 'allow')   # after the free search, WebSearch is the fallback
+            self.assertEqual(gate(DELPHI_ASK=root), '')   # after the free search, WebSearch is the fallback: the gate lets it through
 
-    def test_web_search_redirect_is_not_a_failed_step_or_a_move_step(self):
+    def test_web_search_redirect_is_not_a_failed_step(self):
         use = {'type': 'assistant', 'message': {'content': [{'type': 'tool_use', 'id': 'w', 'name': 'WebSearch', 'input': {'query': 'fixture'}}]}}
         denied = {'type': 'user', 'message': {'content': [{'type': 'tool_result', 'tool_use_id': 'w', 'is_error': True, 'content': 'Run --search first'}]}}
         with tempfile.TemporaryDirectory() as root:
@@ -742,11 +690,6 @@ print(json.dumps(delphi.look(cleanup=sys.argv[3] != 'standalone')))
             with patch.object(delphi, 'say'):
                 reply, _, steps = delphi.run('fixture', p)
             self.assertEqual((reply, steps, delphi.run.ok, delphi.run.error), ('Sofia.', [], True, ''))   # no failure card, no "Tool reported"
-            move = delphi.MainMove('fixture', p); move.record(use); move.record(denied)
-            self.assertEqual(move.trace, {})   # three real steps move an ask; the redirect is not one
-            open(os.path.join(root, 'searched'), 'w').close()
-            move.record(use)
-            self.assertIn('w', move.trace)
 
     def test_devin_gate_blocks_before_confirmation_and_records_confirmed_steps(self):
         with tempfile.TemporaryDirectory() as root, patch.dict(os.environ, {'DELPHI_ASK': root, 'DELPHI_CLIENT': 'devin'}):
@@ -906,7 +849,7 @@ print('Ready.')
             delphi.run.__dict__.clear()
             with patch.object(delphi, 'client', return_value=name), patch.object(delphi, 'run_' + name, return_value=('x', 0, 0)):
                 delphi.run('task')
-            self.assertEqual((delphi.run.work, delphi.run.observed, delphi.run.handoffs), (False, [], []))
+            self.assertEqual((delphi.run.work, delphi.run.observed), (False, []))
 
     def test_pi_does_not_start_before_confirmation(self):
         with tempfile.TemporaryDirectory() as root:

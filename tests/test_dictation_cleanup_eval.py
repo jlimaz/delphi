@@ -138,7 +138,7 @@ class DictationCleanupEval(unittest.TestCase):
 
         latencies, exact, norm, safety = [], 0, 0, 0
         misses = []
-        call_patch = patch.object(delphi, "meeting_call", side_effect=fake_call) if not live else patch.object(delphi, "meeting_call", wraps=delphi.meeting_call)
+        call_patch = patch.object(delphi, "quick_call", side_effect=fake_call) if not live else patch.object(delphi, "quick_call", wraps=delphi.quick_call)
         with patch.object(delphi, "relevant_rules", return_value=""), call_patch:
             for name, source, output in FIXTURES:
                 started = time.monotonic()

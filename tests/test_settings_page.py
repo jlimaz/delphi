@@ -39,9 +39,8 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 20) { print("timeout"); exit(1)
 nsapp.run()
 '''
 SETUP = '''
-st.load({prefs: {hotkeyLabel: '⌃⌥Space', volume: .16, meeting: true}});
-const use = {asks: 0, usd: 0, secs: 0};
-st.state({today: use, week: use, all: use, rules: ['Keep it short'], skills: [{say: 'focus mode', reply: 'Done'}],
+st.load({prefs: {hotkeyLabel: '⌃⌥Space', volume: .16}});
+st.state({rules: ['Keep it short'], skills: [{say: 'focus mode', reply: 'Done'}],
   me: {facts: [{id: 'f1', category: 'basics', kind: 'name', value: 'Sam', source: 'you', date: ''}]}, plan: {ok: true, text: 'Ready'}});
 const tick = ms => new Promise(r => setTimeout(r, ms));
 '''
@@ -73,7 +72,7 @@ class SettingsPageTests(unittest.TestCase):
         self.assertGreater(len(lines), 40)
         self.assertEqual([t for t in lines if len(t.split()) > 14], [])   # rare detail goes in an info tip
         self.assertTrue(all(re.search(r'<i class="info" title="[^"]+">i</i></span>', m) for m in re.findall(r'<span>[^<]*<i class="info".*?</span>', page)))
-        self.assertIn('Risky actions need approval. Background agents use a scratch folder.', page)
+        self.assertIn('Risky actions need approval.</span>', page)
 
     def test_notice_shows_and_its_action_runs_once(self):
         out = self.page('''st.notice({text: 'Couldn’t save that change, so the old setting is back.'});
@@ -151,18 +150,18 @@ class SettingsPageTests(unittest.TestCase):
                 self.assertNotIn(f'data-k="{key}"', page)
                 self.assertNotIn(key, delphi.switches())
                 self.assertNotIn(key, delphi.picks())
-        self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 9)   # 8 pages and Report feedback
+        self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 7)   # 6 pages and Report feedback
 
     def test_pages_wear_their_sidebar_color_and_row_actions_show_on_focus(self):
         out = self.page("""document.body.classList.add('reduce');
             const nav=[...document.querySelectorAll('nav button[data-s] .ni')].map(i=>i.style.background);
             const titled=[...document.querySelectorAll('nav button[data-s] .ni')].map(i=>$(i.parentNode.dataset.s).querySelector('h1 .ni')?.style.background===i.style.background);
-            st.load({prefs:{hotkeyLabel:'⌃⌥Space'},routines:[{id:'r',kind:'interval',every:3600,ask:'Check'}]}); const x=$('routines').querySelector('.x');
+            st.load({prefs:{hotkeyLabel:'⌃⌥Space'}}); st.state({rules:['Keep it short'],skills:[],plan:{ok:true,text:'Ready'},me:{facts:[]}}); const x=$('rules').querySelector('.x');
             const reveal=[...document.styleSheets[0].cssRules].find(r=>r.selectorText?.includes('.row:hover > .x'))?.selectorText||'';   // a windowless view never takes focus
             return [new Set(nav).size===nav.length,titled,getComputedStyle(x).opacity,reveal.includes('.row:focus-within > .x'),!!$('general').querySelector('[data-do=quit]'),!!$('account').querySelector('[data-do=quit]')];""")
         distinct, titled, hidden, keyboard, quit_general, quit_account = out['result']
         self.assertTrue(distinct)
-        self.assertEqual(titled, [True] * 7 + [False])   # About has its own big icon
+        self.assertEqual(titled, [True] * 5 + [False])   # About has its own big icon
         self.assertEqual((hidden, keyboard), ('0', True))
         self.assertEqual((quit_general, quit_account), (True, False))
 
@@ -173,15 +172,6 @@ class SettingsPageTests(unittest.TestCase):
             self.assertNotIn(gone, delphi.switches())
             self.assertNotIn(gone, delphi.picks())
         self.assertEqual(delphi.picks()['dictateMode'][1], {'Verbatim': 'verbatim', 'Clean up': 'cleanup'})
-
-    def test_scheduled_routines_list_and_remove(self):
-        out = self.page("""st.load({prefs:{hotkeyLabel:'⌃⌥Space'},routines:[
-              {id:'weekday',kind:'time',at:'08:00',days:'weekdays',ask:'Summarize my calendar'},
-              {id:'hourly',kind:'interval',every:3600,ask:'Check the fixture'}]});
-            const labels=[...$('routines').querySelectorAll('.t b')].map(e=>e.textContent);
-            $('routines').querySelector('.x').click(); return labels;""")
-        self.assertEqual(out['result'], ['Weekdays at 8:00 AM', 'Every hour'])
-        self.assertIn({'do': 'routineRemove', 'id': 'weekday'}, out['posts'])
 
     def test_single_deletes_wait_for_undo(self):
         out = self.page('''const row = () => document.querySelector('#rules [data-i="0"]').closest('.row');
@@ -265,7 +255,7 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn('Try importing again', out['result'][1])
         self.assertEqual(out['result'][2], 0)
 
-    def test_state_lists_recent_answers_newest_first(self):
+    def test_state_carries_no_usage_or_ask_history(self):
         sys.path.insert(0, str(ROOT)); import delphi
         rows = [{'at': '2026-10-14 08:00:00', 'task': 'open notes', 'reply': 'Opened Notes', 'usd': 0, 'secs': 1},
                 {'id': '1-1', 'at': '2026-10-15 09:00:00', 'task': 'weather', 'status': 'running', 'pid': os.getpid()},   # a checkpoint with no answer yet
@@ -277,7 +267,7 @@ class SettingsPageTests(unittest.TestCase):
                  patch.object(delphi, 'me', return_value={}), patch('sys.argv', ['delphi.py', '--state']), \
                  contextlib.redirect_stdout(io.StringIO()) as out:
                 delphi.main()
-        self.assertEqual([(a['task'], a['reply']) for a in json.loads(out.getvalue())['asks']], [('weather', 'Sunny'), ('open notes', 'Opened Notes')])
+        self.assertEqual(set(json.loads(out.getvalue())), {'rules', 'plan', 'skills', 'me'})
 
 
 if __name__ == '__main__':

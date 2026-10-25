@@ -26,8 +26,6 @@ Needs macOS 26 and an AI client: Claude Code on a Claude plan, Devin, Pi or a lo
 - **Sees your screen.** Ask about anything on screen. Ask "where do I click?" and it points at the spot.
 - **Draws to explain.** "Explain this and draw it" builds a labeled diagram on your screen.
 - **Dictate anywhere.** Hold fn, talk, let go. Your words land in any text field, cleaned up.
-- **Background agents.** Big jobs run behind your apps while you keep working.
-- **Meeting Copilot.** Answers and notes during calls, saved on your Mac.
 - **Remembers you.** Say "remember…" and every ask after that knows it.
 - **Your plan, no API key.** Runs on Claude, Devin, Pi or a local model.
 - **Private and safe.** Your voice stays on your Mac. Deletes, sends and purchases ask first.
@@ -99,9 +97,9 @@ The drawing stays while you keep asking about it, and Delphi can add to it; it c
 
 ## Model choice
 
-In Settings → Intelligence, choose **Cheapest**, **Balanced** (the default) or **Most capable**. Cheapest keeps every ask, meeting question and new agent on Haiku. Balanced keeps questions and quick commands on Haiku and gives real work to your work model; if a task turns multi-step, fails, or ends without a confirmed result, it continues once on the work model. Most capable uses the work model for every AI ask and agent. Instant commands skip the AI in every mode. **Work model** picks Sonnet or Opus; Opus is stronger and uses more of your plan.
+In Settings → Intelligence, choose **Cheapest**, **Balanced** (the default) or **Most capable**. Cheapest keeps every ask on Haiku. Balanced keeps questions and quick commands on Haiku and gives real work to your work model; if a task turns multi-step, fails, or ends without a confirmed result, it continues once on the work model. Most capable uses the work model for every AI ask. Instant commands skip the AI in every mode. **Work model** picks Sonnet or Opus; Opus is stronger and uses more of your plan.
 
-With a custom server connected, Delphi uses that server's model. Under **Custom server**, choose an **Agent model** from its model list, or leave it empty to use the main model. Running agents keep their current model.
+With a custom server connected, Delphi uses that server's model.
 
 ## Use a local model
 
@@ -122,29 +120,9 @@ Delphi can send Claude Code to a local server that implements the Anthropic Mess
 
 Small local models are usually weaker at reliable tool use and following long screen context. Screen reading also needs a vision-capable model; text-only models can still use accessible window and page text.
 
-## Agents
+## Pi and Devin
 
-Ask for something big ("find me USB-C hubs") and Delphi hands it to a background agent. A chip shows up in the corner while you keep working. The box, the dictation pill, the chips and the done card show up on the display your mouse is on. Hover it to see the live steps and a mini screen of the work. To change course, just talk: "tell the hub agent to check HDMI too" steers the running agent instead of starting a new one. When it finishes, a card shows the result once you stop typing. During a meeting or screen share, you get a quiet notification instead. If an agent needs a permission or a connector, it asks on its chip, then carries on. Turn on agents and their connectors in Settings → Agents (or the setup step).
-
-A long ask in the box moves to an agent by itself, with no card, and agents Delphi offers start right away. To move one sooner, press ⌃⌥↩ from any app while it runs.
-
-Agents work behind you. Their clicks, typing, scrolling and keys go straight to the app they work in, so your pointer, your front app, your windows and your Space stay where they are. Web work happens in the agent's own browser window, in your signed-in profile; your tabs are left alone, and the window closes when the task ends. If an agent's process stops mid-task, Delphi restarts it once and it picks up where it was. When an agent asks to do something, **Always allow for this task** approves that same kind of action until the task ends; the next task asks again.
-
-### Named agents
-
-Say “make an agent called Researcher that finds sources and writes a short brief” to save reusable instructions, then “ask Researcher to…” to start it. Saved agents can include a folder or files and can be listed, renamed, or deleted by voice or in the Agents view.
-
-Background agents currently require Claude Code. Pi and Devin handle foreground asks; their meeting transcripts and recaps stay local. Pi has no built-in sandbox, so Delphi disables its direct file-edit and MCP tools and Safe mode asks before every shell command; its read tools still have your account’s file access.
-
-## Meeting Copilot
-
-Enable Meeting Copilot in Settings → Meetings → Meeting Copilot settings, then open it for a call or try the demo. Drag its header or empty background in any state; the minimized pill also drags. Positions and expanded sizes are remembered per display. Double-click the header to return to the default spot. Frames stay inside the display’s usable area, including after a display change.
-
-**Save meeting transcripts** is on by default. While listening, a quiet indicator shows when saving is active. Text, speaker labels, timestamps, notes and copilot answers save incrementally under `$DELPHI_DIR/meetings/<meeting-id>/` (normally `~/.config/delphi/meetings/`). Each folder is private (`0700`), with `metadata.json` and an append-only `events.jsonl` (`0600`). Unfinished speech is checkpointed every two seconds; interrupted calls remain readable. Audio is never saved.
-
-Settings → **Meetings**, or **See all meetings** after a call, opens the local archive. Search titles and transcripts, use ↑/↓ and Return to browse, ⌘F to search and Esc to go back. Each meeting shows its recap, action items, notes, answers and timestamped transcript. Copy, export Markdown, or delete with confirmation. Turning saving off stops the current archive and asks whether to keep or delete past meetings.
-
-With **AI meeting summaries** on (the default), Claude reads the transcript once after each ended session and writes a summary and action items, on your own Claude plan. Turn it off to keep transcripts entirely on your Mac; you still get a simpler local recap that quotes decisions and opening/closing speech. A failed AI recap leaves the local transcript intact. Resuming cancels a pending recap and the next End summarizes the full transcript. Closing or pausing stops recap work; already saved text stays on your Mac. Asking Delphi about a past meeting lets it search that archive with `--meeting-history "<keywords, weekday or YYYY-MM-DD>"`. Live question answering retains the selected Meeting Copilot answer policy.
+Pi and Devin handle asks just like Claude. Pi has no built-in sandbox, so Delphi disables its direct file-edit and MCP tools and Safe mode asks before every shell command; its read tools still have your account’s file access.
 
 ## Feedback
 
@@ -179,7 +157,7 @@ The flake installs its packaged Delphi version, so macOS 26+ and Apple's command
 Working on the code instead? Clone the repo anywhere and run `./build.sh` after each change. A Devbox environment is included for Python regression tests; run `devbox shell`, then `devbox run test`.
 
 The first launch opens a setup window. It checks your AI plan, then asks for each macOS permission.
-After that, Delphi lives in the menu bar. Open it from Spotlight (⌘Space, "Delphi") for Settings: shortcut, voice, model, privacy, memory and usage. Settings and setup follow your Mac's light or dark appearance.
+After that, Delphi lives in the menu bar. Open it from Spotlight (⌘Space, "Delphi") for Settings: shortcut, voice, model, privacy and memory. Settings and setup follow your Mac's light or dark appearance.
 If you sign out of your AI client later, the setup window comes back by itself.
 To see it again: `defaults delete com.delphi.app onboarded`, then restart the app.
 
@@ -190,10 +168,6 @@ Remove: `launchctl bootout gui/$(id -u)/com.delphi.app`, then delete `~/Applicat
 ## Watch for me
 
 Say "tell me when Codex is done" or "watch this page until it says shipped". Delphi sets it up once, then checks every 5 seconds on your Mac with no AI, so waiting is free. When it fires you get a notification, and it runs a follow-up if you asked for one. A window must stay open on this desktop (covered is fine). Coding agents like Codex are watched through their own log, with no screen at all. Say "stop watching" to cancel.
-
-## Routines
-
-Say "every weekday at 8, summarize my calendar" or "every 30 minutes, check my inbox". Delphi saves a routine and macOS wakes it on time, so it costs nothing while it waits. Each run starts a background agent on Cheapest unless you chose another mode, and you get a notification with the result. Runs are skipped while Delphi is paused, and a restart never repeats one. See and remove routines in Settings → General → Scheduled routines, or ask Delphi to remove one. Like other agents, routines need Claude Code.
 
 ## Budget
 
@@ -224,6 +198,6 @@ MIT. See `LICENSE`. `ui/orbs.js` is from [thinking-orbs](https://github.com/Jaku
 
 ## Contributing
 
-Run regressions with a scratch `DELPHI_DIR` and use `tests/ui.html` and `tests/settings.html` for mock-bridge UI checks. Keep personal agent settings, credentials and runtime state out of commits. Anonymous usage telemetry uses a public PostHog capture token. Set `DELPHI_POSTHOG_KEY` to override it (an empty value disables telemetry), or turn off Count me as a user in Settings.
+Run regressions with a scratch `DELPHI_DIR` and use `tests/ui.html` and `tests/settings.html` for mock-bridge UI checks. Keep personal settings, credentials and runtime state out of commits. Anonymous usage telemetry uses a public PostHog capture token. Set `DELPHI_POSTHOG_KEY` to override it (an empty value disables telemetry), or turn off Count me as a user in Settings.
 
 Hands: ideas and some logic adapted from Plip (github.com/hussainn7/plip-oss, MIT). Background key authentication and menu-shortcut presses follow Cua Driver (github.com/trycua/cua, MIT).

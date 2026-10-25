@@ -17,31 +17,8 @@
     font: 13px -apple-system, system-ui, sans-serif; color: var(--fg); -webkit-font-smoothing: antialiased; }
   body { display: flex; }
 
-  #meetingq,#askq,#dictationsearch { width:100%;height:32px;box-sizing:border-box;background:var(--ctl);color:var(--fg);border:0;border-radius:8px;padding:0 12px;font:13px system-ui;box-shadow:inset 0 0 0 .5px var(--line),0 1px 1px rgba(0,0,0,.04);outline:none;-webkit-user-select:text; }
-  #meetingq:focus,#askq:focus,#dictationsearch:focus { box-shadow:inset 0 0 0 .5px var(--line),0 0 0 3px rgba(10,132,255,.35); }
-  #meetingcount { margin:12px 2px 8px;font-size:11px;color:var(--fg3); }
-  #meetinglist { overflow:hidden; }
-  .meetingrow { all:unset;display:block;box-sizing:border-box;width:100%;padding:13px 14px;cursor:pointer;transition:background .15s; }
-  .meetingrow + .meetingrow { box-shadow:inset 0 .5px 0 var(--line); }
-  .meetingrow:hover { background:var(--sel); }
-  .meetingrow:focus-visible,#meetingq:focus ~ #meetinglist .meetingrow.selected { background:rgba(10,132,255,.12);outline:none;box-shadow:inset 2px 0 0 var(--accent); }   /* the row Return opens, only while you browse */
-  .meetingrow b { display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-  .meetingrow small { display:block;margin:4px 0;font-size:11px;color:var(--fg3);font-variant-numeric:tabular-nums; }
-  .meetingrow span { display:block;font-size:12px;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-  #meetingdetail { animation:rise .24s var(--out); }
-  #meetingdetail h1 { overflow-wrap:anywhere;margin-top:14px; }
-  #meetingmeta { color:var(--fg3);font-size:12px;margin:8px 0 16px; }
-  #meetingdetail .tools { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
-  #meetingdetail .tools .red { margin-left:auto; }
-  #meetingsummary,#meetingactions,#meetingnotes,#meetinganswers { white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere;padding:14px;-webkit-user-select:text; }
-  .savedline { display:flex;gap:14px;padding:10px 14px;line-height:1.55;-webkit-user-select:text; }
-  .savedline + .savedline { box-shadow:inset 0 .5px 0 var(--line); }
-  .savedline time { color:var(--fg3);font-size:11px;flex:none;font-variant-numeric:tabular-nums;padding-top:2px; }
-  .savedline div { min-width:0;overflow-wrap:anywhere;white-space:pre-wrap; }
-  .savedline b { display:block;color:var(--fg2);font-size:11px;font-weight:500;margin-bottom:2px; }
-  #meetingmessage { font-size:12px;color:var(--fg2);margin:12px 0; }
-  #askq { margin-bottom:8px; } #asklist { max-height:320px;overflow-y:auto; }
-  #asklist .t span { -webkit-user-select:text;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap; }
+  #dictationsearch { width:100%;height:32px;box-sizing:border-box;background:var(--ctl);color:var(--fg);border:0;border-radius:8px;padding:0 12px;font:13px system-ui;box-shadow:inset 0 0 0 .5px var(--line),0 1px 1px rgba(0,0,0,.04);outline:none;-webkit-user-select:text; }
+  #dictationsearch:focus { box-shadow:inset 0 0 0 .5px var(--line),0 0 0 3px rgba(10,132,255,.35); }
   #notice { position:fixed;bottom:16px;left:208px;right:0;margin:0 auto;width:fit-content;max-width:420px;display:flex;align-items:center;gap:12px;
     padding:8px 8px 8px 14px;border-radius:11px;background:var(--pop);box-shadow:inset 0 0 0 .5px var(--line),0 6px 20px rgba(0,0,0,.18);font-size:12.5px;animation:rise .2s var(--out); }
   @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important; } }
@@ -63,7 +40,7 @@
   .ni svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
   nav .spacer { flex: 1; }
   #feedbacknav { color: #0066cc; } @media (prefers-color-scheme: dark) { #feedbacknav { color: var(--accent); } } #feedbacknav.on { color: #fff; } #feedbacknav .out { width: 13px; height: 13px; margin-left: -4px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }   /* reads as a link: easy to miss as plain text */
-  #dictationnav { margin-bottom: 10px; } #agentsnav .count { margin-left: auto; } #agentsnav.on .count { color: rgba(255,255,255,.8); }
+  #dictationnav { margin-bottom: 10px; }
   nav .ver { color: var(--fg3); font-size: 11px; padding: 0 8px; }
 
   /* content */
@@ -150,13 +127,9 @@
   .btn.red { color: var(--danger); }
   .btn:focus-visible { outline: 2px solid rgba(10,132,255,.5); }
 
-  /* usage */
-  .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-  .stat { grid-column: span 2; } .stat:nth-child(n+4) { grid-column: span 3; }   /* three totals, then the two averages fill the row */
-  .stat { background: var(--card); border-radius: 11px; padding: 14px; box-shadow: inset 0 0 0 .5px var(--line); }
-  .stat small, .dstats small { color: var(--fg3); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-  .stat b, .dstats b { display: block; font: 600 24px system-ui; letter-spacing: -.02em; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
-  .stat span, .dstats span { color: var(--fg2); font-size: 12px; }
+  .dstats small { color: var(--fg3); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .dstats b { display: block; font: 600 24px system-ui; letter-spacing: -.02em; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .dstats span { color: var(--fg2); font-size: 12px; }
   /* dictation: one card, four numbers split by hairlines */
   .dstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .dstats > div { padding: 14px 16px 13px; min-width: 0; }
@@ -258,25 +231,15 @@
   .about h1 { margin: 0; } .about p { color: var(--fg2); margin: 4px 0 0; }
   #feedbacktext { display:block;width:100%;box-sizing:border-box;resize:vertical;font:13px/1.5 system-ui;color:var(--fg);background:transparent;border:0;padding:14px;margin:14px 0 0;outline:none; }
   #feedbackbody { white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 system-ui;color:var(--fg2);padding:14px;margin:14px 0;-webkit-user-select:text; }
-  .meeting-prep { margin:0 0 6px; } .meeting-prep .row { gap:8px; } .meeting-prep .t { margin-right:6px; }
-  .meeting-controls { margin:0; }
-  .meeting-controls summary { color:var(--fg2);cursor:pointer;padding:10px 2px;font-weight:500;list-style:none;display:flex;align-items:center;gap:8px; }
-  .meeting-controls summary::-webkit-details-marker { display:none; }
-  .meeting-controls summary::before { content:"›";color:var(--fg3);font-size:17px;line-height:1;transition:transform .15s var(--ease); }
-  .meeting-controls[open] summary::before { transform:rotate(90deg); }
-  .meeting-controls summary:focus-visible { outline:2px solid var(--accent);border-radius:5px; }
   #dictation .field { text-align:left; }
 </style></head><body>
 
 <nav>
   <div class="me"><img id="icon" alt=""><div><b>Delphi</b><span>Just ask.</span></div></div>
-  <button id="agentsnav" aria-label="Open Agents"><i class="ni" style="background:#30b0c7"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="13" height="12" rx="2.5"/><path d="M8 4.5h9.5A2.5 2.5 0 0 1 20 7v9"/></svg></i>Agents<span class="count" id="agentcount"></span></button>
   <button data-s="dictation" id="dictationnav"><i class="ni" style="background:#ff375f"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M8 21h8"/></svg></i>Dictation</button>
   <button data-s="general" class="on" aria-current="page"><i class="ni" style="background:#8e8e93"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></i>General</button>
   <button data-s="brain"><i class="ni" style="background:#d97757"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg></i>Intelligence</button>
   <button data-s="memory"><i class="ni" style="background:#ff9f0a"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg></i>Memory</button>
-  <button data-s="meetings"><i class="ni" style="background:#5e5ce6"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h7"/></svg></i>Meetings</button>
-  <button data-s="usage"><i class="ni" style="background:#30d158"><svg viewBox="0 0 24 24"><path d="M5 19V11M12 19V5M19 19v-6"/></svg></i>Usage</button>
   <button data-s="account"><i class="ni" style="background:#0a84ff"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Account &amp; Access</button>
   <button data-s="about"><i class="ni" style="background:#bf5af2"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></svg></i>About &amp; Updates</button>
   <div class="spacer"></div>
@@ -327,7 +290,8 @@
     <h3>Voice</h3>
     <div class="group">
       <div class="row"><div class="t"><b>Microphone</b></div><select data-k="microphone"></select></div>
-      <div class="row"><div class="t"><b>Speech model</b><span>Speech stays on this Mac. <i class="info" title="Speech: free, English (US), on this Mac. Dictation: the model your keyboard’s mic uses.">i</i></span></div><div class="seg" data-k="speechModel"><button data-v="speech">Speech</button><button data-v="dictation">Dictation</button></div></div>
+      <div class="row"><div class="t"><b>Speech model</b><span>Speech stays on this Mac. <i class="info" title="Speech: free, on this Mac. Dictation: the model your keyboard’s mic uses.">i</i></span></div><div class="seg" data-k="speechModel"><button data-v="speech">Speech</button><button data-v="dictation">Dictation</button></div></div>
+      <div class="row"><div class="t"><b>Speech language</b><span>The language you speak to Delphi.</span></div><div class="seg" data-k="speechLanguage"><button data-v="en-US">English</button><button data-v="pt-BR">Português</button></div></div>
       <div class="row"><div class="t"><b>Sound volume</b></div><input type="range" min="0" max="0.6" step="0.02" data-k="volume"><span class="val" id="volv"></span></div>
     </div>
     <h3>Answers</h3>
@@ -343,8 +307,6 @@
       <div class="row"><div class="t"><b>Show in menu bar</b><span>Hidden? Open it from Spotlight.</span></div><label class="sw"><input type="checkbox" data-k="menuIcon"></label></div>
       <div class="row"><div class="t"><b>Quit Delphi</b><span>Reopen it from Spotlight.</span></div><button class="btn red" data-do="quit">Quit</button></div>
     </div>
-    <h3>Scheduled routines</h3>
-    <div class="group" id="routines"></div>
   </section>
 
   <section id="brain">
@@ -356,17 +318,12 @@
       <div class="row"><div class="t"><b>Intelligence</b><span id="routingwhy"></span></div><div class="seg" data-k="routing"><button data-v="cheapest">Cheapest</button><button data-v="balanced">Balanced</button><button data-v="capable">Most capable</button></div></div>
       <div class="row"><div class="t"><b>Work model</b><span>Opus is stronger, uses more of your plan.</span></div><div class="seg" data-k="model"><button data-v="sonnet">Sonnet</button><button data-v="opus">Opus</button></div></div>
     </div>
-    <h3 id="agentsheading">Background agents</h3>
-    <div class="group" id="agentsettings">
-      <div class="row"><div class="t"><b>Use my Claude Code tools</b><span>MCP servers, skills and plugins.</span></div><label class="sw"><input type="checkbox" data-k="agentUserTools"></label></div>
-    </div>
     <h3>Custom server</h3>
     <div class="group">
       <div class="row" id="localserver" hidden><div class="t"><b id="localname"></b><span>Already running on this Mac.</span></div><button class="btn blue" id="uselocal"></button></div>
       <div class="row"><div class="t"><b>Address</b><span>Ollama, LM Studio or any Claude-style API.</span></div><input class="field" id="apiBase" placeholder="https://api.deepseek.com/anthropic" spellcheck="false" aria-label="Custom server address"></div>
       <div class="row"><div class="t"><b>Key</b></div><input class="field" id="apiKey" type="password" placeholder="Not needed for local servers" aria-label="Custom server key"></div>
       <div class="row"><div class="t"><b>Model</b><span id="srvnote" role="status">Needs vision for screen tasks.</span></div><input class="field" id="apiModel" list="apimodels" placeholder="deepseek-flash" spellcheck="false" aria-label="Custom server model"><datalist id="apimodels"></datalist></div>
-      <div class="row" id="agentServerModel" hidden><div class="t"><b>Agent model</b><span>For background agents.</span></div><input class="field" id="agentApiModel" list="apimodels" placeholder="Same as main model" spellcheck="false" aria-label="Custom server agent model"></div>
     </div>
   </section>
 
@@ -386,15 +343,6 @@
     <p class="lede" style="margin:9px 2px 0;font-size:11.5px">Say “remember…” or add one here.</p>
     <h3>Saved commands and procedures</h3>
     <div class="group" id="skills"></div>
-  </section>
-
-  <section id="usage">
-    <h1>Usage</h1>
-    <p class="lede">At API list prices. A Claude plan covers it.</p>
-    <div class="stats" id="stats"></div>
-    <h3>History</h3>
-    <input type="search" id="askq" placeholder="Search asks and answers" aria-label="Search ask history" autocomplete="off">
-    <div class="group" id="asklist" role="list" aria-label="Recent asks"></div>
     <h3>Conversation</h3>
     <div class="group">
       <div class="row"><div class="t"><b>Forget this conversation</b><span>Follow-ups start fresh.</span></div><button class="btn red" data-do="clearRecent">Forget</button></div>
@@ -419,7 +367,7 @@
     </div>
     <h3>Safety</h3>
     <div class="group">
-      <div class="row"><div class="t"><b>Safe mode</b><span id="safenote">Risky actions need approval. Background agents use a scratch folder.</span></div><label class="sw"><input type="checkbox" data-k="safe"></label></div>
+      <div class="row"><div class="t"><b>Safe mode</b><span id="safenote">Risky actions need approval.</span></div><label class="sw"><input type="checkbox" data-k="safe"></label></div>
     </div>
     <h3>Privacy</h3>
     <div class="group">
@@ -434,44 +382,11 @@
       <div class="row"><div class="t"><b>Speech Recognition</b><span>On this Mac.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="speech">Allow</button></div>
       <div class="row"><div class="t"><b>Accessibility</b><span>To click and move windows.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="ax">Allow</button></div>
       <div class="row"><div class="t"><b>Screen Recording</b><span>When you say “this”.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="screen">Allow</button></div>
+      <div class="row"><div class="t"><b>Page reading in Chrome</b><span>Delphi turns this on itself.</span></div><span class="pill ok">On</span><button class="btn" data-g="chrome">Turn On</button></div>
+      <div class="row"><div class="t"><b>Automation</b><span>Lets Delphi script your apps.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="auto">Allow</button></div>
+      <div class="row"><div class="t"><b>Calendar</b><span>When you ask.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="calendar">Allow</button></div>
       <div class="row"><div class="t"><b>Apps</b></div><button class="btn" onclick="st.tab('apps')">Choose</button></div>
     </div>
-    <h3>Agents</h3>
-    <div class="group" id="agentsetup">
-      <div class="row"><div class="t"><b>Set up agents</b><span>Asked only when a task needs them.</span></div><button class="btn blue" id="enableAll">Enable All</button></div>
-      <div class="row"><div class="t"><b>Page reading in Chrome</b><span>Delphi turns this on itself.</span></div><span class="pill ok">On</span><button class="btn" data-g="chrome">Turn On</button></div>
-      <div class="row"><div class="t"><b>Automation</b><span>Lets agents script your apps.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="auto">Allow</button></div>
-      <div class="row"><div class="t"><b>Calendar</b><span>When you ask.</span></div><span class="pill ok">Allowed</span><button class="btn" data-g="calendar">Allow</button></div>
-      <div class="row"><div class="t"><b>Claude connectors</b><span id="conntext">Checking your Claude account…</span></div><button class="btn" data-do="connectors">Connect in Claude</button></div>
-    </div>
-  </section>
-
-  <section id="meetings">
-    <div id="meetingbrowse">
-      <h1>Meetings</h1><p class="lede">A little context, whenever you need it. Saved on this Mac.</p>
-      <div class="group meeting-prep"><div class="row"><div class="t"><b>Prepare for a call</b><span>Notes and files load when your next call starts.</span></div><button class="btn" data-do="meetingDemo" id="meetingDemo">Try Demo</button><button class="btn blue" data-do="meetingPrepOpen" id="meetingPrepOpen">Open Copilot</button><button class="btn blue" id="meetingOn">Turn On</button></div></div>
-      <details class="meeting-controls"><summary>Meeting Copilot settings</summary><div class="group">
-      <div class="row"><div class="t"><b>Meeting Copilot</b><span>The call and your mic, in a private panel. <i class="info" title="On supported calls, listening ends two seconds after the app releases the mic.">i</i></span></div><label class="sw"><input type="checkbox" data-k="meeting" aria-label="Meeting Copilot"></label></div>
-      <div class="row"><div class="t"><b>Save meeting transcripts</b><span>On this Mac. <i class="info" title="Transcripts, notes and answers. At the end, choose Save or Don’t save. Turning off offers to keep or delete past meetings.">i</i></span></div><label class="sw"><input type="checkbox" data-k="meetingSave" aria-label="Save meeting transcripts"></label></div>
-      <div class="row"><div class="t"><b>AI meeting summaries</b><span>Claude reads the transcript once. <i class="info" title="For a recap and action items. With Devin or Pi, meetings stay on this Mac. Off: a local recap, and prep won’t search connected email or documents.">i</i></span></div><label class="sw"><input type="checkbox" data-k="meetingSummary" aria-label="AI meeting summaries"></label></div>
-      <div class="row"><div class="t"><b>Prep in a Claude chat</b><span>Copies a prompt for call notes.</span></div><button class="btn" data-do="meetingPrepPrompt" id="meetingPrepPrompt">Copy Prompt</button></div>
-      </div>
-      </details>
-      <h3>Saved meetings</h3>
-      <input type="search" id="meetingq" placeholder="Search titles and transcripts" aria-label="Search meetings" autocomplete="off">
-      <div id="meetingcount" role="status">Loading meetings…</div>
-      <div id="meetinglist" class="group" role="list" aria-label="Saved meetings"></div>
-    </div>
-    <div id="meetingdetail" hidden>
-      <button id="meetingback" class="btn">← All meetings</button><h1 id="meetingtitle" tabindex="-1"></h1><p id="meetingmeta"></p>
-      <div class="tools"><button id="meetingcopy" class="btn">Copy</button><button id="meetingexport" class="btn">Export Markdown</button><button id="meetingdelete" class="btn red">Delete</button></div>
-      <h3>Summary</h3><div id="meetingsummary" class="group"></div>
-      <div id="meetingactionblock" hidden><h3>Action items</h3><div id="meetingactions" class="group"></div></div>
-      <div id="meetingnoteblock" hidden><h3>Notes</h3><div id="meetingnotes" class="group"></div></div>
-      <div id="meetinganswerblock" hidden><h3>Copilot answers</h3><div id="meetinganswers" class="group"></div></div>
-      <h3>Transcript</h3><div id="meetingtranscript" class="group"></div>
-    </div>
-    <p id="meetingmessage" role="status" hidden></p>
   </section>
 
   <section id="about">
@@ -566,10 +481,9 @@
   $('dictationsearch').oninput = paintDictation;
   $('dictationclear').onclick = () => { showNotice('Clear all saved dictations?', 'Clear all', () => post({do: 'dictationClear'})); };
 
-  $('agentsnav').onclick = () => post({ do: 'agents' });   // its own window, beside Settings
   document.querySelectorAll('nav button[data-s] .ni').forEach(i => {
     const icon = i.cloneNode(true); icon.setAttribute('aria-hidden', 'true');
-    $(i.parentNode.dataset.s).querySelector(':scope > h1, #meetingbrowse > h1')?.prepend(icon);
+    $(i.parentNode.dataset.s).querySelector(':scope > h1')?.prepend(icon);
   });
   function openSection(s) {
     cancelRecord();
@@ -578,16 +492,12 @@
     nav.classList.add('on');
     document.querySelectorAll('nav button[data-s]').forEach(b => b.toggleAttribute('aria-current', b === nav));
     $(s).classList.add('on'); document.querySelector('main').scrollTop = 0;
-    if (s === 'meetings') { meetingBack(false); requestMeetings(); }
     if (s === 'feedback') { $('feedbackinclude').checked=false; feedbackPreview(); }
     if (s === 'apps') post({ do: 'apps' });   // fresh list and statuses each visit
     if (s === 'brain') probe();
   }
   document.querySelectorAll('nav button[data-s]').forEach(b => b.onclick = () => openSection(b.dataset.s));
   document.querySelectorAll('[data-do]').forEach(b => b.onclick = () => post({ do: b.dataset.do }));
-  $('meetingOn').onclick = () => set('meeting', true);
-  let connected = false;   // Enable All opens claude.ai's connectors page only when none is connected
-  document.getElementById('enableAll').onclick = () => post({ do: 'enableAll', connected: String(connected) });
 
   // Shortcut: Delphi.swift records the keys; the label is like "⌃⌥Space" (modifier symbols, then the key)
   const capsOf = label => { const m = label.match(/^([⌃⌥⇧⌘]*)(.*)$/); return [...m[1]].concat(m[2] ? [m[2]] : []); };
@@ -663,7 +573,6 @@
     $('volv').textContent = Math.round(P.volume / .6 * 100) + '%';
     $('routingwhy').textContent = WHY[P.routing] || '';
     SERVER.forEach(k => { if (document.activeElement !== $(k)) $(k).value = P[k] || ''; });
-    $('agentServerModel').hidden = !P.apiBase || other;
     $('brainlede').textContent = devin ? 'Delphi thinks with Devin, on your Devin plan.' : pi ? 'Delphi thinks with the provider and model selected in Pi.'
       : P.apiBase ? 'Delphi thinks with the model on your custom server.' : 'Delphi thinks with Claude, on your Claude plan.';
     $('clientwhy').textContent = devin ? 'Devin CLI, with Delphi’s safety check.'
@@ -671,41 +580,13 @@
       : P.apiBase ? 'Uses your server below.' : 'No API key needed.';
     document.querySelector('[data-k=routing]').closest('.row').hidden = other || !!P.apiBase;
     document.querySelector('[data-k=model]').closest('.row').hidden = other || !!P.apiBase || P.routing === 'cheapest';
-    $('agentsheading').hidden = $('agentsettings').hidden = other;
     $('planname').textContent = devin ? 'Devin' : pi ? 'Pi' : 'Claude';
     $('safenote').textContent = devin ? 'Every Devin command waits for approval. File-edit, MCP and subagent tools stay off.'
       : pi ? 'Every Pi command waits for approval. File-edit and MCP tools stay off.'
-      : 'Risky actions need approval. Background agents use a scratch folder.';
-    $('meetingDemo').hidden = $('meetingPrepOpen').hidden = !P.meeting; $('meetingOn').hidden = !!P.meeting;   // off: one way to turn it on, not two dead buttons
+      : 'Risky actions need approval.';
   }
 
-  function paintRoutines() {
-    const root = $('routines'); root.replaceChildren();
-    if (!P.routines?.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = 'No routines yet. Ask Delphi to schedule one.'; root.append(empty); return; }
-    for (const routine of P.routines) {
-      const row = document.createElement('div'); row.className = 'row rule';
-      const text = document.createElement('div'); text.className = 't';
-      const title = document.createElement('b'), ask = document.createElement('span');
-      if (routine.kind === 'interval') {
-        const hours = routine.every / 3600, minutes = routine.every / 60;
-        title.textContent = Number.isInteger(hours) ? `Every ${hours === 1 ? '' : hours + ' '}hour${hours === 1 ? '' : 's'}` : `Every ${minutes} minutes`;
-      } else {
-        const [hour, minute] = routine.at.split(':').map(Number);
-        title.textContent = `${routine.days === 'weekdays' ? 'Weekdays' : 'Every day'} at ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
-      }
-      ask.textContent = `${routine.ask} · ${routine.mode === 'capable' ? 'Most capable' : routine.mode === 'balanced' ? 'Balanced' : 'Cheapest'}`; text.append(title, ask);
-      const remove = iconButton('trash', `Remove ${title.textContent} routine`);
-      remove.onclick = () => { remove.disabled = true; post({ do: 'routineRemove', id: routine.id }); };
-      row.append(text, remove); root.append(row);
-    }
-  }
-
-  const money = u => '$' + u.toFixed(u < .01 ? 4 : 2);
   function state(s) {
-    $('stats').innerHTML = [['Today', s.today], ['7 days', s.week], ['All time', s.all]].map(([n, u]) =>
-      `<div class="stat"><small>${n}</small><b>${u.unknown ? '≥' : ''}${money(u.usd)}</b><span>${u.asks} asks ${money(u.askUsd ?? u.usd)} · ${u.agentCalls || 0} agent calls ${money(u.agentUsd || 0)}${u.asks ? ' · ' + u.secs + ' s avg' : ''}</span></div>`).join('') +
-      (s.all.asks ? `<div class="stat"><small>Avg response</small><b>${s.all.secs} s</b><span>per ask, all time</span></div>` +
-        `<div class="stat"><small>Avg ask cost</small><b>${s.all.unknown ? '≥' : ''}${money((s.all.askUsd ?? s.all.usd) / s.all.asks)}</b><span>per ask, all time</span></div>` : '');
     const typed = $('newrule')?.value || '';
     $('rules').innerHTML = (s.rules.length ? s.rules.map((r, i) =>
       `<div class="row rule"><input class="field" data-rule="${i}" value="${esc(r)}" aria-label="Edit rule"><button class="x" data-i="${i}" aria-label="Forget this rule">${ICON.trash}</button></div>`).join('')
@@ -724,25 +605,8 @@
     paintProfile(s.me || { facts: [] }); hidePending();
     $('ptext').textContent = s.plan.text; $('pdot').classList.toggle('bad', !s.plan.ok);
     $('pbtn').style.display = s.plan.ok ? 'none' : '';
-    asks = s.asks || []; paintAsks();
     painted = true; reveal();
   }
-
-  // Usage → History: recent asks and answers, newest first, each with Copy
-  let asks = [];
-  function paintAsks() {
-    const q = $('askq').value.trim().toLowerCase(), shown = asks.filter(a => !q || (a.task + '\n' + a.reply).toLowerCase().includes(q));
-    $('asklist').replaceChildren(...shown.map(a => {
-      const row = document.createElement('div'); row.className = 'row'; row.setAttribute('role', 'listitem');
-      row.innerHTML = '<div class="t"><b></b><span></span></div>';
-      row.querySelector('b').textContent = a.task; row.querySelector('span').textContent = new Date(a.at.replace(' ', 'T')).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'}) + ' · ' + a.reply;
-      const copy = iconButton('copy', 'Copy answer to ' + a.task, ' copy'); copy.onclick = () => { post({ do: 'copy', text: a.reply }); copied(copy); };
-      row.append(copy);
-      return row;
-    }));
-    if (!shown.length) $('asklist').innerHTML = `<div class="empty">${q ? 'No asks match.' : 'Your asks and answers will appear here.'}</div>`;
-  }
-  $('askq').oninput = paintAsks;
 
   // st.reveal({c, t}): a receipt in the box was clicked. Open its category, scroll to the item and let it glow (the category, if it was forgotten).
   let want = null, painted = false;
@@ -792,14 +656,14 @@
     if (imported && !$('profileStatus').textContent) $('profileStatus').textContent = `${sourceCounts.contacts || 0} from Contacts · ${sourceCounts.mail || 0} from Mail`;
   }
   $('profileImport').onclick = () => { $('profileImport').disabled = true; $('profileStatus').textContent = 'Importing from Contacts and Mail…'; post({do:'profileImport'}); };
-  const SERVER = ['apiBase', 'apiKey', 'apiModel', 'agentApiModel'];   // Intelligence → Custom server, saved like About you
+  const SERVER = ['apiBase', 'apiKey', 'apiModel'];   // Intelligence → Custom server, saved like About you
   const probe = () => {   // ask the saved server for its models; st.models says whether it answered
     $('srvnote').textContent = P.apiBase ? 'Checking the server…' : 'Needs vision for screen tasks.';
     if (P.apiBase) post({ do: 'models' });
   };
   SERVER.forEach(k => { const e = $(k); e.onchange = () => { set(k, e.value.trim()); if (['apiBase', 'apiKey'].includes(k)) probe(); };
     e.onkeydown = ev => { if (ev.key === 'Enter') e.blur(); }; });
-  ['apiModel', 'agentApiModel'].forEach(k => $(k).onfocus = () => { if (P.apiBase) post({ do: 'models' }); });
+  $('apiModel').onfocus = () => { if (P.apiBase) post({ do: 'models' }); };
 
   // Apps: every installed app; suggested ones start ticked. Delphi.swift asks macOS about the ticked ones in one go.
   let APPS = [], pick = null, asking = 0, total = 0, view = 'key';
@@ -843,54 +707,6 @@
     asking = total = ids.length; count(); post({ do: 'allow', ids });
   };
 
-  let expectedMeeting=null, savedMeetings=[], currentMeeting=null, meetingMarkdown='', selectedMeeting=0, meetingQueryTimer, detailScroll=0;
-  const meetingDate=s=>new Date(s*1000).toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
-  const meetingDuration=s=>s<60?`${Math.floor(s)} sec`:s<3600?`${Math.floor(s/60)} min`:`${Math.floor(s/3600)} hr ${Math.floor(s/60)%60} min`;
-  const meetingTime=s=>[Math.floor(s/3600),Math.floor(s/60)%60,Math.floor(s)%60].map(n=>String(n).padStart(2,'0')).join(':');
-  const meetingNotice=text=>{ $('meetingmessage').textContent=text; $('meetingmessage').hidden=!text; };
-  function requestMeetings(){ clearTimeout(meetingQueryTimer);post({do:'meetings',query:$('meetingq').value.trim()}); }
-  function selectMeeting(index,focus=false){
-    const rows=[...$('meetinglist').querySelectorAll('.meetingrow')];selectedMeeting=Math.max(0,Math.min(index,rows.length-1));
-    rows.forEach((b,i)=>{b.classList.toggle('selected',i===selectedMeeting);b.tabIndex=i===selectedMeeting?0:-1});if(focus)rows[selectedMeeting]?.focus();
-  }
-  function paintMeetings(){
-    const query=$('meetingq').value.trim();$('meetingcount').textContent=`${savedMeetings.length} meeting${savedMeetings.length===1?'':'s'}${query?' found':''}`;
-    $('meetinglist').replaceChildren();
-    if(!savedMeetings.length){const empty=document.createElement('div');empty.className='empty';empty.textContent=query?'No meetings match. Try another word or date.':'Saved meetings appear here.';$('meetinglist').append(empty);return;}
-    savedMeetings.forEach((m,i)=>{const b=document.createElement('button');b.className='meetingrow';b.setAttribute('role','listitem');
-      const title=document.createElement('b'),meta=document.createElement('small'),summary=document.createElement('span');title.textContent=m.title;
-      meta.textContent=[meetingDate(m.started),meetingDuration(m.duration),m.app].filter(Boolean).join(' · ');summary.textContent=m.summary?.split('\n')[0]||m.status;
-      b.append(title,meta,summary);b.onclick=()=>{expectedMeeting=m.id;selectMeeting(i);detailScroll=document.querySelector('main').scrollTop;post({do:'meetingOpen',id:m.id});};b.onfocus=()=>selectMeeting(i);$('meetinglist').append(b);
-    });selectMeeting(selectedMeeting);
-  }
-  function meetingBack(focus=true){expectedMeeting=null;currentMeeting=null;meetingMarkdown='';$('meetingbrowse').hidden=false;$('meetingdetail').hidden=true;meetingNotice('');document.querySelector('main').scrollTop=detailScroll;if(focus)selectMeeting(selectedMeeting,true);}
-  function openMeeting(m,markdown){
-    currentMeeting=m;meetingMarkdown=markdown;$('meetingbrowse').hidden=true;$('meetingdetail').hidden=false;meetingNotice('');
-    $('meetingtitle').textContent=m.title;$('meetingmeta').textContent=[meetingDate(m.started),meetingDuration(m.duration),m.app,m.status].filter(Boolean).join(' · ');
-    $('meetingsummary').textContent=m.summary||'A recap is not available yet. The transcript is below.';
-    $('meetingactionblock').hidden=!m.action_items?.length;$('meetingactions').textContent=(m.action_items||[]).map(t=>'• '+t).join('\n');
-    $('meetingnoteblock').hidden=!m.notes;$('meetingnotes').textContent=m.notes||'';
-    $('meetinganswerblock').hidden=!m.answers?.length;$('meetinganswers').textContent=(m.answers||[]).map(r=>(r.question||'')+'\n'+(r.lines||[]).join('\n')).join('\n\n');
-    $('meetingtranscript').replaceChildren();
-    for(const r of m.transcript||[]){const line=document.createElement('div');line.className='savedline';const time=document.createElement('time'),body=document.createElement('div'),speaker=document.createElement('b'),text=document.createElement('span');
-      time.textContent=meetingTime(r.seconds||0);speaker.textContent=(r.speaker||'Them')+(r.recovered?' · unfinished speech':'');text.textContent=r.text;body.append(speaker,text);line.append(time,body);$('meetingtranscript').append(line);}
-    if(!m.transcript?.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='No speech captured.';$('meetingtranscript').append(empty);}
-    document.querySelector('main').scrollTop=0;$('meetingtitle').focus();
-  }
-  $('meetingq').oninput=()=>{clearTimeout(meetingQueryTimer);meetingQueryTimer=setTimeout(requestMeetings,160)};
-  $('meetingback').onclick=()=>meetingBack();
-  $('meetingcopy').onclick=()=>post({do:'meetingCopy',text:meetingMarkdown});
-  $('meetingexport').onclick=()=>{if(currentMeeting)post({do:'meetingExport',id:currentMeeting.id})};
-  $('meetingdelete').onclick=()=>{if(currentMeeting)post({do:'meetingDelete',id:currentMeeting.id})};   // native confirmation owns the deletion
-  document.addEventListener('keydown',e=>{
-    if(!$('meetings').classList.contains('on'))return;
-    if(e.metaKey&&e.key.toLowerCase()==='f'){e.preventDefault();if(currentMeeting)meetingBack(false);$('meetingq').focus();$('meetingq').select();return;}
-    if(e.key==='Escape'){e.preventDefault();if(currentMeeting)meetingBack();else if($('meetingq').value){$('meetingq').value='';requestMeetings();}else $('meetingq').blur();return;}
-    if(currentMeeting||e.target.closest?.('textarea')||e.metaKey||e.ctrlKey||e.altKey)return;
-    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();selectMeeting(selectedMeeting+(e.key==='ArrowDown'?1:-1),true);}
-    if(e.key==='Enter'&&e.target===$('meetingq')){e.preventDefault();$('meetinglist').querySelectorAll('.meetingrow')[selectedMeeting]?.click();}
-  });
-
   let feedbackTimer,feedbackRevision=0;
   function feedbackInvalidate(){clearTimeout(feedbackTimer);feedbackRevision++;$('feedbackopen').disabled=true;$('feedbackbody').textContent='Preparing preview…';post({do:'feedbackInvalidate'});}
   function feedbackRequest(){post({do:'feedbackPreview',include:$('feedbackinclude').checked,text:$('feedbacktext').value,revision:feedbackRevision});}
@@ -928,15 +744,6 @@
       $('localname').textContent = found.name; $('uselocal').textContent = `Use ${found.name}`;
       $('uselocal').onclick = () => { set('client', 'claude'); set('apiBase', found.base); if (found.models[0]) set('apiModel', found.models[0]); row.hidden = true; };
     },
-    meetings(result){
-      if(result.error){meetingNotice(result.error);$('meetingcount').textContent='Could not load meetings.';return;}
-      if(result.notice){meetingNotice(result.notice);return;}
-      if(result.deleted){if(currentMeeting?.id===result.deleted)meetingBack(false);requestMeetings();return;}
-      if(result.meeting){if(expectedMeeting===result.meeting.id)openMeeting(result.meeting,result.markdown);return;}
-      if(Array.isArray(result.meetings)){if(result.query!==undefined&&result.query!==$('meetingq').value.trim())return;savedMeetings=result.meetings;selectedMeeting=0;paintMeetings();}
-    },
-    walk(id) { document.querySelectorAll('#perms .row, #agentsetup .row').forEach(r => r.classList.toggle('now', !!id && !!r.querySelector(`[data-g="${id}"]`))); },   // Enable All: the step it is on
-  connectors(c) { const n = c.connected.length, s = c.signin.length; document.getElementById('conntext').textContent = n ? c.connected.slice(0, 3).join(', ') + (n > 3 ? ` and ${n - 3} more` : '') + ' connected' + (s ? ` · ${s} need sign-in` : '') : s ? `${s} need sign-in` : 'Gmail, Drive and more.'; connected = n > 0; },
   perms(p) {   // each row shows Allowed or its Allow button
       document.querySelectorAll('[data-g]').forEach(b => { b.hidden = !!p[b.dataset.g]; b.previousElementSibling.hidden = !p[b.dataset.g]; });
     },
@@ -955,12 +762,10 @@
       paintApps();
     },
     allowDone() { asking = 0; post({ do: 'apps' }); },
-    agents({ count }) { $('agentcount').textContent = count ? count + ' running' : ''; $('agentsnav').setAttribute('aria-label', count ? `Open Agents, ${count} running` : 'Open Agents'); },
     dictation(d) { dictations = d; paintDictation(); },
     globe(on) { $('globefix').hidden = !on; },   // fn alone also fires macOS's own 🌐 action
     load(d) {
-      P = {talkMode: 'hold', dictateMode: 'verbatim', dictateHotkeyLabel: '', microphone: 'automatic', meetingSave: true, meetingSummary: true, client: 'claude', ...d.prefs}; recording = '';
-      P.routines = d.routines || []; paintRoutines();
+      P = {talkMode: 'hold', dictateMode: 'verbatim', dictateHotkeyLabel: '', microphone: 'automatic', client: 'claude', ...d.prefs}; recording = '';
       $('shortcut').classList.remove('rec'); $('change').textContent = 'Change Shortcut'; $('dictatechange').classList.remove('rec');
       hotkeyTaken = !!d.hotkeyTaken; dictateHotkeyTaken = !!d.dictateHotkeyTaken; if ($('schint').className !== 'warn') $('schint').className = hotkeyTaken ? 'taken' : '';
       if (d.icon) $('icon').src = $('bigicon').src = d.icon;

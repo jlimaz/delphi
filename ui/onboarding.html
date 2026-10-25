@@ -57,9 +57,8 @@
   .row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; opacity: 0; transform: translateY(8px);
     transition: opacity .45s var(--ease), transform .55s var(--out), background .4s; }
   .row + .row { box-shadow: inset 0 .5px 0 var(--line); }
-  #perms.on .row, #improve.on .row, #agents.on .row, #work.on .row { opacity: 1; transform: none; }
+  #perms.on .row, #improve.on .row, #work.on .row { opacity: 1; transform: none; }
   .cap { width: 100%; max-width: 480px; margin: 18px 0 -14px; text-align: left; font: 600 11px system-ui; color: var(--fg3); }
-  #agents .list + .cap { margin-top: 14px; } #agents .row { padding: 8px 14px; } #agents .list { margin-top: 20px; } #agents h2 + .sub { max-width: 430px; }
   .row.now { background: rgba(10,132,255,.08); } .row.now .allow { color: var(--fg3); background: transparent; pointer-events: none; }
   .row.now .allow::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 6px; vertical-align: -1px; border-radius: 50%;
     border: 1.5px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
@@ -170,28 +169,8 @@
   #pad::selection { background: rgba(10,132,255,.35); }
   #pad:focus { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px rgba(10,132,255,.18); }
 
-  /* meeting preview: someone talks, the question is spotted, the answer grows in */
-  #mt-panel { right: 22px; top: 14px; bottom: 14px; width: 214px; padding: 10px 11px; overflow: hidden; }
-  #mt-save { color:#8cbda1;font-size:10px;margin-bottom:8px; }
-  #mt-archive { font-size:12px;line-height:1.5;margin-top:8px; } #mt-archive p { color:#a1a1a6;margin:8px 0; } #mt-archive small { color:#8e8e93; }
-  #mt-panel .hd { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a1a1a6; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
-  #mt-panel .hd i { width: 7px; height: 7px; border-radius: 50%; background: #ff453a; animation: blink 1.6s ease-in-out infinite; }
-  .mt-card { padding: 8px 9px; border-radius: 9px; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.1); transition: opacity .4s var(--ease), transform .5s var(--out); }
-  .mt-card small { display: block; font-size: 10px; color: #8e8e93; }
-  .mt-card p { margin: 2px 0 0; font-size: 11.5px; }
-  .mt-ans { overflow: hidden; max-height: 0; opacity: 0; transition: max-height .5s var(--out), opacity .4s; }
-  .mt-ans.on { max-height: 60px; opacity: 1; }
-  .mt-ans b { display: block; margin-top: 6px; padding-top: 6px; border-top: .5px solid rgba(255,255,255,.12); font-size: 12px; }
-  .mt-think { display: inline-block; margin-top: 6px; font-size: 10.5px; color: #8e8e93; }
-  #mt-call { position: absolute; left: 18px; top: 14px; bottom: 14px; width: 150px; display: grid; grid-template-rows: 1fr 1fr; gap: 8px; }
-  #mt-call div { border-radius: 10px; background: linear-gradient(135deg, rgba(48,176,199,.45), rgba(10,132,255,.3)); position: relative; transition: box-shadow .3s; }
-  #mt-call div + div { background: linear-gradient(135deg, rgba(191,90,242,.4), rgba(255,55,95,.25)); }
-  #mt-call div::after { content: attr(data-n); position: absolute; left: 8px; bottom: 6px; font: 500 10.5px system-ui; color: #fff; }
-  #mt-call div.talk { box-shadow: 0 0 0 2px #30d158; }
   .mt-row { display: flex; align-items: center; gap: 12px; width: min(420px, 100%); margin-top: 14px; padding: 10px 14px; box-sizing: border-box; border-radius: 12px; text-align: left;
     background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); }
-  .txt span.beta { display: inline; margin-top: 0; font: 600 9.5px system-ui; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: rgba(10,132,255,.12);
-    padding: 2px 5px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
   .sw { position: relative; flex: none; width: 38px; height: 22px; }
   .sw input { appearance: none; margin: 0; width: 100%; height: 100%; border-radius: 11px; background: rgba(127,127,127,.3); cursor: pointer; transition: background .25s var(--ease); }
   .sw input:checked { background: var(--green); }
@@ -237,16 +216,7 @@
   #dc-said:not(:empty)::before { content: "“"; } #dc-said:not(:empty)::after { content: "”"; }
   #dc-said .x { text-decoration: line-through transparent; transition: opacity .4s var(--ease), text-decoration-color .4s var(--ease); }
   #dc-said.done .x { opacity: .4; text-decoration-color: currentColor; }
-  /* work preview: a long ask offers to move, then runs on as an agent chip */
-  #wk-box { left: 22px; top: 16px; width: 208px; box-sizing: border-box; padding: 10px 12px; }
-  #wk-box .q, #wk-chip small { color: #8e8e93; font-size: 11px; }
-  #wk-line { margin-top: 4px; color: #a1a1a6; }
-  #wk-chip { right: 22px; top: 16px; width: 150px; padding: 9px 11px; overflow: hidden; }
-  #wk-chip b { display: block; font-weight: 500; } #wk-chip u { position: absolute; left: 11px; right: 11px; bottom: 0; height: 2px; background: rgba(255,255,255,.1); }
-  #wk-chip.done u { display: none; } #wk-chip.done small { color: #30d158; }
-  #wk-chip u::after { content: ""; position: absolute; inset: 0; width: 40%; background: #0a84ff; animation: crawl 2.4s var(--ease) infinite; }
-  @keyframes crawl { from { width: 8%; } to { width: 85%; } }
-  #work .list { max-width: 420px; margin-top: 14px; } #work .row { padding: 9px 14px; } #work .stage { height: 122px; }
+  #work .list { max-width: 420px; margin-top: 14px; } #work .row { padding: 9px 14px; }
   /* point preview: a settings window, a question, then a ring lands on the answer */
   #pt-win { position: absolute; left: 22px; top: 16px; bottom: 16px; width: 230px; border-radius: 10px; background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); overflow: hidden; }
   #pt-win .tb { height: 22px; display: flex; gap: 5px; align-items: center; padding-left: 9px; border-bottom: .5px solid var(--line); }
@@ -338,17 +308,7 @@
   <p class="sub r">macOS asks once for each one. You can change them any time in System Settings.</p>
   <div id="list" class="r"></div>
   <div id="count" class="r"></div>
-  <button class="btn quiet r" id="next" data-go="agents">Skip for Now</button>
-</section>
-
-<section class="page" id="agents">
-  <h2 class="r">Agents keep working while you do</h2>
-  <p class="sub r">Hand off a bigger task and keep asking. An agent uses these only when a task needs them.</p>
-  <div class="cap r">Delphi turns these on</div>
-  <div class="list r" id="own"></div>
-  <div class="cap r">Only you can allow these. macOS and Claude ask you directly.</div>
-  <div class="list r" id="yours"></div>
-  <div class="bar2 r"><button class="btn quiet" data-go="try" id="agents-next">Skip for Now</button><button class="btn" id="enable">Enable All</button></div>
+  <button class="btn quiet r" id="next" data-go="try">Skip for Now</button>
 </section>
 
 <section class="page" id="try">
@@ -442,32 +402,10 @@
 <section class="page" id="work">
   <div class="kicker r">Your plan, your pace</div>
   <h2 class="r">Quick asks stay quick</h2>
-  <p class="sub r"><span id="wk-plan">Choose how much of your plan Delphi uses. </span>A long ask moves to a background agent by itself, so you keep working. ⌃⌥↩ moves one sooner.</p>
-  <div class="stage r" aria-hidden="true">
-    <div class="fake gone2" id="wk-box"><div class="q">“Find standing desks under $600”</div><div id="wk-line">Searching the web…</div></div>
-    <div class="fake gone2" id="wk-chip"><small id="wk-state">Agent · working</small><b>Standing desks</b><u></u></div>
-  </div>
+  <p class="sub r">Choose how much of your plan Delphi uses.</p>
   <div class="list r">
     <div class="row" id="wk-brain"><div class="txt"><b>Intelligence</b><span id="wk-why"></span></div><div class="seg" data-k="routing" role="group" aria-label="Intelligence"><button data-v="cheapest">Cheapest</button><button data-v="balanced">Balanced</button><button data-v="capable">Most capable</button></div></div>
   </div>
-  <div class="bar2 r"><button class="btn quiet" data-go="meeting">Skip</button><button class="btn" data-go="meeting">Next</button></div>
-</section>
-
-<section class="page" id="meeting">
-  <div class="kicker r">Meeting Copilot · Beta</div>
-  <h2 class="r">Answers while you’re on the call</h2>
-  <p class="sub r">Hear the call, get help with questions, then revisit transcripts, recaps and action items in Settings → Meetings. Saved on this Mac.</p>
-  <div class="stage r" aria-hidden="true">
-    <div id="mt-call"><div data-n="Dana" id="mt-dana"></div><div data-n="Lee"></div></div>
-    <div class="fake" id="mt-panel">
-      <div class="hd"><i></i>Listening · <span id="mt-clock">12:04</span></div><div id="mt-save">Saving transcript on this Mac</div><div id="mt-archive" hidden><b>Your meeting</b><p>Pilot budget approved: $18,000.</p><small>Action item · Send the notes</small></div>
-      <div class="mt-card gone2" id="mt-q"><small>12:05</small><p>What budget did we approve?</p>
-        <span class="mt-think" id="mt-think">Thinking…</span><div class="mt-ans" id="mt-ans"><b>The approved budget is $18,000.</b></div></div>
-    </div>
-  </div>
-  <div class="mt-row r"><div class="ic" style="background:#30b0c7"><svg viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg></div>
-    <div class="txt"><b>Turn on Meeting Copilot<span class="beta">Beta</span></b><span id="mt-hint"></span></div>
-    <label class="sw"><input type="checkbox" data-k="meeting" aria-label="Meeting Copilot"></label></div>
   <div class="bar2 r"><button class="btn quiet" data-go="improve">Skip</button><button class="btn" data-go="improve">Next</button></div>
 </section>
 
@@ -531,9 +469,9 @@
 <script type="module">
   const $ = id => document.getElementById(id);
   const post = m => window.webkit?.messageHandlers.ob.postMessage(m);
-  const pages = ['welcome', 'perms', 'agents', 'try', 'mac', 'learn', 'text', 'dictate', 'point', 'work', 'meeting', 'improve', 'tip', 'done'];
+  const pages = ['welcome', 'perms', 'try', 'mac', 'learn', 'text', 'dictate', 'point', 'work', 'improve', 'tip', 'done'];
   let cur = '', orbWake = null;
-  const skip = id => ['devin', 'pi'].includes(provider) && ['agents', 'work'].includes(id);   // their CLIs run no Delphi agents
+  const skip = id => id === 'work' && ['devin', 'pi', 'server'].includes(provider);   // they pick their own model: no plan to choose
   const go = id => {
     while (skip(id)) id = pages[pages.indexOf(id) + 1];
     if (recording) post({ do: 'cancelRecord' });
@@ -560,7 +498,6 @@
     }));
     $('wk-why').textContent = WHY[prefs.routing] || '';
     $('safe-note').hidden = prefs.safe === false;
-    $('wk-brain').hidden = $('wk-plan').hidden = provider === 'server';   // a custom server runs one model
     if (!recording) dcKeys(prefs.dictateHotkeyLabel || '', 'Record Shortcut');
     if (prefs.hotkeyLabel && prefs.hotkeyLabel !== talkLabel) {   // the talk shortcut as set; redrawn only when it changes, so held keys stay lit
       talkLabel = prefs.hotkeyLabel;
@@ -573,7 +510,6 @@
     $('dc-mode').classList.toggle('dim', !prefs.dictateHotkeyLabel);
     document.querySelector('[data-k=dictateMode] [data-v=cleanup]').disabled = other;
     $('dc-mode-hint').textContent = other ? 'Clean up needs Claude.' : 'Clean up tidies it as shown. Verbatim types every word.';
-    $('mt-hint').textContent = other ? `With ${NAMES[provider]}, it saves the transcript on this Mac. Answers and recaps need Claude.` : 'Then start it from the menu bar when a call begins.';
   };
   document.querySelectorAll('.seg[data-k]').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {
     prefs[g.dataset.k] = b.dataset.v; paintPrefs(); post({ do: 'set', k: g.dataset.k, v: b.dataset.v });
@@ -677,20 +613,6 @@
     if (last) ob.set(last);
     closeProv();
   };
-  // Agents: what Delphi turns on itself, then what only the user can (macOS privacy switches, a claude.ai sign-in). Status is live; done rows show a check.
-  const glyph = id => P.find(p => p[0] === id);
-  const OWN = [['tools', 'Your Claude Code tools', 'MCP servers, skills and plugins you already use.', '#d97757', '<path d="M14.5 5.5l4 4-9 9H5.5v-4z"/><path d="M12.5 7.5l4 4"/>'],
-    ['chrome', 'Page reading in Chrome', 'Reads and clicks pages in the background.', ...glyph('chrome').slice(3)]];
-  const YOURS = [['ax', 'Accessibility', 'Clicks and types in apps for an agent.', ...glyph('ax').slice(3)],
-    ['screen', 'Screen Recording', 'Shows an agent’s window live on its chip.', ...glyph('screen').slice(3)],
-    ['auto', 'Automation', 'Lets an agent script your apps.', ...glyph('auto').slice(3)],
-    ['calendar', 'Calendar', 'Reads and updates events when you ask.', '#ff453a', '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/>'],
-    ['connectors', 'Claude connectors', 'Checking your Claude account…', '#5e5ce6', '<path d="M9 15l6-6M10.5 6.5l1-1a4 4 0 0 1 5.7 5.7l-1 1M13.5 17.5l-1 1a4 4 0 0 1-5.7-5.7l1-1"/>']];
-  $('own').innerHTML = rows(OWN, 'a-', 'Turn On'); $('yours').innerHTML = rows(YOURS, 'a-');
-  $('a-connectors').querySelector('.allow').textContent = 'Connect';
-  let connected = false;
-  $('enable').onclick = () => post({ do: 'enableAll', connected: String(connected) });
-  document.querySelector('[data-go="agents"]').addEventListener('click', () => { if (!['devin', 'pi'].includes(provider)) post({ do: 'connectors' }); });
   document.querySelectorAll('.allow').forEach(b => b.onclick = () => {   // setup's two lists share ids: the click is the same grant
     const was = b.textContent; b.classList.add('wait'); b.textContent = 'Waiting';
     setTimeout(() => { b.classList.remove('wait'); b.textContent = was; }, 12000);   // gave up in System Settings
@@ -732,21 +654,6 @@
       $('p-claude').querySelector('.allow').textContent = { install: 'Install', login: 'Sign In', upgrade: 'Upgrade' }[c.need] || 'Allow';
       if (last) ob.set(last);
     },
-    walk(id) {   // Enable All: the step it is on says what to do there; the button waits until the walk ends
-      document.querySelectorAll('#agents .row').forEach(r => {
-        const line = r.querySelector('.txt span'), now = r.id === 'a-' + id;
-        if (now && !r.classList.contains('now')) { line.dataset.why = line.textContent; line.textContent = OWN.some(o => 'a-' + o[0] === r.id) ? 'Turning it on…' : 'Turn on Delphi in System Settings.'; }
-        if (!now && line.dataset.why) { line.textContent = line.dataset.why; delete line.dataset.why; }
-        r.classList.toggle('now', now);
-      });
-      $('enable').disabled = !!id; $('enable').textContent = id ? 'Enabling…' : 'Enable All';
-    },
-    connectors(c) {   // from the user's Claude account: names connected, names that need a sign-in
-      const n = c.connected.length, s = c.signin.length;
-      connected = n > 0; $('a-connectors').classList.toggle('ok', connected);
-      $('a-connectors').querySelector('.txt span').textContent = n ? c.connected.slice(0, 2).join(', ') + (n > 2 ? ` and ${n - 2} more` : '') + ' connected' + (s ? ` · ${s} need sign-in` : '')
-        : s ? `${s} need sign-in in Claude` : 'Gmail, Drive and more, from your Claude account.';
-    },
     models(list) {   // the custom server's models, from Change provider's probe
       $('srv-models').replaceChildren(...list.map(m => Object.assign(document.createElement('option'), { value: m })));
       if (list.length && !$('srv-model').value.trim()) $('srv-model').value = list[0];
@@ -781,9 +688,6 @@
         row.classList.toggle('ok', !!s[id]);
         if (s[id]) n++;
       }
-      for (const [id] of [...OWN, ...YOURS]) if (id !== 'connectors') $('a-' + id).classList.toggle('ok', !!s[id]);
-      const left = [...OWN, ...YOURS].filter(([id]) => !$('a-' + id).classList.contains('ok')).length;
-      $('enable').hidden = !left; $('agents-next').textContent = left ? 'Skip for Now' : 'Continue'; $('agents-next').classList.toggle('quiet', !!left);
       $('count').textContent = n === P.length ? 'All set' : `${n} of ${P.length} allowed`;
       $('count').classList.toggle('all', n === P.length);
       $('next').textContent = n === P.length ? 'Continue' : 'Skip for Now';
@@ -840,7 +744,6 @@
     for (const el of [$('pt-lead').querySelector('line'), $('pt-ink')]) for (const k in xy) el.setAttribute(k, xy[k]);
     $('pt-lead').classList.remove('on'); void $('pt-lead').getBoundingClientRect(); $('pt-lead').classList.add('on');
   };
-  const WK_STARTED = 'I started an agent. I’ll ping you when it’s done.';
   const loops = {
     async text() {
       const line = $('tx-line'), words = $('tx-words'), box = $('tx-box'), btn = $('tx-go');
@@ -868,30 +771,15 @@
       if (!await ok(800)) return; pill.classList.add('gone2');
       if (await ok(2400)) dcAt = (i + 1) % DC.length;
     },
-    async work() {
-      const box = $('wk-box'), line = $('wk-line'), chip = $('wk-chip');
-      box.classList.add('gone2'); chip.classList.add('gone2'); chip.classList.remove('done'); line.textContent = 'Searching the web…'; $('wk-state').textContent = 'Agent · working';
-      await wait(600); box.classList.remove('gone2'); await wait(2000);
-      line.textContent = WK_STARTED; chip.classList.remove('gone2'); await wait(1800);   // the box says it once; the chip shows the steps
-      box.classList.add('gone2'); await wait(2400); chip.classList.add('done'); $('wk-state').textContent = 'Agent · done'; await wait(2400);
-    },
     async point() {   // a guide marks the spot, then an explanation builds up
       const st = $('ptstage'), box = $('pt-box'), ring = $('pt-ring');
       st.classList.remove('wb'); wb(0); box.classList.add('gone2'); ring.classList.remove('on'); $('pt-lead').classList.remove('on');
       await wait(700); box.classList.remove('gone2'); await wait(1100); lead(); await wait(400); ring.classList.add('on'); await wait(2600);
       st.classList.add('wb'); for (let k = 1; k <= 3; k++) { await wait(k === 1 ? 500 : 1600); wb(k); } await wait(3200);
     },
-    async meeting() {
-      const q = $('mt-q'), ans = $('mt-ans'), think = $('mt-think'), dana = $('mt-dana');
-      q.classList.add('gone2'); ans.classList.remove('on'); think.hidden = false; dana.classList.remove('talk'); $('mt-clock').textContent = '12:04';
-      await wait(800); dana.classList.add('talk'); $('mt-clock').textContent = '12:05'; await wait(900);
-      dana.classList.remove('talk'); q.classList.remove('gone2'); await wait(1100); think.hidden = true; ans.classList.add('on'); await wait(2200); q.classList.add('gone2'); $('mt-archive').hidden=false; $('mt-save').textContent='Saved · Settings → Meetings'; await wait(2200);
-    },
   };
   const finals = { dictate() { dcShow(dcAt); },
-                   work() { $('wk-line').textContent = WK_STARTED; $('wk-box').classList.remove('gone2'); $('wk-chip').classList.remove('gone2'); },
-                   mac() { $('macstage').classList.add('snapped'); $('mac-play').classList.remove('gone2'); $('mac-box').classList.remove('gone2'); }, point() { $('ptstage').classList.add('wb'); wb(3); }, text() { $('tx-box').classList.remove('gone2'); $('tx-line').classList.add('sel'); },
-                   meeting() { $('mt-q').classList.remove('gone2'); $('mt-think').hidden = true; $('mt-ans').classList.add('on'); } };
+                   mac() { $('macstage').classList.add('snapped'); $('mac-play').classList.remove('gone2'); $('mac-box').classList.remove('gone2'); }, point() { $('ptstage').classList.add('wb'); wb(3); }, text() { $('tx-box').classList.remove('gone2'); $('tx-line').classList.add('sel'); } };
   for (const id of Object.keys(loops)) (async () => {
     for (;;) {
       try {

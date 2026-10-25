@@ -104,16 +104,12 @@ print(Prefs.str("dictateHotkeyLabel") + "|" + String(Int(Prefs.num("dictateHotke
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(result.stdout.strip(), want, before)
 
-    def test_settings_are_private_and_usage_counts_final_rows(self):
+    def test_settings_are_private_and_profile_names_resolve(self):
         source = (ROOT / "Delphi.swift").read_text()
         prefs = source[source.index("enum Prefs"):source.index("func audioProp")]
-        today = source[source.index("    func today()"):source.index("    @objc func toggleMeeting")]
-        today = today.replace('NSString(string: "~/.config/delphi/log.jsonl").expandingTildeInPath',
-                              '(Prefs.path as NSString).deletingLastPathComponent + "/log.jsonl"')
         swift = """import Cocoa
 let controlKey = 1, optionKey = 2
-""" + prefs + "\nfinal class FixtureMenu {\n" + today + """
-}
+""" + prefs + """
 Prefs.set("apiKey", "fixture-secret")
 let fm = FileManager.default
 let mode = (try! fm.attributesOfItem(atPath: Prefs.path)[.posixPermissions] as! NSNumber).intValue
@@ -123,14 +119,6 @@ try! "{\\"name\\":\\"Legacy Name\\"}".write(toFile: me, atomically: true, encodi
 precondition(profileName(me) == "Legacy Name", "legacy profile name was lost")
 try! "{\\"version\\":2,\\"facts\\":[{\\"category\\":\\"basics\\",\\"kind\\":\\"name\\",\\"value\\":\\"Imported Name\\",\\"source\\":\\"contacts\\"},{\\"category\\":\\"basics\\",\\"kind\\":\\"name\\",\\"value\\":\\"Chosen Name\\",\\"source\\":\\"you\\"}]}".write(toFile: me, atomically: true, encoding: .utf8)
 precondition(profileName(me) == "Chosen Name", "categorized profile name priority failed")
-let format = DateFormatter(); format.dateFormat = "yyyy-MM-dd"; let day = format.string(from: Date())
-let log = "{\\"at\\":\\"\\(day) 10:00:00\\",\\"usd\\":9}\\n{\\"at\\":\\"\\(day) 10:00:01\\",\\"reply\\":\\"Done\\",\\"usd\\":0.01}\\n"
-try! log.write(toFile: (Prefs.path as NSString).deletingLastPathComponent + "/log.jsonl", atomically: true, encoding: .utf8)
-let agents = (Prefs.path as NSString).deletingLastPathComponent + "/agents/a"
-try! fm.createDirectory(atPath: agents, withIntermediateDirectories: true)
-try! "{\\"created\\":\\(Date().timeIntervalSince1970),\\"costDay\\":\\"\\(day)\\",\\"costToday\\":0.02}".write(toFile: agents + "/state.json", atomically: true, encoding: .utf8)
-let usage = FixtureMenu().today()
-precondition(usage == "Today: $0.03 · asks $0.01 · agents $0.02", "usage did not split asks from agents: \\(usage)")
 """
         with tempfile.TemporaryDirectory() as root:
             path, binary = Path(root) / "check.swift", Path(root) / "check"

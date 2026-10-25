@@ -160,19 +160,19 @@ end tell'''
                 worker = root / 'fake-app'
                 worker.write_text('#!/bin/sh\nif [ "$1" = "--target-app" ]; then echo "Google Chrome"; fi\n')
                 worker.chmod(0o700)
-                agent_env = {**env, 'DELPHI_DIR':str(scratch), 'DELPHI_ASK':str(scratch), 'DELPHI_AGENT':'fixture', 'DELPHI_FRONT':'Google Chrome', 'DELPHI_APP':str(worker)}
+                read_env = {**env, 'DELPHI_DIR':str(scratch), 'DELPHI_ASK':str(scratch), 'DELPHI_FRONT':'Google Chrome', 'DELPHI_APP':str(worker)}
                 # URL selects the explicitly named browser; the CLI normally resolves the default handler.
                 code = 'import delphi; print(delphi.web("read", __import__("sys").argv[1], app="Google Chrome"))'
-                readers = [subprocess.Popen([sys.executable, '-c', code, origin+'/page.html?read='+str(i)], env=agent_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for i in range(3)]
+                readers = [subprocess.Popen([sys.executable, '-c', code, origin+'/page.html?read='+str(i)], env=read_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for i in range(3)]
                 for reader in readers:
                     output, error = reader.communicate(timeout=30)
                     self.assertEqual(reader.returncode,0,error); self.assertIn(marker,output,output)
                 shown = subprocess.run([sys.executable, '-c', 'import delphi,sys;print(delphi.show(sys.argv[1]))', origin+'/page.html?show'],
-                                       env=agent_env, capture_output=True, text=True, timeout=30)
+                                       env=read_env, capture_output=True, text=True, timeout=30)
                 self.assertEqual(shown.returncode,0,shown.stderr); self.assertIn(marker,shown.stdout,shown.stdout)
                 (scratch/'window-summary.json').write_text(json.dumps({'app':'Google Chrome','web':True}))
                 window = subprocess.run([sys.executable, '-c', 'import delphi;print(delphi.window_text("Google Chrome"))'],
-                                        env=agent_env, capture_output=True, text=True, timeout=30)
+                                        env=read_env, capture_output=True, text=True, timeout=30)
                 self.assertEqual(window.returncode,0,window.stderr); self.assertIn(marker,window.stdout,window.stdout)
                 self.assertEqual(osa('tell application "Google Chrome" to return {id of window 1, id of active tab of window 1, count windows}'), browser_before, 'Background reads selected a tab/window or created a window')
                 self.assertEqual(front(),before)
@@ -181,7 +181,7 @@ end tell'''
                 # Background work must also leave the selected page alone when the browser itself is frontmost.
                 osa('tell application "Google Chrome" to activate')
                 browser_before = osa('tell application "Google Chrome" to return {id of window 1, id of active tab of window 1, count windows}')
-                read = subprocess.run([sys.executable, '-c', code, origin+'/page.html?browser-front'], env=agent_env,
+                read = subprocess.run([sys.executable, '-c', code, origin+'/page.html?browser-front'], env=read_env,
                                       capture_output=True, text=True, timeout=30)
                 self.assertEqual(read.returncode,0,read.stderr); self.assertIn(marker,read.stdout,read.stdout)
                 self.assertEqual(osa('tell application "Google Chrome" to return {id of window 1, id of active tab of window 1, count windows}'),browser_before)

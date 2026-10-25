@@ -264,53 +264,13 @@ try {
   assert(!d.getElementById('comp').classList.contains('pick') && d.getElementById('model').textContent === 'Opus', 'Reduce Motion: the pick closes the row at once');
   w.fixtureReduced(false);
   ui.reset(); ui.listen(true); ui.words('Make the report'); ui.think();
-  assert(!ui.moveOffer&&!ui.moveReady&&!ui.agentOffer&&!d.querySelector('.move-now,.move-option,.agent-card'),'Long asks move by themselves: no move card, offer card or button');
-  assert(ui.moveSource().length===4,'Moves by themselves and by ⌃⌥↩ have a visible flight origin');
-  ui.pick({q:'Which file?',options:[{label:'A',sub:'',img:''},{label:'B',sub:'',img:''}]});
-  ui.movePending();assert(!d.querySelector('.pk')&&d.getElementById('status').textContent.includes('Moving to an agent'),'Moving takes the waiting card with the ask and says so');
-  ui.agentStarted();
-  d.getElementById('ask').value='A new question';const sends=messages.filter(m=>m.send==='A new question').length;
-  d.getElementById('ask').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,20));
-  assert(messages.filter(m=>m.send==='A new question').length===sends+1,'Accepted background start frees the composer');
-  ui.reset();ui.listen(true);ui.think();ui.moveFailed();assert(d.getElementById('status').textContent.includes('Could not move'),'A failed ⌃⌥↩ says so and the ask keeps going here');
-  ui.reset();ui.listen(true);ui.think();
-  const agent={id:'11111111111111111111111111111111',title:'Prepare report',summary:'Made the report.'};
-  ui.agentDone(agent);
-  assert(d.querySelector('.agent-card b').textContent==='Prepare report'&&d.querySelector('.agent-card .go span').textContent==='Details'&&d.querySelector('.agent-card [data-esc] span').textContent==='Later','A finished agent with nothing made offers Details ↩ and Later esc');
-  d.getElementById('ask').value='Draft';d.getElementById('ask').dispatchEvent(new w.Event('input'));ui.agentDefaultAction();await new Promise(r=>setTimeout(r,20));
-  assert(!messages.some(m=>m.agentOpen===agent.id),'Native defaults preserve a typed draft');
-  d.getElementById('ask').value='';d.getElementById('ask').dispatchEvent(new w.Event('input'));ui.agentDefaultAction();await new Promise(r=>setTimeout(r,20));
-  assert(messages.some(m=>m.agentOpen===agent.id),'Native Return opens the finished agent');
-  assert(messages.some(m=>m.agentDefault===true)&&messages.some(m=>m.agentDefault===false),'Only actionable cards register the native Return default');
-  ui.agentCount(2);assert(!d.getElementById('agents-pill').hidden&&d.getElementById('agents-pill').textContent==='2 agents'&&d.getElementById('agents-pill').closest('#head'),'Running agents have a quiet header badge');
-  ui.agentCount({count:1,attention:true});assert(d.getElementById('agents-pill').classList.contains('attention')&&d.getElementById('agents-pill').textContent==='1 agent','The badge turns amber when an agent needs you');ui.agentCount(2);
+  assert(!d.getElementById('agents-pill')&&!ui.agentDone&&!ui.movePending&&!d.querySelector('.agent-card'),'No agent badge, done card or move control');
   ui.mode(false);d.querySelector('#status span').textContent='Thinking through a detailed background result';
-  ['status','agents-pill','mode','x'].forEach(id=>d.getElementById(id).getAnimations({subtree:true}).filter(a=>a.effect.getComputedTiming().endTime<Infinity).forEach(a=>a.finish()));   // #mode.on just started its 5px rise-in; the row is checked at rest
-  {const items=['status','agents-pill','mode','x'].map(id=>d.getElementById(id).getBoundingClientRect()),centers=items.map(r=>r.y+r.height/2);
-   assert(Math.max(...centers)-Math.min(...centers)<1&&items.slice(1).every(r=>r.height===22),'Status, agent badge, Full access and close share one centered header row');
-   const statusText=d.querySelector('#status span');assert(statusText.scrollWidth>statusText.clientWidth&&w.getComputedStyle(statusText).textOverflow==='ellipsis','Long thinking status truncates cleanly instead of sitting under a badge');}
+  ['status','mode','x'].forEach(id=>d.getElementById(id).getAnimations({subtree:true}).filter(a=>a.effect.getComputedTiming().endTime<Infinity).forEach(a=>a.finish()));   // #mode.on just started its 5px rise-in; the row is checked at rest
+  {const items=['status','mode','x'].map(id=>d.getElementById(id).getBoundingClientRect()),centers=items.map(r=>r.y+r.height/2);
+   assert(Math.max(...centers)-Math.min(...centers)<1&&items.slice(1).every(r=>r.height===22),'Status, Full access and close share one centered header row');
+   const statusText=d.querySelector('#status span');assert(statusText.scrollWidth>statusText.clientWidth&&w.getComputedStyle(statusText).textOverflow==='ellipsis','Long thinking status truncates cleanly');}
   ui.mode(true);
-  tap(d.getElementById('agents-pill'));await new Promise(r=>setTimeout(r,20));assert(messages.some(m=>m.agents),'The box pill opens the Agent view');
-  d.getElementById('ask').value='Keep this draft';ui.agentDone({...agent,summary:'The report is ready.',cost:.012,links:['/tmp/result.csv']});
-  assert(d.getElementById('ask').value==='Keep this draft','A completion card preserves typed text');
-  assert(d.querySelector('.agent-card .go span').textContent==='Open'&&d.querySelector('.agent-card [data-esc] span').textContent==='Later'&&d.querySelector('.agent-card .usage').textContent==='≈1.20¢ at API prices','Done offers Open ↩ / Later esc with its cost, as Usage shows it');
-  d.querySelector('.agent-card .go').click();await new Promise(r=>setTimeout(r,20));assert(messages.some(m=>m.agentOpen===agent.id&&m.target==='/tmp/result.csv'),'Open ↩ opens what the agent made');
-  ui.agentDone({...agent,missingConnector:'Requested connector',summary:'Connect the requested account to continue.'});
-  assert(d.querySelector('.agent-card .go span').textContent==='Connect in Claude','Missing tools offer the user’s own Claude connectors');
-  d.querySelector('.agent-card .go').click();await new Promise(r=>setTimeout(r,20));assert(messages.some(m=>m.agentConnect),'Connect uses the native link action');
-  ui.agentDone({...agent,summary:'Done.'});ui.agentEscape();await new Promise(r=>setTimeout(r,20));assert(messages.some(m=>m.agentLater===agent.id)&&!d.querySelector('.agent-card'),'Esc picks Later on the done card');
-  ui.agentEscape();await new Promise(r=>setTimeout(r,20));assert(messages.some(m=>m.agentGone),'Esc without a card hands back to the box');
-  ui.agentDone({...agent,summary:'Short.',result:'Three picks:\n\n| Desk | Price |\n|---|---|\n| E7 | $480 |\n\n[agent-result {"summary":"Short."}]'});
-  assert(d.querySelector('.agent-card .a td')?.textContent==='E7'&&!d.querySelector('.agent-card .a').textContent.includes('agent-result'),'The done card leads with the full answer, tables and all');
-  ui.agentEscape();await new Promise(r=>setTimeout(r,20));
-  {const started={id:'a1aa0000000000000000000000000000',title:'Standing desks',status:'running',step:'Starting…'};
-   ui.reset();ui.listen(true);ui.words('Find three standing desks');ui.think();ui.agentStarted(started);
-   assert(d.getElementById('status').textContent==='Agent started'&&!d.getElementById('status').classList.contains('live')&&d.querySelector('.agent-ack span').textContent==='I started an agent on “Standing desks”. I’ll ping you when it’s done.'&&d.querySelector('.agent-ack canvas')?.dataset.agent===started.id,'Starting an agent says so plainly beside its orb');
-   ui.reset();ui.listen(true);ui.think();ui.agentStarted({...started,status:'queued'});
-   assert(d.getElementById('status').textContent==='Agent queued'&&d.querySelector('.agent-ack span').textContent.startsWith('Queued an agent'),'A queued agent says it waits its turn');}
-  ui.reset();ui.listen(true);ui.words('Only include products under $200');ui.think();ui.agentSteered({...agent,steer:{text:'Only include products under $200.'}});
-  assert(d.querySelector('.agent-ack span').textContent==='Told the Prepare report agent: Only include products under $200.'&&d.querySelector('.agent-ack canvas')?.dataset.agent===agent.id,'Steering answers in the main box with the agent orb and exact correction');
-  ui.agentCount(0);assert(d.getElementById('agents-pill').hidden,'No agents leaves no pill');
   { // Point at your screen: coach mark, pointing, marked chip, cleared
     const bar = d.getElementById('pointbar'), btn = d.getElementById('point'), shown = s => w.getComputedStyle(bar.querySelector(s)).display !== 'none', tick = () => new Promise(r => setTimeout(r, 20));
     const status = () => d.querySelector('#status span')?.textContent || '';

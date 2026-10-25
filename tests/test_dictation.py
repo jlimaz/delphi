@@ -20,7 +20,7 @@ class DictationCleanupTests(unittest.TestCase):
         sys.path.insert(0, str(ROOT))
         import delphi
         with patch.object(delphi, 'relevant_rules', return_value='Spell my name Saarth.'), \
-             patch.object(delphi, 'meeting_call', return_value=('<cleaned>Clean text.</cleaned>', {})) as call:
+             patch.object(delphi, 'quick_call', return_value=('<cleaned>Clean text.</cleaned>', {})) as call:
             cleaned = delphi.dictate_cleanup('um Clean text. ' + 'x' * 7000)
         self.assertTrue(cleaned.startswith('Clean text. '))
         self.assertNotIn('\n', cleaned)
@@ -34,7 +34,7 @@ class DictationCleanupTests(unittest.TestCase):
         paragraph = 'a ' * 3000 + '\n\n' + 'b ' * 3000
         with patch.object(delphi, 'client', return_value='pi'):
             self.assertEqual(delphi.dictate_cleanup(paragraph), paragraph.replace(' \n\n', '\n\n').strip())
-        with patch.object(delphi, 'meeting_call') as empty:
+        with patch.object(delphi, 'quick_call') as empty:
             self.assertEqual(delphi.dictate_cleanup('   '), '')
             empty.assert_not_called()
 
@@ -43,7 +43,7 @@ class DictationCleanupTests(unittest.TestCase):
         source = 'I um need this. ' + ('word ' * 1400) + 'Uh, final words.'
         with patch.object(delphi, 'client', return_value='claude'), \
              patch.object(delphi, 'relevant_rules', return_value=''), \
-             patch.object(delphi, 'meeting_call', side_effect=RuntimeError('offline')):
+             patch.object(delphi, 'quick_call', side_effect=RuntimeError('offline')):
             cleaned = delphi.dictate_cleanup(source)
         self.assertIn('final words.', cleaned)
         self.assertNotRegex(cleaned.lower(), r'\b(?:um|uh)\b')
@@ -53,7 +53,7 @@ class DictationCleanupTests(unittest.TestCase):
         import delphi
         self.assertEqual(delphi.dictate_result('he go to school', '<cleaned>He goes to school.</cleaned>'), 'He goes to school.')
         with patch.object(delphi, 'relevant_rules', return_value='Spell my name Saarth.'), \
-             patch.object(delphi, 'meeting_call', return_value=('<cleaned>My name is Saarth.</cleaned>', {})):
+             patch.object(delphi, 'quick_call', return_value=('<cleaned>My name is Saarth.</cleaned>', {})):
             self.assertEqual(delphi.dictate_cleanup('My name is Sarth.'), 'My name is Saarth.')
 
     def test_hint_scan_is_bounded_at_the_largest_dictionary(self):
@@ -92,10 +92,10 @@ class DictationCleanupTests(unittest.TestCase):
 
     def test_non_claude_cleanup_falls_back_without_starting_claude(self):
         import delphi
-        with patch.object(delphi, 'client', return_value='pi'), patch.object(delphi, 'meeting_call') as call:
+        with patch.object(delphi, 'client', return_value='pi'), patch.object(delphi, 'quick_call') as call:
             self.assertEqual(delphi.dictate_cleanup('Um, keep every word.'), 'keep every word.')
         call.assert_not_called()
-        with patch.object(delphi, 'client', return_value='pi'), patch.object(delphi, 'meeting_process') as process, \
+        with patch.object(delphi, 'client', return_value='pi'), patch.object(delphi, 'quick_process') as process, \
              patch('sys.stdin', io.StringIO('Um, keep every word.')), patch('sys.stdout', new_callable=io.StringIO) as out:
             delphi.dictate_cleanup_wait()
         process.assert_not_called()
@@ -103,16 +103,16 @@ class DictationCleanupTests(unittest.TestCase):
 
     def test_short_dictation_skips_ai_and_cursor_text_reaches_cleanup(self):
         import delphi
-        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'meeting_call') as call:
+        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'quick_call') as call:
             self.assertEqual(delphi.dictate_cleanup('Um, okay'), 'okay')
         call.assert_not_called()
-        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'meeting_process'), \
+        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'quick_process'), \
              patch.object(delphi, 'stop_claude'), patch.object(delphi, 'dictate_warmed') as warmed, \
              patch('sys.stdin', io.StringIO('Notes from Saarth\0uh I')), patch('sys.stdout', new_callable=io.StringIO) as out:
             delphi.dictate_cleanup_wait()
         warmed.assert_not_called()
         self.assertEqual(out.getvalue(), 'I\n')
-        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'meeting_process'), \
+        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'quick_process'), \
              patch.object(delphi, 'stop_claude'), patch.object(delphi, 'relevant_rules', return_value=''), \
              patch.object(delphi, 'dictate_warmed', return_value='Tell Saarth hi.') as warmed, \
              patch('sys.stdin', io.StringIO('Notes from Saarth\0tell sarth hi')), patch('sys.stdout', new_callable=io.StringIO) as out:
@@ -126,7 +126,7 @@ class DictationCleanupTests(unittest.TestCase):
     def test_cleanup_start_failure_still_returns_local_cleanup(self):
         import delphi
         with patch.object(delphi, 'client', return_value='claude'), \
-             patch.object(delphi, 'meeting_process', side_effect=OSError('missing')), \
+             patch.object(delphi, 'quick_process', side_effect=OSError('missing')), \
              patch('sys.stdin', io.StringIO('I um need uh every word.')), \
              patch('sys.stdout', new_callable=io.StringIO) as out:
             delphi.dictate_cleanup_wait()
@@ -143,7 +143,7 @@ class DictationCleanupTests(unittest.TestCase):
         def hints(*_):
             self.assertTrue(started)
             return {}
-        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'meeting_process'), \
+        with patch.object(delphi, 'client', return_value='claude'), patch.object(delphi, 'quick_process'), \
              patch.object(delphi, 'stop_claude'), patch.object(delphi.threading, 'Timer', Timer), \
              patch.object(delphi, 'dictate_hints', side_effect=hints), patch.object(delphi, 'dictate_warmed', return_value='Keep every word.'), \
              patch('sys.stdin', io.StringIO('keep every word')), patch('sys.stdout', new_callable=io.StringIO) as out:
@@ -374,7 +374,7 @@ print("single delivery fallback ok")
         self.assertNotIn('dictating ?', guard[:guard.index('once(false)')])
         module = source[source.index('    func speechModule('):source.index('    func prepareSpeech(')]
         self.assertIn('let tr = speechModule(dictate: dictating)', source)
-        self.assertIn('SpeechTranscriber(locale: en, transcriptionOptions: [], reportingOptions: [.volatileResults]', module)
+        self.assertIn('SpeechTranscriber(locale: locale, transcriptionOptions: [], reportingOptions: [.volatileResults]', module)
         self.assertIn('transcriptionOptions: [.punctuation], reportingOptions: [.volatileResults]', module)
 
     def test_fn_and_modifier_only_shortcuts_use_flags_events(self):
@@ -543,7 +543,7 @@ print("dictation states ok")
     def test_pill_over_a_box_that_must_stay_gives_the_box_back(self):
         # A pinned, placed or drawing-holding box blocked hide(), so the pill sat on its green check and hid the answer.
         source = (ROOT / 'Delphi.swift').read_text()
-        hide = source[source.index('    func hide(after s: Double)'):source.index('    func defaultKey(')]
+        hide = source[source.index('    func hide(after s: Double)'):source.index('    func gone()')]
         swift = r'''import Foundation
 final class Ctx { var duration = 0.0 }
 enum NSAnimationContext { static func runAnimationGroup(_ a: (Ctx) -> Void, completionHandler: (() -> Void)?) { a(Ctx()); completionHandler?() } }

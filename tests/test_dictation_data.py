@@ -211,7 +211,7 @@ print("learned fixes ok")
 class DictationUIDataTests(unittest.TestCase):
     def test_dictionary_and_history_actions_use_text_and_search_raw(self):
         page = (ROOT / 'ui/settings.html').read_text()
-        code = page[page.index('  const svg = d =>'):page.index("  $('agentsnav').onclick")]
+        code = page[page.index('  const svg = d =>'):page.index("  document.querySelectorAll('nav button[data-s] .ni')")]
         script = r'''const assert = (x, m) => { if (!x) throw Error(m); };
 class Element {
   constructor() { this.children = []; this.value = ''; this.style = {}; }

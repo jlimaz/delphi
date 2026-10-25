@@ -37,19 +37,11 @@ $('client-alt').click();await until(()=>!$('prov').hidden,'provider sheet for De
 $('prov').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await until(()=>$('prov').hidden,'provider sheet to close');assert(!messages.some(m=>m.do==='provider'&&m.client==='devin'),'Escape cancels without saving');
 $('client-alt').click();await until(()=>!$('prov').hidden,'provider sheet for Pi');d.querySelector('.opt[data-p="pi"]').click();assert($('prov-use').textContent==='Use Pi','Pi choice');$('prov-use').click();await until(()=>messages.some(m=>m.do==='provider'&&m.client==='pi'),'Pi choice to save');assert(true,'Pi choice is saved');
 w.ob.plan({ok:true,need:'',client:'pi',text:'Pi is installed.'});assert($('p-claude').querySelector('.txt b').textContent==='Pi','Pi plan status is shown');
-w.ob.plan({ok:true,need:'',client:'server',text:'Using a custom server.'});await go('agents');
-await until(()=>messages.some(m=>m.do==='connectors'),'connector status request');assert(true,'Agents step asks for connector status');
-w.ob.set({mic:true,speech:true,ax:true,screen:false,auto:true,chrome:false,calendar:true,tools:true});w.ob.connectors({connected:['Gmail'],signin:['Notion']});
-assert($('a-ax').classList.contains('ok')&&!$('a-screen').classList.contains('ok')&&$('a-connectors').classList.contains('ok')&&$('a-connectors').textContent.includes('1 need sign-in'),'Agents rows show live status, nothing asked twice');
-assert(!$('enable').hidden&&$('agents-next').textContent==='Skip for Now','Enable All shows while something is missing');
-$('enable').click();await until(()=>messages.some(m=>m.do==='enableAll'&&m.connected==='true'),'Enable All request');assert(true,'Enable All starts the walk');
-w.ob.walk('screen');assert($('a-screen').classList.contains('now')&&!$('a-ax').classList.contains('now')&&$('a-screen').textContent.includes('Turn on Delphi in System Settings')&&$('enable').disabled,'Enable All marks the step it is on and says what to do');
-w.ob.set({mic:true,speech:true,ax:true,screen:true,auto:true,chrome:true,calendar:true,tools:true});w.ob.walk('');
-assert($('enable').hidden&&$('agents-next').textContent==='Continue','All on: Continue is the main action');
+w.ob.plan({ok:true,need:'',client:'server',text:'Using a custom server.'});assert(!$('agents'),'No agents setup page');
 await go('try');assert($('try-next').hidden,'Try Next waits for shortcut');
 w.ob.tried();await until(()=>!$('try-next').hidden&&$('try-skip').hidden,'Try Next button');assert(true,'Shortcut enables Next');
 await go('mac');assert(!!$('mac-mini')&&$('mac').textContent.includes('background'),'Mac preview explains background work and live mini screen');await go('learn');assert($('learn').textContent.includes('remember'),'Setup teaches that Delphi remembers');await go('text');await go('dictate');
-const P0={draw:true,meeting:false,routing:'balanced',dictateMode:'verbatim',dictateHotkeyLabel:''},keysIn=()=>[...$('dc-field').querySelectorAll('i')].map(i=>i.textContent).join('');
+const P0={draw:true,routing:'balanced',dictateMode:'verbatim',dictateHotkeyLabel:''},keysIn=()=>[...$('dc-field').querySelectorAll('i')].map(i=>i.textContent).join('');
 w.ob.prefs(P0);assert($('dc-field').textContent==='Record Shortcut'&&$('dc-clear').hidden&&$('dc-mode').classList.contains('dim'),'Dictation starts with no shortcut and its mode greyed');
 $('dc-field').click();await until(()=>messages.some(m=>m.do==='recordDictate')&&$('dc-field').classList.contains('rec'),'dictation recorder');assert($('dc-field').textContent==='Type Shortcut','Clicking the field records the next keys');
 w.ob.rec('⌃⌥');assert(keysIn()==='⌃⌥','Held keys show live');w.ob.prefs(P0);assert($('dc-field').classList.contains('rec')&&keysIn()==='⌃⌥','The every-second refresh leaves a recording alone');
@@ -61,10 +53,10 @@ const ex=d.querySelectorAll('#dc-ex button');assert(ex.length===5&&$('dictate').
 ex[1].click();await until(()=>ex[1].getAttribute('aria-pressed')==='true'&&$('dc-said').textContent.includes('scratch')&&$('dc-said').querySelector('.x'),'chosen dictation example');assert(ex[0].getAttribute('aria-pressed')==='false','Picking an example plays it, with the dropped words marked');
 $('dc-field').click();await until(()=>$('dc-field').classList.contains('rec'),'dictation recording');await go('point');await until(()=>messages.some(m=>m.do==='cancelRecord'),'recording cancellation');assert(true,'Leaving mid-recording cancels it');
 assert($('point').textContent.includes('whiteboard')&&d.querySelectorAll('#wb-card [data-s]').length===3,'Draw on screen shows the whiteboard explanation');
-assert(d.querySelector('[data-k="draw"]').checked&&!d.querySelector('[data-k="meeting"]').checked,'Switches reflect prefs');
+assert(d.querySelector('[data-k="draw"]').checked&&!$('meeting')&&!d.querySelector('[data-k="meeting"]'),'Switches reflect prefs; no Meeting Copilot page');
 d.querySelector('[data-k="draw"]').click();await until(()=>messages.some(m=>m.do==='set'&&m.k==='draw'&&m.v==='false'),'draw preference');assert(true,'Switch sends native preference');
 await go('pointer');assert($('pointer').textContent.includes('Point at your screen')&&$('pointer').textContent.includes('Click, circle or scribble on anything, then ask'),'Point at your screen has its own page with the box’s words');
-w.ob.plan({ok:true,need:'',client:'pi',text:'Pi is installed.'});d.querySelector('#pointer [data-go="work"]').click();await until(()=>d.querySelector('.page.on')?.id==='meeting','Pi meeting page');page('meeting');
+w.ob.plan({ok:true,need:'',client:'pi',text:'Pi is installed.'});d.querySelector('#pointer [data-go="work"]').click();await until(()=>d.querySelector('.page.on')?.id==='improve','Pi improve page');page('improve');
 $('back').click();await until(()=>d.querySelector('.page.on')?.id==='pointer','pointer page');page('pointer');
 w.ob.plan({ok:true,need:'',client:'server',text:'Using a custom server.'});w.ob.prefs(P0);await go('work');assert($('wk-brain').hidden,'A custom server hides Intelligence');
 w.ob.plan({ok:true,need:'',client:'claude',text:'Signed in.'});w.ob.prefs(P0);
@@ -73,7 +65,7 @@ d.querySelector('[data-k=routing] [data-v=cheapest]').click();await until(()=>me
 assert(messages.some(m=>m.do==='set'&&m.k==='routing'&&m.v==='cheapest')&&$('wk-why').textContent.includes('least'),'Work choices save and explain themselves');
 assert($('work').textContent.includes('⌃⌥↩'),'The work page names the move shortcut');
 for(const e of $('work').querySelectorAll('.row')){const r=e.getBoundingClientRect();assert(r.right<=640&&r.bottom<=612,'Fits window work / '+e.textContent.slice(0,12))}
-await go('meeting');assert($('meeting').textContent.includes('Settings → Meetings')&&!!$('mt-archive'),'Meeting preview includes the local archive');await go('improve');
+await go('improve');
 for(const e of $('improve').children){const r=e.getBoundingClientRect();assert(r.left>=0&&r.right<=640&&r.top>=0&&r.bottom<=612,'Fits window improve / '+e.className)}
 assert($('improve').textContent.includes('Anonymous')&&d.querySelector('#improve .bar2 .btn:not(.quiet)').textContent==='Help Improve','Improve page says what is sent; Help Improve is the main action');
 d.querySelector('#improve [data-improve="true"]').click();await until(()=>d.querySelector('.page.on')?.id==='tip','tip page');page('tip');

@@ -24,7 +24,7 @@ class FixtureTests(unittest.TestCase):
         self.check_fixtures(['contrast'])
 
     def test_mock_bridge_fixtures(self):
-        self.check_fixtures(['settings', 'worksheet', 'meeting', 'onboarding', 'web', 'agents', 'agent_done'])
+        self.check_fixtures(['settings', 'worksheet', 'onboarding', 'web'])
 
     def test_fixtures_inline_orbs_literally(self):
         # A string replacement expands $' and $& inside orbs.js (its TeX table has '$'), so the page gets a broken module.

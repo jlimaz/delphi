@@ -34,14 +34,8 @@ for (const [label, keys] of Object.entries(want)) if (JSON.stringify(capsOf(labe
         self.assertIn('call("ob.keys", shortcutModifierLabel(NSEvent.modifierFlags))', swift)   # any held modifier lights, not only ⌃⌥
         self.assertNotIn('id="t1"', self.page)
 
-    def test_work_demo_box_does_not_mirror_agent_steps(self):
-        self.assertNotIn('Moving to an agent', self.page)   # the box says it started once; steps live on the chip
-        loop = self.page.split('async work()', 1)[1].split('async point()', 1)[0]
-        self.assertIn('line.textContent = WK_STARTED', loop)
-        self.assertIn("'Agent · done'", loop)
-
     def test_point_demo_runs_the_leader_line_before_the_ring(self):
-        loop = self.page.split('async point()', 1)[1].split('async meeting()', 1)[0]
+        loop = self.page.split('async point()', 1)[1].split('const finals', 1)[0]
         self.assertLess(loop.index('lead();'), loop.index("ring.classList.add('on')"))   # the ring shows as the line arrives, as on screen
         self.assertIn('id="pt-lead"', self.page)
         self.assertIn('stop-color="#0a84ff"', self.page)   # blue, like the app's leader
@@ -54,15 +48,14 @@ for (const [label, keys] of Object.entries(want)) if (JSON.stringify(capsOf(labe
         self.assertNotIn('ask to focus it', self.page)
         self.assertIn('click it to open that window', self.page)   # the mini screen opens its window on click (README)
 
-    def test_meeting_page_says_what_devin_and_pi_get(self):
-        brain = (ROOT / 'delphi.py').read_text()
-        self.assertIn("if client() != 'claude':\n        raise RuntimeError(f'Meeting Copilot stays on this Mac", brain)   # no answers off Claude
-        self.assertIn("$('mt-hint').textContent = other ? `With ${NAMES[provider]}, it saves the transcript on this Mac. Answers and recaps need Claude.`", self.page)
+    def test_setup_has_no_meeting_page(self):
+        self.assertNotIn('id="meeting"', self.page)
+        self.assertNotIn("'meeting'", self.page.split('const pages = ', 1)[1].split('\n', 1)[0])
 
     def test_provider_row_names_no_client_before_the_check(self):
         self.assertIn("['claude', 'AI Provider', 'Checking…',", self.page)   # Devin, Pi and server users never read "Claude" first
         self.assertNotIn('Checking your Claude sign-in', self.page)
-        self.assertIn("$('wk-brain').hidden = $('wk-plan').hidden = provider === 'server'", self.page)   # no plan to choose on a custom server
+        self.assertIn("const skip = id => id === 'work' && ['devin', 'pi', 'server'].includes(provider)", self.page)   # no plan to choose on a custom server
 
     def test_setup_checks_one_provider_process_at_a_time(self):
         swift = (ROOT / 'Delphi.swift').read_text()
@@ -76,11 +69,17 @@ for (const [label, keys] of Object.entries(want)) if (JSON.stringify(capsOf(labe
         speech = swift.split('    func speechModule(dictate: Bool = false)', 1)[1].split('    func prepareSpeech()', 1)[0]
         self.assertNotIn('Locale.current', speech)   # SpeechTranscriber rejected the Mac's locale: every voice ask died in 1.5.0
         self.assertIn(': SpeechTranscriber(locale: locale, preset: .progressiveTranscription)', speech)
+        self.assertIn('let locale = Prefs.speechLocale', speech)
+        self.assertIn('static var speechLocale: Locale { Locale(identifier: str("speechLanguage") == "pt-BR" ? "pt-BR" : "en-US") }', swift)   # only locales Apple accepts
         start = swift.split('    func start(dictate: Bool)', 1)[1].split('    func heard(', 1)[0]
         self.assertIn('dictate || SFSpeechRecognizer.authorizationStatus() == .authorized', start)
         self.assertIn('Privacy & Security → Speech Recognition.', start)
         prepare = swift.split('    func prepareSpeech()', 1)[1].split('    var text =', 1)[0]
-        self.assertIn('guard !preparingSpeech else { return }', prepare)
+        self.assertIn('guard !preparingSpeech else { prepareAgain = true; return }', prepare)
+        self.assertIn('if self.prepareAgain { self.prepareAgain = false; self.prepareSpeech() }', prepare)   # a language picked mid-download still installs
+        self.assertIn('if k == "speechModel" || k == "speechLanguage" { app.prepareSpeech() }', swift)
+        settings = (ROOT / 'ui' / 'settings.html').read_text()
+        self.assertIn('<div class="seg" data-k="speechLanguage"><button data-v="en-US">English</button><button data-v="pt-BR">Português</button></div>', settings)
 
 
 if __name__ == '__main__':

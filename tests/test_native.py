@@ -403,59 +403,8 @@ print("selection regressions ok")
             result = subprocess.run([str(binary)], check=True, capture_output=True, text=True)
             self.assertIn('selection regressions ok', result.stdout)
 
-    def test_meeting_size_stays_on_small_and_secondary_displays(self):
+    def test_updates_wait_for_a_running_ask(self):
         source = (ROOT / 'Delphi.swift').read_text()
-        size = source[source.index('    func size(_ h: Double'):source.index('    func compact(', source.index('    func size(_ h: Double'))]
-        swift = """import Cocoa
-final class NSScreen {
- static var main: NSScreen? = NSScreen()
- var visibleFrame = NSRect(x: -800, y: 100, width: 600, height: 400)
-}
-final class NSWorkspace { static let shared = NSWorkspace(); var accessibilityDisplayShouldReduceMotion = true }
-final class NSAnimationContext {
- var duration: Double = 0
- static var done: (() -> Void)?
- static func runAnimationGroup(_ changes: (NSAnimationContext) -> Void, completionHandler: @escaping () -> Void) { changes(NSAnimationContext()); done = completionHandler }
-}
-final class Panel {
- var screen = NSScreen.main, frame = NSRect(x: -552, y: 258, width: 340, height: 230)
- func setFrame(_ f: NSRect, display: Bool, animate: Bool) { frame = f }
- func setFrame(_ f: NSRect, display: Bool) { frame = f }
- func animator() -> Panel { self }
-}
-final class Harness { var panel: Panel? = Panel(); var running = true, generation = 0; var expanded = NSSize(width: 340, height: 650), minimized = false, resizing = false
- var reveals: [Int] = []; func js(_ name: String, _ value: Int) { if name == "settled" { reveals.append(value) } }
-""" + size + """}
-let h = Harness(), p = h.panel!
-let top = p.frame.maxY
-h.size(200); precondition(p.frame.maxY == top && p.frame.height == 200, "top edge moved")
-h.size(200, reveal: 1); precondition(h.reveals == [1], "unchanged frame lost reveal")
-h.size(210, reveal: 2); precondition(h.reveals == [1, 2], "Reduce Motion lost reveal")
-NSWorkspace.shared.accessibilityDisplayShouldReduceMotion = false
-h.size(220, reveal: 3); precondition(h.reveals == [1, 2], "text revealed during expansion")
-NSAnimationContext.done!(); precondition(h.reveals == [1, 2, 3], "completion lost reveal")
-h.size(230, reveal: 4); h.generation += 1; NSAnimationContext.done!(); precondition(h.reveals == [1, 2, 3], "cancelled animation revealed a new meeting")
-NSWorkspace.shared.accessibilityDisplayShouldReduceMotion = true
-h.size(0); precondition(p.frame.height == 376 && p.screen!.visibleFrame.contains(p.frame), "secondary display overflow")
-h.resize(440, 500); precondition(p.frame.width == 440 && p.frame.height == 376, "resize ignored display limits")
-h.minimized = true; h.size(44); precondition(p.frame.width == 116 && p.frame.height == 44, "compact size wrong")
-h.minimized = false; h.size(0); precondition(p.frame.width == 440 && p.frame.height == 376, "restore forgot expanded size")
-p.screen!.visibleFrame = NSRect(x: 0, y: 0, width: 300, height: 190)
-h.size(200); precondition(p.frame.width == 276 && p.frame.height == 166 && p.screen!.visibleFrame.contains(p.frame), "small display overflow")
-print("meeting size ok")
-"""
-        with tempfile.TemporaryDirectory() as root:
-            file = Path(root) / 'size.swift'; file.write_text(swift)
-            binary = Path(root) / 'size'
-            compiled = subprocess.run(['swiftc', str(file), '-o', str(binary)], capture_output=True, text=True)
-            self.assertEqual(compiled.returncode, 0, compiled.stderr)
-            result = subprocess.run([str(binary)], capture_output=True, text=True)
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_calendar_dismissal_and_updates_preserve_open_meeting(self):
-        source = (ROOT / 'Delphi.swift').read_text()
-        timer = source[source.index('    let g = meeting.generation', source.index('func checkCalendar()')):source.index('\n}', source.index('    let g = meeting.generation', source.index('func checkCalendar()')))]
-        context = next(line for line in source.splitlines() if 'let context = [e.title' in line)
         idle = source[source.index('    static func restartWhenIdle()'):source.index('    static func schedule()')]
         swift = """import Foundation
 final class Queue {
@@ -463,42 +412,23 @@ final class Queue {
  func asyncAfter(deadline: DispatchTime, execute work: @escaping () -> Void) { pending.append(work) }
 }
 enum DispatchQueue { static let main = Queue() }
-final class Meeting {
- var generation = 1, running = false, nudge: Int? = 1, panel: Int? = 1, discards = 0
- func discard() { generation += 1; nudge = nil; panel = nil; discards += 1 }
-}
-let meeting = Meeting()
-func scheduleNudge() {
-""" + timer + """
-}
-struct Event { var title: String? = "Call", location: String? = "Room 2", url: URL? = URL(string: "https://meet.google.com/abc"), notes: String? }
-let e = Event(), people = ["Dana"]
-""" + context + """
-precondition(context.contains("Room 2") && context.contains("https://meet.google.com/abc"), "calendar link/location lost")
-scheduleNudge(); meeting.discard(); meeting.generation += 1; meeting.nudge = 2; meeting.panel = 2
-DispatchQueue.main.pending.removeFirst()(); precondition(meeting.panel == 2, "old timer dismissed new nudge")
-scheduleNudge(); DispatchQueue.main.pending.removeFirst()(); precondition(meeting.panel == nil, "current nudge did not dismiss")
 final class Engine { var isRunning = false }
 final class Voice { var isRunning = false }
 final class App { var busy = false, engine = Engine(), voice: Voice? }
 final class Window { var isKeyWindow = false }
 final class Settings { var win: Window? }
-struct Agents { var hasLive = false }
 let app = App(), settings = Settings(), onboarding = Settings()
-var agentsUI = Agents()
 var restarts = 0
 func relaunchSoon() { restarts += 1 }
 enum Updater {
 """ + idle + """}
-meeting.panel = 1; Updater.restartWhenIdle(); precondition(restarts == 0, "update interrupted unsaved meeting")
-meeting.panel = nil; DispatchQueue.main.pending.removeFirst()(); precondition(restarts == 1, "update never resumed")
-agentsUI.hasLive = true; Updater.restartWhenIdle(); precondition(restarts == 1, "update interrupted a live agent")
-agentsUI.hasLive = false; DispatchQueue.main.pending.removeFirst()(); precondition(restarts == 2, "update never resumed after agent")
-print("calendar/update safety ok")
+app.busy = true; Updater.restartWhenIdle(); precondition(restarts == 0, "update interrupted a running ask")
+app.busy = false; DispatchQueue.main.pending.removeFirst()(); precondition(restarts == 1, "update never resumed")
+print("update safety ok")
 """
         with tempfile.TemporaryDirectory() as root:
-            file = Path(root) / 'calendar.swift'; file.write_text(swift)
-            binary = Path(root) / 'calendar'
+            file = Path(root) / 'update.swift'; file.write_text(swift)
+            binary = Path(root) / 'update'
             compiled = subprocess.run(['swiftc', str(file), '-o', str(binary)], capture_output=True, text=True)
             self.assertEqual(compiled.returncode, 0, compiled.stderr)
             result = subprocess.run([str(binary)], capture_output=True, text=True)
@@ -519,8 +449,6 @@ print("calendar/update safety ok")
         stop = source[at:source.index('        let inputs = speechInputs', at)]
         swift = """import Foundation
 struct Prefs { static var paused = false, toggle = false; static func bool(_ k: String) -> Bool { paused } }
-final class MeetingStub { var running = false, focuses = 0; func focus() { focuses += 1 } }
-let meeting = MeetingStub()
 final class Engine { var isRunning = false, stopped = false; func stop() {isRunning=false; stopped=true} }
 final class Input { var cancelled=false; func finish() {cancelled=true}; func cancel() {cancelled=true} }
 final class Analyzer { func cancelAndFinishNow() async {} }
@@ -552,10 +480,6 @@ final class Harness {
     func hide(after: Double) {}
     var pausedNotice = Date.distantPast; func show() {}
 """ + methods + stop + '        events.append("send"); engine.isRunning = false; busy = true; toggleTalk = false\n    }\n' + """}
-meeting.running = true
-let meetingShortcut = Harness(); meetingShortcut.shortcut(true); meetingShortcut.shortcut(false)
-precondition(!meetingShortcut.engine.isRunning && meeting.focuses == 1 && meetingShortcut.events.isEmpty, "meeting shortcut started the microphone")
-meeting.running = false
 Prefs.toggle = true
 let toggle = Harness(); toggle.shortcut(true); toggle.shortcut(true)
 precondition(toggle.events == ["start"], "key repeat toggled twice")

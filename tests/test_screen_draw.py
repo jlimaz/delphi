@@ -249,9 +249,9 @@ class DrawingTests(unittest.TestCase):
         section = lambda start, end: app.split(start,1)[1].split(end,1)[0]
         self.assertIn('drawing.clear()',section('func close(clear: Bool)','\n    }'))   # the box's ✕ takes the drawing with it
         self.assertIn('unpoint(false)',section('func start(dictate: Bool)','func heard('))   # a voice ask clears the old answer ring at key-down
-        for start,end in [('func hush()', 'func stopOfferInput()'),('func run(_ t:', '// MARK: - Agent panels'),('func typed(', 'func finish()')]:
+        for start,end in [('func hush()', 'func stopOfferInput()'),('func run(_ t:', '// First-run window'),('func typed(', 'func finish()')]:
             self.assertNotIn('drawing.clear()',section(start,end),start)   # a follow-up keeps the drawing; only a new one replaces it
-        self.assertIn('drawing.clearInput(); drawing.deselect()',section('func run(_ t:', '// MARK: - Agent panels'))
+        self.assertIn('drawing.clearInput(); drawing.deselect()',section('func run(_ t:', '// First-run window'))
         self.assertIn('if let drawn { request["drawing"] = drawn }',app)
         esc = section('func escape()','func hush()')
         self.assertLess(esc.index('} else if busy {'),esc.index('} else if drawing.active {'))   # Esc stops the answer first, then clears the drawing

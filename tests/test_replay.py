@@ -295,15 +295,12 @@ class ReplayTests(unittest.TestCase):
             self.assertIsNone(delphi.learn('malformed fixture',[command],'Done.'))
         self.assertNotIn('close fixture',delphi.skills())
 
-    def test_reference_ask_receives_recent_target_and_agent_history(self):
+    def test_reference_ask_receives_recent_target(self):
         class NoThread:
             def __init__(self,*a,**kw): pass
             def start(self): pass
             def join(self,*a): pass
         url='https://fixture.example/posts/42'
-        agent=self.root/'agents'/('a'*32);agent.mkdir(parents=True)
-        delphi.private_json(str(agent/'context.json'),{'id':'a'*32,'status':'done','created':time.time(),
-                                                       'brief':'Find a useful post','links':[url]})
         (self.root/'worked.json').write_text(json.dumps({'app':'Reader Fixture','window':'Earlier post'}))
         brain=unittest.mock.Mock(return_value=('Opened the earlier post.',0,[]));brain.ok=True;brain.cmds=[];brain.ran=[];brain.observed=[]
         with patch.object(delphi,'RECENT',str(self.root/'recent.jsonl')),patch.object(delphi,'MEMORY',str(self.root/'memory.md')):
@@ -313,5 +310,4 @@ class ReplayTests(unittest.TestCase):
         prompt=brain.call_args.args[0]
         self.assertIn('Earlier:\nQ: Find a useful post\nA: Opened '+url,prompt)
         self.assertIn('Last task worked in: Reader Fixture "Earlier post"',prompt)
-        self.assertIn('Background tasks',prompt);self.assertIn('a'*32,prompt)
         self.assertEqual(brain.call_args.kwargs['request'],'Open that post you opened')

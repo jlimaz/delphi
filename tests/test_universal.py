@@ -298,11 +298,6 @@ class UniversalTests(unittest.TestCase):
                 with self.subTest(said=said):
                     self.assertEqual(delphi.fast(said), reply)
 
-    def test_agent_titles_start_at_the_words_that_matter(self):
-        self.assertEqual(delphi.agent_title('Can you do the steps and get me the post hog API key?'), 'Get post hog API key')
-        self.assertEqual(delphi.agent_title('Hey Delphi, um, can you start a Zoom meeting?'), 'Start Zoom meeting')
-        self.assertEqual(delphi.agent_title('Can you?'), 'Background task')
-
     def test_searching_an_installed_app_defers_to_the_ai(self):
         with patch.object(delphi, 'skills', return_value={}), patch.object(delphi, 'app_named', side_effect=lambda name: 'Fixture' if name == 'fixture' else None), \
              patch.object(delphi, 'show') as show:

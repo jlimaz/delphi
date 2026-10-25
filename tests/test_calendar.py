@@ -112,12 +112,9 @@ class CalendarTests(unittest.TestCase):
         self.assertIn('Calendar (any language)', delphi.SYSTEM)
         self.assertIn('--calendar', delphi.system_prompt(delphi.ASK_FIRST))
 
-    def test_validation_and_read_only_prep(self):
+    def test_validation(self):
         for changes in [dict(query=3), dict(start='tomorrow'), dict(end='2026-10-19T14:00:00-07:00'), dict(start='2026-10-19T16:00:00')]:
             self.assertIn('could not finish', self.tool(**changes))
-        self.assertEqual(self.calls, [])
-        os.environ['DELPHI_AGENT_PREP'] = '1'
-        self.assertIn('read-only', self.tool())
         self.assertEqual(self.calls, [])
 
     def test_confirmation_cancel_and_readonly(self):
@@ -160,7 +157,7 @@ class CalendarTests(unittest.TestCase):
 class CalendarNativeTests(unittest.TestCase):
     def test_eventkit_logic_with_fake_store(self):
         source = (Path(__file__).resolve().parents[1] / 'Delphi.swift').read_text()
-        tool = source[source.index('enum CalendarTool {'):source.index('\nfunc currentMeetingEvent(')]
+        tool = source[source.index('enum CalendarTool {'):source.index('\n// MARK: - Hands')]
         fake = r'''
 import Foundation
 struct Kind: Equatable { static let event = Kind(); static let fullAccess = Kind(); static let denied = Kind() }

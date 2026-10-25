@@ -89,16 +89,6 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(shown, sorted(shown, key=len), 'the shown text only grows')
         self.assertTrue(all(len(s) >= 120 for s in shown))
 
-    def test_multi_line_agent_handoff_never_prints_text_and_hands_off(self):
-        marker = '[agent ' + json.dumps({'title': 'Research desks', 'brief': 'Compare standing desks under $600 across sources', 'context': ANSWER}, indent=2) + ']'
-        ask = tempfile.mkdtemp(dir=self.root.name)
-        with patch.object(delphi, 'wait_commit', return_value=True):
-            reply, lines, shown = self.run_stream(message(marker + '\n' + ANSWER), marker + '\n' + ANSWER, ask=ask)
-        self.assertEqual(reply, ''); self.assertEqual(shown, [])
-        self.assertEqual(sum(line.startswith('⤴ ') for line in lines), 1)
-        self.assertEqual(delphi.run.handoff['title'], 'Research desks')
-        self.assertFalse(any(line.startswith(('✓', '·')) for line in lines))
-
     def test_note_before_a_tool_never_shows_as_the_answer(self):
         rows = message('Checking the weather', ('t1', 'curl -s wttr.in')) + [result('t1')] + message(ANSWER)
         reply, lines, shown = self.run_stream(rows, ANSWER)
