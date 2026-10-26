@@ -18,31 +18,30 @@ import AudioToolbox
 
 let dir = ProcessInfo.processInfo.environment["DELPHI_RESOURCES_DIR"] ?? Bundle.main.resourcePath!   // build.sh copies delphi.py and ui/ in here
 
-// Text stays local; totals survive history deletion and never contain dictated words.
+// Totals only: dictated words are never kept on disk.
 enum DictationData {
-    struct Entry: Codable {
-        let id: String, timestamp: Double, app: String, text: String
-        let raw: String?
-    }
     struct Archive: Codable {
-        var history: [Entry] = []
         var words = 0, sessions = 0, todayWords = 0
         var day = ""
         var seconds = 0.0
     }
     static var path: String { (Prefs.path as NSString).deletingLastPathComponent + "/dictation.json" }
-    static var archive = (try? JSONDecoder().decode(Archive.self, from: Data(contentsOf: URL(fileURLWithPath: path)))) ?? Archive()
+    static var archive: Archive = {
+        let data = try? Data(contentsOf: URL(fileURLWithPath: path))
+        // An older Delphi kept a dictation history in this file: rewrite it with the totals only.
+        if let data, (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["history"] != nil { DispatchQueue.main.async { _ = save() } }
+        return data.flatMap { try? JSONDecoder().decode(Archive.self, from: $0) } ?? Archive()
+    }()
     static var words: [String] { Prefs.d["dictateWords"] as? [String] ?? [] }
     static func day(_ date: Date = Date()) -> String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: date)
     }
-    static func prune() { archive.history = Array(archive.history.filter { $0.timestamp > Date().timeIntervalSince1970 - 30 * 86400 }.prefix(500)) }
     @discardableResult static func save() -> Bool {
         do {
             let folder = (path as NSString).deletingLastPathComponent
             try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             let data = try JSONEncoder().encode(archive)
-            // Set permissions before writing any transcript bytes, including on replacement.
+            // Set permissions before writing any bytes, including on replacement.
             let tmp = folder + "/.dictation-" + UUID().uuidString
             guard FileManager.default.createFile(atPath: tmp, contents: nil, attributes: [.posixPermissions: 0o600]) else { return false }
             defer { try? FileManager.default.removeItem(atPath: tmp) }
@@ -51,25 +50,15 @@ enum DictationData {
             return true
         } catch { return false }
     }
-    @discardableResult static func record(_ text: String, raw: String, app: String, seconds: Double) -> Bool {
+    @discardableResult static func record(_ text: String, seconds: Double) -> Bool {
         let old = archive, count = text.split(whereSeparator: { $0.isWhitespace }).count
         if archive.day != day() { archive.day = day(); archive.todayWords = 0 }
         archive.words += count; archive.todayWords += count; archive.sessions += 1
         archive.seconds += max(0, Double(count) / 40 * 60 - seconds)
-        if Prefs.bool("dictateHistory") {
-            archive.history.insert(Entry(id: UUID().uuidString, timestamp: Date().timeIntervalSince1970, app: app, text: text, raw: raw == text ? nil : raw), at: 0)
-        }
-        prune()
         if save() { return true }; archive = old; return false
     }
     static func state() -> [String: Any] {
-        let count = archive.history.count
-        prune()
-        if archive.history.count != count { _ = save() }
-        return ["words": words, "history": archive.history.map { e -> [String: Any] in
-            var row: [String: Any] = ["id": e.id, "timestamp": e.timestamp, "app": e.app, "text": e.text]
-            if let raw = e.raw { row["raw"] = raw }; return row
-        }, "stats": ["today": archive.day == day() ? archive.todayWords : 0, "words": archive.words, "sessions": archive.sessions, "minutes": Int(archive.seconds / 60)]]
+        ["words": words, "stats": ["today": archive.day == day() ? archive.todayWords : 0, "words": archive.words, "sessions": archive.sessions, "minutes": Int(archive.seconds / 60)]]
     }
     @discardableResult static func word(_ value: String, replacing: String? = nil) -> Bool {
         let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -189,15 +178,14 @@ enum Prefs {
         "microphone": "automatic", "quietAudio": false, "quietLevel": 0.18, "agentModel": "sonnet", "fixSetup": false,
         "selection": true, "ahead": true, "aheadDelay": 0.7, "live": true, "screen": "auto", "openOn": "here", "workIn": "back", "miniScreen": true, "draw": true, "guideSteps": "auto", "pageJS": false,
         "speak": false, "showAnswers": "stream", "autoCopy": false, "hideWhenSharing": true, "menuIcon": true, "autoUpdate": true,
-        "learn": true, "safe": true, "pointer": false, "learnMe": true, "stats": true, "tips": true, "support": true, "askMe": true, "input": "voice", "talkMode": "hold", "speechModel": "speech", "speechLanguage": "en-US", "improve": false, "improveAsked": false, "draftInsert": "ask",
-        "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyLabel": "", "dictateMode": "cleanup", "dictateHistory": true, "dictateLearn": true, "dictateWords": [], "dictateFixes": [String: String](), "boxW": 500, "boxH": 420]
+        "learn": true, "safe": true, "pointer": false, "learnMe": true, "stats": true, "askMe": true, "input": "voice", "talkMode": "hold", "speechModel": "speech", "speechLanguage": "en-US", "improve": false, "improveAsked": false, "draftInsert": "ask",
+        "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyLabel": "", "dictateMode": "cleanup", "dictateLearn": true, "dictateWords": [], "dictateFixes": [String: String](), "boxW": 500, "boxH": 420]
     static let retiredKeys = ["quietAudio", "quietLevel", "autoCopy", "askMe", "corner", "linger", "soundStart", "soundRelease", "soundDone", "soundStop",
         "instant", "live", "ahead", "aheadDelay", "learn", "selection", "guideSteps", "workIn", "openOn", "miniScreen", "draftInsert",
         "fixSetup", "dictateLearn"]
     static var d: [String: Any] = {
         let saved = (try? JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: path)))) as? [String: Any] ?? [:]
         var values = defaults.merging(saved) { $1 }
-        if saved["support"] == nil, saved["tips"] as? Bool == false { values["support"] = false }   // tips turned off before the tip jar existed: keep its line off too (delphi.py reads the same default)
         if !["cheapest", "balanced", "capable"].contains(values["routing"] as? String ?? "") {
             values["routing"] = values["model"] as? String != "haiku" ? "capable" :
                 (values["escalate"] as? Bool != false && values["escalateAuto"] as? Bool != false ? "balanced" : "cheapest")
@@ -605,7 +593,6 @@ func telemetry(_ args: [String]) {
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
     try? p.run()   // its curl child outlives this helper; never wait on an ask
 }
-func openTipJar(_ from: String) { NSWorkspace.shared.open(kofi); telemetry(["support", from]) }   // PostHog counts clicks by place
 
 func detectLocalServers(_ done: @escaping ([[String: Any]]) -> Void) {
     DispatchQueue.global().async {
@@ -2134,7 +2121,6 @@ final class App: NSObject, WKScriptMessageHandler {
                     Delphi.settings.send("dictation", DictationData.state())
                 }
             }
-            if b["dictationHistory"] != nil { hide(after: 0); Delphi.settings.open(tab: "dictation") }
             if let value = b["miniRect"] as? [String:Any] { mini.layout(value) }
             // a click on the mini screen = the user wants to see it: the focus guard stands aside
             if b["miniOpen"] != nil { allowUntil = Date().addingTimeInterval(3); allowUserApp = true; userSwitch = Date(); mini.open(); if !busy { mini.reset(); hide(after:3) } }
@@ -2161,7 +2147,6 @@ final class App: NSObject, WKScriptMessageHandler {
                 Delphi.settings.apply("paused", false); Delphi.settings.push()
                 if !Prefs.bool("paused") { js("paused", false); hide(after: 1.5) }
             }
-            if b["kofi"] != nil { openTipJar("overlay") }
             if b["replace"] != nil, !busy { applyReplacement() }
             if b["retry"] != nil, !busy, !engine.isRunning { typed(text, keep: true) }
             if let t = b["send"] as? String { typed(t, keep: true) }
@@ -2186,7 +2171,6 @@ final class App: NSObject, WKScriptMessageHandler {
                 }
                 try? i.write(toFile: askFile, atomically: true, encoding: .utf8); askFile = ""
             }   // an index, or "" = none; failure cards also use r/n
-            if let k = b["off"] as? String, ["tips", "support"].contains(k) { Delphi.settings.apply(k, false); Delphi.settings.push() }   // a tip's own "Turn off"; never safe mode
             if let v = b["improve"] as? Bool { Delphi.settings.apply("improve", v); Delphi.settings.push() }
             if let item = b["memory"] as? [String: Any] { Delphi.settings.reveal(item) }   // a receipt's item: Settings → Memory, at that item
             if let ok = b["allow"] as? Bool, !askFile.isEmpty { allow(ok) }
@@ -2470,7 +2454,6 @@ final class App: NSObject, WKScriptMessageHandler {
         if !retry {
             dictateSeconds = 0
             dictationTargetApp = NSWorkspace.shared.frontmostApplication
-            dictationAppName = dictationTargetApp?.localizedName ?? "App"
             dictateID += 1; dictateSelection = nil; dictateBefore = ""; dictateSelectionRetried = false
         }
         let id = dictateID, front = dictationTargetApp, cleanup = dictateCleanup
@@ -2489,7 +2472,7 @@ final class App: NSObject, WKScriptMessageHandler {
                     hush(); js("dictated", ["text": "Dictation is off in secure fields", "ok": false]); hide(after: 3); return
                 }
                 dictateSelectionPending = false
-                guard let selected else {   // no text field: the words still go to History ("Nothing selected to insert")
+                guard let selected else {   // no text field: the words stay in the pill ("No text field.")
                     if AXIsProcessTrusted() {
                         if retry { finishDictation() }
                         return
@@ -2813,11 +2796,11 @@ final class App: NSObject, WKScriptMessageHandler {
         }
     }
 
-    var correctionTimer: Timer?, learnedWord: String?, dictationAppName = "App", dictateSeconds = 0.0, lastDictation: String?
+    var correctionTimer: Timer?, learnedWord: String?, dictateSeconds = 0.0, lastDictation: String?
     var dictateFellBack = false, dictateTimedOut = false
-    @discardableResult func saveDictation(_ value: String, appName: String) -> Bool {
-        let saved = DictationData.record(value, raw: text.trimmingCharacters(in: .whitespacesAndNewlines), app: appName, seconds: dictateSeconds > 0 ? dictateSeconds : Date().timeIntervalSince(began))
-        if !saved { js("dictated", ["text": "Your words are ready. Couldn’t save history or stats.", "ok": false]) }
+    @discardableResult func saveDictation(_ value: String) -> Bool {
+        let saved = DictationData.record(value, seconds: dictateSeconds > 0 ? dictateSeconds : Date().timeIntervalSince(began))
+        if !saved { js("dictated", ["text": "Your words are ready. Couldn’t save stats.", "ok": false]) }
         Delphi.settings.send("dictation", DictationData.state())
         return saved
     }
@@ -2827,7 +2810,7 @@ final class App: NSObject, WKScriptMessageHandler {
         return { [weak self] in
             guard let self else { return }
             lastDictation = value
-            saveDictation(value, appName: target.app.localizedName ?? "App")
+            saveDictation(value)
             stopReplay()
             guard Prefs.bool("dictateLearn"), axAttribute(target.element, kAXSubroleAttribute) as? String != kAXSecureTextFieldSubrole else { return }
             let readable = before.flatMap { before -> (String, String)? in
@@ -2904,7 +2887,7 @@ final class App: NSObject, WKScriptMessageHandler {
         if NSEvent.modifierFlags.contains(.control) && tries < 50 {   // ⌃ still held from the shortcut turns ⌘V into ⌃⌘V in apps that read live modifiers
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in self?.pasteLastDictation(tries + 1) }; return
         }
-        guard !Prefs.bool("paused"), !dictating, let value = lastDictation ?? DictationData.archive.history.first?.text, !value.isEmpty,
+        guard !Prefs.bool("paused"), !dictating, let value = lastDictation, !value.isEmpty,
               let clipboard = try? Hands.lease("clipboard.lock", wait: false) else { NSSound.beep(); return }
         guard let restore = borrowPasteboard(value) else { Hands.unlock(clipboard); NSSound.beep(); return }
         let front = NSWorkspace.shared.frontmostApplication
@@ -3007,7 +2990,7 @@ final class App: NSObject, WKScriptMessageHandler {
             dictateSelectionRetried = true
             captureDictationSelection(retry: true)   // lazy AX can miss at key-down; try the same app once more before giving up
             let id = dictateID
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in   // a slow app gets 1 s, then the words go on (History when there is no box)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in   // a slow app gets 1 s, then the words go on (the pill when there is no box)
                 guard let self, dictateID == id, dictateSelectionPending else { return }
                 dictateSelectionPending = false; finishDictation()
             }
@@ -3057,11 +3040,8 @@ final class App: NSObject, WKScriptMessageHandler {
         busy = false; dictating = false; dictateSelection = nil; lastDictation = value
         let paste = pasteHotkeyRegistered ? " Press ⌃⌘V to paste it." : ""
         cue("soundStop")
-        // Never the clipboard: the user's own copy stays. History keeps the words; with it off (or unsaved) they stay on screen.
-        guard Prefs.bool("dictateHistory") && saveDictation(value, appName: dictationAppName) else {
-            js("dictated", ["text": failed + (paste.isEmpty ? " Your words are still here." : paste), "ok": false, "words": value]); return
-        }
-        js("dictated", ["text": failed + (paste.isEmpty ? " Saved to History." : paste), "ok": false, "history": true]); hide(after: 6)
+        // Never the clipboard: the user's own copy stays. The words stay on screen to copy.
+        js("dictated", ["text": failed + (paste.isEmpty ? " Your words are still here." : paste), "ok": false, "words": value])
     }
 
     func insertDictation(_ heard: String) {
@@ -3090,7 +3070,6 @@ final class App: NSObject, WKScriptMessageHandler {
         }
         if retryOffer && !askFile.isEmpty { js("respond", t); return }
         guard !busy, !engine.isRunning else { return }
-        if ["report feedback", "report a bug"].contains(transcriptKey(t)) { Delphi.settings.open(tab:"feedback"); return }
         if selectionPending {
             let id = selectionID
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
@@ -3157,7 +3136,6 @@ final class App: NSObject, WKScriptMessageHandler {
                 while let i = buffer.firstIndex(of: 10) {
                     let line = String(decoding: buffer[..<i], as: UTF8.self); buffer.removeSubrange(...i)
                     if line == "! setup" { onboarding.open(); continue }   // Claude not installed, signed out or no plan
-                    if line == "! feedback" { Delphi.settings.open(tab:"feedback"); continue }
                     if line == "! improve" { self.js("improve"); continue }   // the one-time "help make Delphi better?" card
                     if line.hasPrefix("▣ "), let value = try? JSONSerialization.jsonObject(with:Data(line.dropFirst(2).utf8)) as? [String:Any] { if Prefs.d["miniScreen"] as? Bool ?? true { self.mini.receive(value) }; continue }
                     if line.hasPrefix("✎ ") {
@@ -3431,8 +3409,6 @@ final class Onboarding: NSObject, WKScriptMessageHandler, NSWindowDelegate {
     func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
         guard let b = m.body as? [String: String] else { return }
         if b["do"] == "done" { return finish() }
-        if b["do"] == "kofi" { openTipJar("setup"); return }
-        if b["do"] == "feedback" { Delphi.settings.open(tab: "feedback"); return }
         if b["do"] == "provider", let c = b["client"], ["claude", "devin", "pi"].contains(c) {   // the plan row's Change provider sheet
             Delphi.settings.apply("client", c)
             for k in ["apiBase", "apiKey", "apiModel"] { if let v = b[k] { Delphi.settings.apply(k, v) } }
@@ -3740,17 +3716,13 @@ final class MenuBar: NSObject, NSMenuDelegate {
         head.isEnabled = false; m.addItem(head)
         m.addItem(.separator())
         add(m, "Ask Delphi", #selector(ask), "")
-        add(m, "Dictation History…", #selector(dictationHistory), "")
-        if pasteHotkeyRegistered && (app.lastDictation ?? DictationData.archive.history.first?.text) != nil {
+        if pasteHotkeyRegistered && app.lastDictation != nil {
             add(m, "Paste Last Dictation", #selector(pasteDictation), "v"); m.items.last?.keyEquivalentModifierMask = [.control, .command]
         }
         add(m, Prefs.bool("paused") ? "Resume Delphi" : "Pause Delphi", #selector(pause), "")
         m.addItem(.separator())
         add(m, "Settings…", #selector(openSettings), ",")
         add(m, "Setup & Permissions…", #selector(openSetup), "")
-        add(m, "Report Feedback…", #selector(reportFeedback), "")
-        add(m, "Leave a Tip…", #selector(tipJar), "")
-        if !Prefs.bool("tips") { add(m, "Show Tips Again", #selector(tipsOn), "") }   // a tip's "Turn off" has no Settings row to undo it
         m.addItem(.separator())
         add(m, "Quit Delphi", #selector(quit), "q")
     }
@@ -3758,12 +3730,8 @@ final class MenuBar: NSObject, NSMenuDelegate {
     @objc func ask() { app.clickTalk = true; app.start(); if !app.engine.isRunning { app.clickTalk = false } }   // the same box as the shortcut, hands-free
     @objc func pause() { Prefs.set("paused", !Prefs.bool("paused")); if Prefs.bool("paused") { app.close(clear: false) }; paint(); settings.push() }
     @objc func openSettings() { settings.open() }
-    @objc func dictationHistory() { settings.open(tab: "dictation") }
     @objc func pasteDictation() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { app.pasteLastDictation() } }   // after the menu closes and focus returns
     @objc func openSetup() { onboarding.open() }
-    @objc func reportFeedback() { settings.open(tab:"feedback") }
-    @objc func tipJar() { openTipJar("menu") }
-    @objc func tipsOn() { settings.apply("tips", true); settings.push() }
     @objc func quit() { NSApp.terminate(nil) }
 }
 
@@ -3877,8 +3845,6 @@ enum Apps {
 
 final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate, NSWindowDelegate {
     var win: NSWindow?, web: WKWebView?
-    var feedbackJob = 0, feedbackURL: URL?
-
     var tab = "", timer: Timer?   // tab: shown once the page loads
     var revealing: [String: Any]?   // a memory item to show once the page loads
 
@@ -3944,24 +3910,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
             DispatchQueue.main.async { self?.web?.evaluateJavaScript("st.state(\(s))") }
         }
     }
-    func feedbackPreview(_ include: Bool, _ text: String, _ revision: Int = 0) {
-        feedbackJob += 1; let job = feedbackJob; feedbackURL = nil
-        let version = Updater.version.isEmpty ? Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "unknown" : Updater.version
-        DispatchQueue.global().async { [weak self] in
-            let p = py(["--feedback"]), input = Pipe(), out = Pipe(); p.standardInput = input; p.standardOutput = out
-            _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
-            do { try p.run(); try input.fileHandleForWriting.write(contentsOf:JSONSerialization.data(withJSONObject:["include":include,"version":version,"text":text])); try input.fileHandleForWriting.close() }
-            catch { if p.isRunning { p.terminate() }; DispatchQueue.main.async { if self?.feedbackJob == job { self?.send("feedback", ["error":"Could not prepare feedback. Try again.","revision":revision]) } }; return }
-            let data = out.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()
-            var result = (try? JSONSerialization.jsonObject(with:data)) as? [String:Any]; result?["revision"] = revision
-            DispatchQueue.main.async { [weak self] in
-                guard let self, feedbackJob == job, web != nil else { return }
-                guard let result, let text = result["url"] as? String, let url = URL(string:text), url.host == "github.com", url.path == "/SaarthurR/atticus-mac/issues/new" else { send("feedback", ["error":"Could not prepare feedback. Try again.","revision":revision]); return }
-                feedbackURL = url; send("feedback", result)
-            }
-        }
-    }
-
     // "Change shortcut": the next key chord, including modifier-only and Fn chords, becomes the talk shortcut. Esc cancels.
     var monitor: Any?, recording = "main", recordedModifiers: NSEvent.ModifierFlags = [], echo: ((String) -> Void)?   // echo: setup's page when it records, so it gets the calls Settings would
     func record(_ kind: String = "main", echo: ((String) -> Void)? = nil) {
@@ -4056,9 +4004,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
     func handle(_ b: [String: Any]) {
         guard let what = b["do"] as? String else { return }
         switch what {
-        case "feedbackInvalidate": feedbackJob += 1; feedbackURL = nil
-        case "feedbackPreview": feedbackPreview(b["include"] as? Bool ?? false, b["text"] as? String ?? "", b["revision"] as? Int ?? 0)
-        case "feedbackOpen": if let feedbackURL { NSWorkspace.shared.open(feedbackURL) }
         case "set":
             guard let k = b["k"] as? String, let v = b["v"] else { return }
             apply(k, v)
@@ -4068,12 +4013,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
         case "dictationWordDelete":
             if let word = b["word"] as? String, DictationData.forget(word) { send("dictation", DictationData.state()) }
             else { send("notice", ["text": "Couldn’t remove that word."]) }
-        case "dictationDelete", "dictationClear":
-            let old = DictationData.archive
-            if what == "dictationClear" { DictationData.archive.history = [] }
-            else { DictationData.archive.history.removeAll { $0.id == b["id"] as? String } }
-            if !DictationData.save() { DictationData.archive = old; send("notice", ["text": "Couldn’t delete saved dictation."]) }
-            send("dictation", DictationData.state())
         case "record": record()
         case "recordDictate": record("dictate")
         case "cancelRecord": if monitor != nil { done(nil) }
@@ -4085,7 +4024,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
             DispatchQueue.global().async { [weak self] in self?.helper(["--unlearn", say]); DispatchQueue.main.async { self?.refresh() } }
         case "checkUpdate": Updater.check { [weak self] in self?.push() }
         case "github": NSWorkspace.shared.open(URL(string: "https://github.com/SaarthurR/atticus-mac")!)
-        case "kofi": openTipJar("settings")
         case "resetHotkey":
             done((49, controlKey | optionKey, "⌃⌥Space"))   // same rollback and warning as a recorded shortcut
         case "preview":
@@ -4099,7 +4037,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
                 self?.send("models", ["base":base, "key":key, "list":(try? JSONSerialization.jsonObject(with: d)) as? [String] ?? []])
             }
         case "localServers": detectLocalServers { [weak self] found in self?.send("local", found) }
-        case "copy": if let text = b["text"] as? String { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string); send("notice", ["text": "Copied."]) }
         case "globeKey": NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!)
         case "openLog": NSWorkspace.shared.open(URL(fileURLWithPath:(Prefs.path as NSString).deletingLastPathComponent + "/log.jsonl"))
         case "clearRecent":
@@ -4147,7 +4084,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
     func windowDidResignKey(_ n: Notification) { if monitor != nil { done(nil) } }
 
     func windowWillClose(_ n: Notification) {
-        feedbackJob += 1; feedbackURL = nil
         if let v = web { v.evaluateJavaScript("st.flush()") { [weak self] r, _ in _ = v; if let b = r as? [String: Any] { self?.handle(b) } } }   // a deletion still showing Undo
         if monitor != nil { done(nil) }   // closed mid-recording: keep the old shortcut
         timer?.invalidate(); timer = nil
@@ -4181,8 +4117,6 @@ enum PanelFrame {
         return g
     }
 }
-
-let kofi = URL(string: "https://ko-fi.com/saarthr")!   // tips: Settings → About, setup's last page, the menu bar, the overlay's rare support line
 
 
 // Structured EventKit backend; the Python tool owns picks and approval cards.
@@ -5734,6 +5668,7 @@ let delegate = Delegate()
 NSApplication.shared.delegate = delegate
 if !hotkeyRegistered || !dictateHotkeyRegistered { DispatchQueue.main.async { settings.open() } }   // another app owns a saved shortcut: show the warning, not a silent dead key
 Updater.schedule()
+_ = DictationData.archive   // loads now, so a saved history from an older Delphi is wiped at launch
 
 // Test hook: `defaults write com.delphi.app demo -string "<request>"` then restart runs it once without the mic.
 if let demo = UserDefaults.standard.string(forKey: "demo") {

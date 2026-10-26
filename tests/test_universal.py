@@ -335,6 +335,6 @@ class UniversalTests(unittest.TestCase):
         self.assertNotIn('pages needed to reach the controls index', delphi.SYSTEM)
         self.assertIn('do not search for another copy', delphi.SYSTEM)
         self.assertNotIn('on Amazon', delphi.SYSTEM)
-        full = delphi.SYSTEM + delphi.ASK_ME + delphi.POINTER + delphi.LEARN_ME + delphi.TEACH + delphi.ASK_FIRST + delphi.WORKFLOW
+        full = delphi.SYSTEM + delphi.ASK_ME + delphi.POINTER + delphi.LEARN_ME + delphi.ASK_FIRST + delphi.WORKFLOW
         self.assertLessEqual(len(full), 10000)
         print(f'UNIVERSAL PROMPT CHARS: {len(full)}; INSTALLED: {len(full.replace(delphi.ME, os.path.expanduser("~/Applications/Delphi.app/Contents/Resources/delphi.py")))}; TEXT PAGE CHARS: {delphi.TEXT_PAGE}', flush=True)

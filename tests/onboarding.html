@@ -40,46 +40,12 @@ w.ob.plan({ok:true,need:'',client:'pi',text:'Pi is installed.'});assert($('p-cla
 w.ob.plan({ok:true,need:'',client:'server',text:'Using a custom server.'});assert(!$('agents'),'No agents setup page');
 await go('try');assert($('try-next').hidden,'Try Next waits for shortcut');
 w.ob.tried();await until(()=>!$('try-next').hidden&&$('try-skip').hidden,'Try Next button');assert(true,'Shortcut enables Next');
-await go('mac');assert(!!$('mac-mini')&&$('mac').textContent.includes('background'),'Mac preview explains background work and live mini screen');await go('learn');assert($('learn').textContent.includes('remember'),'Setup teaches that Delphi remembers');await go('text');await go('dictate');
-const P0={draw:true,routing:'balanced',dictateMode:'verbatim',dictateHotkeyLabel:''},keysIn=()=>[...$('dc-field').querySelectorAll('i')].map(i=>i.textContent).join('');
-w.ob.prefs(P0);assert($('dc-field').textContent==='Record Shortcut'&&$('dc-clear').hidden&&$('dc-mode').classList.contains('dim'),'Dictation starts with no shortcut and its mode greyed');
-$('dc-field').click();await until(()=>messages.some(m=>m.do==='recordDictate')&&$('dc-field').classList.contains('rec'),'dictation recorder');assert($('dc-field').textContent==='Type Shortcut','Clicking the field records the next keys');
-w.ob.rec('⌃⌥');assert(keysIn()==='⌃⌥','Held keys show live');w.ob.prefs(P0);assert($('dc-field').classList.contains('rec')&&keysIn()==='⌃⌥','The every-second refresh leaves a recording alone');
-w.ob.taken('dictate',false);w.ob.recorded('');assert($('dc-hint').className==='warn'&&$('dc-hint').textContent.includes('Another app')&&$('dc-field').textContent==='Record Shortcut','A clash warns in place and keeps the old shortcut');
-$('dc-field').click();await until(()=>$('dc-field').classList.contains('rec'),'dictation re-recording');w.ob.recorded('⌃⌥D');assert(!$('dc-field').classList.contains('rec')&&keysIn()==='⌃⌥D'&&!$('dc-clear').hidden&&!$('dc-mode').classList.contains('dim'),'A recorded shortcut shows its keys, a clear button and its mode');
-d.querySelector('#dc-mode [data-v=cleanup]').click();await until(()=>messages.some(m=>m.do==='set'&&m.k==='dictateMode'&&m.v==='cleanup'),'dictation mode save');assert(true,'Dictation mode is saved');
-$('dc-clear').click();await until(()=>messages.some(m=>m.do==='clearDictate'),'dictation shortcut clear');assert($('dc-field').textContent==='Record Shortcut','Clear removes the shortcut');
-const ex=d.querySelectorAll('#dc-ex button');assert(ex.length===5&&$('dictate').textContent.includes('Scratch that')&&$('dictate').textContent.includes('New line'),'Dictate teaches Clean up by example');
-ex[1].click();await until(()=>ex[1].getAttribute('aria-pressed')==='true'&&$('dc-said').textContent.includes('scratch')&&$('dc-said').querySelector('.x'),'chosen dictation example');assert(ex[0].getAttribute('aria-pressed')==='false','Picking an example plays it, with the dropped words marked');
-$('dc-field').click();await until(()=>$('dc-field').classList.contains('rec'),'dictation recording');await go('point');await until(()=>messages.some(m=>m.do==='cancelRecord'),'recording cancellation');assert(true,'Leaving mid-recording cancels it');
-assert($('point').textContent.includes('whiteboard')&&d.querySelectorAll('#wb-card [data-s]').length===3,'Draw on screen shows the whiteboard explanation');
-assert(d.querySelector('[data-k="draw"]').checked&&!$('meeting')&&!d.querySelector('[data-k="meeting"]'),'Switches reflect prefs; no Meeting Copilot page');
-d.querySelector('[data-k="draw"]').click();await until(()=>messages.some(m=>m.do==='set'&&m.k==='draw'&&m.v==='false'),'draw preference');assert(true,'Switch sends native preference');
-await go('pointer');assert($('pointer').textContent.includes('Point at your screen')&&$('pointer').textContent.includes('Click, circle or scribble on anything, then ask'),'Point at your screen has its own page with the box’s words');
-w.ob.plan({ok:true,need:'',client:'pi',text:'Pi is installed.'});d.querySelector('#pointer [data-go="work"]').click();await until(()=>d.querySelector('.page.on')?.id==='improve','Pi improve page');page('improve');
-$('back').click();await until(()=>d.querySelector('.page.on')?.id==='pointer','pointer page');page('pointer');
-w.ob.plan({ok:true,need:'',client:'server',text:'Using a custom server.'});w.ob.prefs(P0);await go('work');assert($('wk-brain').hidden,'A custom server hides Intelligence');
-w.ob.plan({ok:true,need:'',client:'claude',text:'Signed in.'});w.ob.prefs(P0);
-assert(!$('wk-brain').hidden&&$('wk-why').textContent.includes('quick asks')&&d.querySelector('[data-k=routing] [data-v=balanced]').getAttribute('aria-pressed')==='true','Intelligence shows the current mode and why');
-d.querySelector('[data-k=routing] [data-v=cheapest]').click();await until(()=>messages.some(m=>m.do==='set'&&m.k==='routing'&&m.v==='cheapest'),'routing preference');assert(!d.querySelector('[data-k=longAsks]'),'Long asks always move: no setting');
-assert(messages.some(m=>m.do==='set'&&m.k==='routing'&&m.v==='cheapest')&&$('wk-why').textContent.includes('least'),'Work choices save and explain themselves');
-assert($('work').textContent.includes('⌃⌥↩'),'The work page names the move shortcut');
-for(const e of $('work').querySelectorAll('.row')){const r=e.getBoundingClientRect();assert(r.right<=640&&r.bottom<=612,'Fits window work / '+e.textContent.slice(0,12))}
-await go('improve');
-for(const e of $('improve').children){const r=e.getBoundingClientRect();assert(r.left>=0&&r.right<=640&&r.top>=0&&r.bottom<=612,'Fits window improve / '+e.className)}
-assert($('improve').textContent.includes('Anonymous')&&d.querySelector('#improve .bar2 .btn:not(.quiet)').textContent==='Help Improve','Improve page says what is sent; Help Improve is the main action');
-d.querySelector('#improve [data-improve="true"]').click();await until(()=>d.querySelector('.page.on')?.id==='tip','tip page');page('tip');
-for(const e of $('tip').children){const r=e.getBoundingClientRect();assert(r.left>=0&&r.right<=640&&r.top>=0&&r.bottom<=612,'Fits window tip / '+(e.id||e.className))}
-assert($('tip').textContent.includes('really support me')&&$('kofi').textContent.includes('Leave a Tip'),'Tip page asks for a tip on its own screen');
-$('kofi').click();await until(()=>messages.some(m=>m.do==='kofi'),'tip request');assert(true,'Leave a Tip opens the tip page');assert(d.querySelector('.page.on').id==='tip','Tipping stays on the tip page');
-await go('done');
-await until(()=>messages.some(m=>m.do==='set'&&m.k==='improve'&&m.v==='true'),'improve preference');assert(true,'Help Improve turns the setting on');assert($('feedback-note').textContent.includes('Report feedback'),'Last page asks for feedback');$('feedback-link').click();await until(()=>messages.some(m=>m.do==='feedback'),'feedback link message');assert(true,'Its link opens Report feedback');await until(()=>w.getComputedStyle($('done-check').querySelector('circle')).opacity==='1','done check (it only reaches its last frame by animating)');assert(true,'Done check finishes');
+await go('done');assert(d.querySelectorAll('.page').length===4&&d.querySelectorAll('#dots i').length===4,'Setup is four pages');
+assert(!$('mac')&&!$('dictate')&&!$('work')&&!$('improve'),'No feature tour or settings pages');
+await until(()=>w.getComputedStyle($('done-check').querySelector('circle')).opacity==='1','done check (it only reaches its last frame by animating)');assert(true,'Done check finishes');
 const reduced=await load('reduced',true);
-await until(()=>reduced.document.getElementById('macstage').classList.contains('snapped')&&reduced.document.getElementById('mt-ans').classList.contains('on')&&reduced.document.getElementById('dc-words').textContent==='I was thinking we could leave.','reduced-motion final previews');
 assert(reduced.framesRequested===0,'Reduced Motion renders orb once');
 assert(!reduced.document.querySelector('.key.down'),'Reduced Motion stops welcome key loop');
-assert(reduced.document.getElementById('macstage').classList.contains('snapped')&&reduced.document.getElementById('mt-ans').classList.contains('on'),'Reduced Motion shows final previews');
-assert(reduced.document.getElementById('dc-words').textContent==='I was thinking we could leave.'&&reduced.document.getElementById('wb-card').querySelectorAll('p.on').length===3&&!reduced.document.getElementById('pa-a').hidden,'Reduced Motion shows the finished dictation, whiteboard and pointer previews');
 results.textContent=checks.join('\n')+`\n${checks.length} checks passed.`;results.className='pass';
 }catch(e){results.textContent=checks.join('\n')+'\n✗ '+e.message;results.className='fail'}
 </script></body></html>

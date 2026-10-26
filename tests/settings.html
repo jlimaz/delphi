@@ -41,23 +41,6 @@ try {
   w.st.load({prefs:{...base,routing:'balanced',client:'pi'}});
   assert(d.querySelector('[data-k=routing]').closest('.row').hidden,'Pi hides Claude routing');
   w.st.load({prefs:{...base,routing:'balanced',client:'claude'}});
-  w.st.tab('feedback');
-  await new Promise(r=>setTimeout(r,20));
-  const revision=()=>messages.filter(m=>m.do==='feedbackPreview').at(-1).revision;
-  assert(!d.getElementById('feedbackinclude').checked && d.getElementById('feedbackopen').disabled,'Feedback starts private and waits for preview');
-  w.st.feedback({revision:revision(),include:false,body:'What happened\nVersion: fixture'});
-  assert(!d.getElementById('feedbackopen').disabled && d.getElementById('feedbackbody').textContent.includes('Version: fixture'),'Exact feedback text is shown before GitHub');
-  d.getElementById('feedbackinclude').click();w.st.load({prefs:{hotkeyLabel:'⌃⌥Space',model:'haiku',volume:.16}});assert(d.getElementById('feedbackinclude').checked,'Preference refresh cannot silently change ask inclusion');await new Promise(r=>setTimeout(r,20));
-  assert(messages.some(m=>m.do==='feedbackPreview'&&m.include===true)&&d.getElementById('feedbackopen').disabled,'Ask opt-in waits for a new preview');
-  w.st.feedback({revision:revision(),include:false,body:'STALE'});assert(d.getElementById('feedbackopen').disabled,'Stale privacy preview cannot enable opening');
-  w.st.feedback({revision:revision(),include:true,body:'My last ask\nPrivate fixture words'});d.getElementById('feedbackopen').click();await new Promise(r=>setTimeout(r,20));
-  assert(messages.some(m=>m.do==='feedbackOpen'),'Reviewed feedback opens GitHub through native bridge');
-  const stale=revision();d.getElementById('feedbacktext').value='Edited feedback';d.getElementById('feedbacktext').dispatchEvent(new w.Event('input'));
-  assert(d.getElementById('feedbackopen').disabled,'Editing invalidates the draft before debounce');
-  w.st.feedback({revision:stale,include:true,body:'Old typed feedback'});assert(d.getElementById('feedbackopen').disabled,'Old text response cannot enable opening during debounce');
-  await new Promise(r=>setTimeout(r,330));assert(messages.some(m=>m.do==='feedbackInvalidate')&&messages.at(-1).text==='Edited feedback','Native draft is invalidated and current text is requested');
-  w.st.feedback({revision:revision(),include:true,body:'Edited feedback'});assert(!d.getElementById('feedbackopen').disabled,'Only the current text preview enables opening');
-  w.st.tab('feedback');assert(!d.getElementById('feedbackinclude').checked,'Every feedback visit resets ask inclusion');
   assert(!d.getElementById('screen')&&!d.getElementById('sound')&&d.getElementById('account').querySelector('[data-k=screen]')&&d.getElementById('account').querySelector('[data-k=hideWhenSharing]'),'Screen privacy lives in Account & Access; no Screen or Sound pages');
 
   const prefs = {hotkeyLabel: '⌃⌥Space', input: 'voice', talkMode: 'hold', volume: .16, model: 'haiku', login: true, menuIcon: true, safe: true, soundDone: 'Glass'};

@@ -69,7 +69,7 @@ class SettingsPageTests(unittest.TestCase):
     def test_row_lines_stay_short(self):
         page = (ROOT / 'ui/settings.html').read_text()
         lines = [re.sub(r'<i class="info"[^>]*>i</i>|<[^>]+>', '', m).strip() for m in re.findall(r'</b><span[^>]*>(.*?)</span></div>', page) if '${' not in m]
-        self.assertGreater(len(lines), 40)
+        self.assertGreater(len(lines), 35)
         self.assertEqual([t for t in lines if len(t.split()) > 14], [])   # rare detail goes in an info tip
         self.assertTrue(all(re.search(r'<i class="info" title="[^"]+">i</i></span>', m) for m in re.findall(r'<span>[^<]*<i class="info".*?</span>', page)))
         self.assertIn('Risky actions need approval.</span>', page)
@@ -150,7 +150,7 @@ class SettingsPageTests(unittest.TestCase):
                 self.assertNotIn(f'data-k="{key}"', page)
                 self.assertNotIn(key, delphi.switches())
                 self.assertNotIn(key, delphi.picks())
-        self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 7)   # 6 pages and Report feedback
+        self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 6)   # 6 pages
 
     def test_pages_wear_their_sidebar_color_and_row_actions_show_on_focus(self):
         out = self.page("""document.body.classList.add('reduce');

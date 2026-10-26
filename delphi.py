@@ -540,9 +540,6 @@ After verified multi-step work or "remember how", append [workflow <task> | <met
 For one reusable shell command, add [replay <command>]: open, URL scheme, osascript or hands label/menu path; end with a success check.
 Saved workflow: follow and verify it; re-read stale context."""
 
-TEACH = """
-After failure, correction or a repeated ask, end [tip <exact words the user can say so it works next time>]."""
-
 # Ask me when unsure (always on): a choices card in the box instead of a guess
 ASK_ME = f"""
 Ask, don't guess: unsure about anything that changes what you do (which file, app, song or person, which meaning, a missing detail)? Never choose
@@ -1977,14 +1974,10 @@ def fast(text):
         if reply and learn(name, fast.cmds, reply, text) is not None:
             output = fast.shortcut['output'] if fast.shortcut else [reply]
             fast.shortcut = {'key': plain(name), 'commands': fast.cmds, 'output': output}
-            tip(reply, f'Learned: Say “{name}” any time.')
+            learned_pill(f'Learned: Say “{name}” any time.')
             return reply
         return None
     t = plain(text)
-    if t in ('report feedback', 'report a bug'):
-        if os.environ.get('DELPHI_LIVE') == '1': return None
-        say('!', 'feedback')
-        return 'Review your feedback before opening GitHub.'
     quick = fast_hands(t)
     if quick:
         return quick
@@ -3240,16 +3233,6 @@ def log_turn(task, reply, started, cost=0, steps=0, ran=(), pics=0, *, model=Non
         append_log(row)
 
 
-TIPS = ['Say "remember …" and Delphi keeps it as a rule.',
-        'Say "when I say study mode, open …" to make your own instant command.',
-        'Ask "where do I click to …" and a ring marks the spot.',
-        'Tap the shortcut to type instead of talk.',
-        'Sonnet gives better answers on hard tasks. Settings → Intelligence → Balanced uses it for real work.']
-SUPPORT = ['Enjoying Delphi? Leave a tip →',
-           'Delphi is free. A small tip keeps it that way →',
-           'Made by one person. A tip helps a lot →',
-           'Did that save you a minute? Tip the developer →']
-MISS = 'Saying the same thing more than once? Tell Delphi how you want it done. It remembers next time.'
 MODEL_OFFER = '\nModel: reply ONLY [sonnet] before tools for hard multi-step reasoning or research. Else finish; retry a failed tool once another way. Stopping short of a reachable goal: end [sonnet], never offer to continue.'
 
 
@@ -3277,31 +3260,10 @@ def message_blocks(event):
     return [block for block in content if isinstance(block, dict)] if isinstance(content, list) else []
 
 
-def tip(reply, taught=''):
-    """One small tip under the answer ("i <tip>"). After a miss or a redo: how to teach it (the AI's own words if it gave some),
-    every time; otherwise a general tip at most every 6 h. Off in Settings. The tip-jar line ("Support: …") has its own
-    switch and clock: at most every 4 h, never after a miss."""
-    if os.environ.get('DELPHI_UI') != '1':
-        return
-    tips, miss = pref('tips', True), taught or failed_action_reply(reply, getattr(run, 'work', False))
-    if taught.startswith('Learned:') or tips and miss:
-        return say('i', taught or MISS)
-    stamp, kofi = os.path.join(DIR, 'tip'), os.path.join(DIR, 'kofi')
-    if miss:
-        return
-    if not os.path.exists(kofi):   # first ask, or an install from before the tip jar: its 4 h clock starts now
-        Path(kofi).touch()
-    if not os.path.exists(stamp):   # never on the very first ask
-        return Path(stamp).write_text('0')
-    if pref('support', pref('tips', True)) and time.time() - os.path.getmtime(kofi) > 4 * 3600:
-        Path(kofi).touch()
-        posthog('support', {'action': 'shown', 'from': 'overlay'})
-        return say('i', 'Support: ' + SUPPORT[int(time.time()) % len(SUPPORT)])
-    n = int(Path(stamp).read_text() or 0)
-    if not tips or time.time() - os.path.getmtime(stamp) < 6 * 3600:
-        return
-    Path(stamp).write_text(str(n + 1))
-    say('i', TIPS[n % len(TIPS)])
+def learned_pill(note):
+    """The green "Learned" pill under the answer: a shortcut or procedure it just saved."""
+    if note and os.environ.get('DELPHI_UI') == '1':
+        say('i', note)
 
 
 def plan():
@@ -3510,7 +3472,7 @@ def system_prompt(risky):
         system = system.replace('Work behind: never activate/raise unless asked to open/show/switch/focus.', 'Work in front: bring each app/page forward before working in it.').replace('pictures that window in place, even covered; raises only if asked.', 'to bring the working app forward.')
     return (system + (ASK_ME if pref('askMe', True) else '') +
             (DRAWING if pref('draw', True) else '') + (POINTER if pref('pointer', False) and not pref('draw', True) else '') + (LEARN_ME if pref('learnMe', True) else '') +
-            (TEACH if pref('tips', True) else '') + (WORKFLOW if pref('learn', True) else ''))
+            (WORKFLOW if pref('learn', True) else ''))
 
 
 def start_ai(model=None):
@@ -5015,23 +4977,6 @@ def retire_routine(identifier):
         subprocess.run(['/bin/launchctl', 'bootout', f'gui/{os.getuid()}/com.delphi.routine.{identifier}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def feedback(data):
-    model = pref('model', 'haiku')
-    model = model if model in ('haiku', 'sonnet', 'opus') else 'custom'
-    mac = subprocess.run(['/usr/sbin/sysctl', '-n', 'hw.model'], capture_output=True, text=True).stdout.strip()
-    text = str(data.get('text', '')).strip()[:4000]   # what the user typed in Settings; they see it in the preview before it goes anywhere
-    body = (f'## What happened\n\n{text}\n\n' if text else '## What happened\n\n\n## What you expected\n\n\n') + ('## Delphi\n'
-            f'Version: {APP_VERSION}\nVersion / commit: {str(data.get("version", "unknown"))[:80]}\nmacOS: {platform.mac_ver()[0]}\nMac model: {mac}\n'
-            f'AI client: {client()}\nModel: {model}\nRouting: {routing_mode()}\nSafe mode: {"on" if pref("safe", True) else "off"}\n'
-            f'Input: {"type" if pref("input", "voice") == "type" else "voice"}\n'
-            f'Shortcut: {"toggle" if pref("talkMode", "hold") == "toggle" else "hold"}\n')
-    if data.get('include') is True:
-        rows = [r for r in read_rows(os.path.join(DIR, 'log.jsonl')) if r.get('status') != 'not_handled' and isinstance(r.get('task'), str) and plain(r['task']) not in ('report feedback', 'report a bug')]
-        body += '\n## My last ask\n' + (rows[-1]['task'] if rows else '(No previous ask)') + '\n'
-    return {'body': body, 'include': data.get('include') is True,
-            'url': 'https://github.com/SaarthurR/atticus-mac/issues/new?' + urllib.parse.urlencode({'title': 'Delphi feedback', 'body': body})}
-
-
 def main():
     args = sys.argv[1:]
     if len(args) == 8 and args[:2] == ['--telemetry', 'dictation']:
@@ -5041,8 +4986,6 @@ def main():
     if len(args) == 5 and args[:3] == ['--telemetry', 'error', 'worker_exit']:
         return report_error('worker_exit', worker=args[3] if args[3] in ('python', 'claude', 'devin', 'pi') else 'python',
                             exit=int(args[4]) if args[4].lstrip('-').isdigit() else -1)
-    if len(args) == 3 and args[:2] == ['--telemetry', 'support']:   # a Leave a Tip click in the app
-        return posthog('support', {'action': 'clicked', 'from': args[2] if args[2] in ('overlay', 'setup', 'settings', 'menu') else 'other'})
     if args == ['--draw', '--help']:
         return print(DRAW_HELP if pref('draw', True) else 'Screen drawings are off')
     if args[:1] == ['--draw']:
@@ -5053,8 +4996,6 @@ def main():
             print('Could not draw: ' + str(e)); return sys.exit(1)
     if len(args) == 2 and args[0] == '--routine-fire':   # a routine's launchd job from before routines were removed: retire it, never run it as an ask
         return retire_routine(args[1])
-    if args == ['--feedback']:
-        return print(json.dumps(feedback(json.load(sys.stdin))))
     if args in (['--dictate-cleanup'], ['--dictate-cleanup-wait']):
         try:
             if args == ['--dictate-cleanup-wait']:
@@ -5326,11 +5267,6 @@ def main():
     if not reading_started and not selection_context() and pref('screen', 'auto') != 'never':
         reading.start()
         reading_started = True
-    if plain(task) in ('report feedback', 'report a bug'):
-        if not wait_commit(): return
-        if warm: stop_claude(warm)
-        say('!', 'feedback')
-        return say('✓', 'Review your feedback before opening GitHub.')
     ping()
     key = re.fullmatch(r'\W*(?:my )?(?:license )?key\W+([\w-]{8,})\W*', task, re.I)
     if key or not licensed():
@@ -5482,8 +5418,6 @@ def main():
     replacement, reply = replacement_reply(reply, bool(selected))
     if not replacement:
         reply = point(re.sub(r'\s*\n\s*Sources?:.*\Z', '', reply, flags=re.S | re.I))
-    taught = None if replacement else re.search(r'\[tip ([^\]]+)\]', reply)
-    reply = (reply[:taught.start()] + reply[taught.end():]).strip() if taught else reply
     fix = turns and re.match(r"(no|nope|not that|wrong|that's wrong|i meant|i said)\b", plain(task))
     if fix and not failed_shortcut:
         unlearn(turns[-1]['q'])   # a learned shortcut that did the wrong thing goes
@@ -5523,7 +5457,7 @@ def main():
         print('✎ ' + json.dumps(receipt, ensure_ascii=False), flush=True)
     # "When I say focus mode, …" saved: a green Learned pill
     said = shortcut or learned_say   # a new shortcut, named or learned from these words
-    tip(reply, f'Learned: Say “{said}” any time.' if said else 'Learned: Procedure saved for next time.' if workflow else taught[1].strip() if taught else '')
+    learned_pill(f'Learned: Say “{said}” any time.' if said else 'Learned: Procedure saved for next time.' if workflow else '')
     asked = os.path.join(DIR, 'improve-asked')   # people who updated never saw setup's question: ask once a day after a task that worked, until they answer
     if run.ok and not failed and POSTHOG_KEY and not pref('improveAsked', False) and os.environ.get('DELPHI_UI') == '1' \
             and not (os.path.exists(asked) and Path(asked).read_text() == time.strftime('%Y-%m-%d')):

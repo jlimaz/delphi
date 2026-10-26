@@ -422,7 +422,7 @@ print("Clicked Export")
                             window_summary=lambda *_:{'app':'Fixture','window':'Window','text':'Worksheet question and answers. ' * 10}, front=lambda:('Fixture','Window'), osa=lambda *_:'', screens=lambda:[],
                             describe=lambda *_:'Fixture display', me_line=lambda:'', selection_context=lambda:'',
                             relevant_rules=lambda _: '', workflows=lambda *args:'', recent=lambda:[], remember_turn=lambda *_:None,
-                            log_turn=lambda *_, **__:None, learn=lambda *_:None, restore_focus=lambda *_:None, tip=lambda *_:None), \
+                            log_turn=lambda *_, **__:None, learn=lambda *_:None, restore_focus=lambda *_:None, learned_pill=lambda *_:None), \
              patch.object(delphi,'run',side_effect=answer) as run, patch.object(delphi,'say'), \
              patch('sys.argv',['delphi.py','click Export in this window']), patch.dict(os.environ,{'DELPHI_UI':'1'}):
             delphi.main()
@@ -451,7 +451,7 @@ print("Clicked Export")
                             window_summary=slow_summary, front=lambda:('Fixture','Window'), osa=lambda *_:'', screens=lambda:[],
                             describe=lambda *_:'Fixture display', me_line=lambda:'', selection_context=lambda:'',
                             relevant_rules=lambda _: '', workflows=lambda *args:'', recent=lambda:[], remember_turn=lambda *_:None,
-                            log_turn=lambda *_, **__:None, learn=lambda *_:None, restore_focus=lambda *_:None, tip=lambda *_:None), \
+                            log_turn=lambda *_, **__:None, learn=lambda *_:None, restore_focus=lambda *_:None, learned_pill=lambda *_:None), \
              patch.object(delphi,'run',side_effect=answer), patch.object(delphi,'say'), \
              patch('sys.argv',['delphi.py','answer an unrelated fact']), patch.dict(os.environ,{'DELPHI_UI':'1'}):
             delphi.main()

@@ -57,7 +57,7 @@
   .row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; opacity: 0; transform: translateY(8px);
     transition: opacity .45s var(--ease), transform .55s var(--out), background .4s; }
   .row + .row { box-shadow: inset 0 .5px 0 var(--line); }
-  #perms.on .row, #improve.on .row, #work.on .row { opacity: 1; transform: none; }
+  #perms.on .row { opacity: 1; transform: none; }
   .cap { width: 100%; max-width: 480px; margin: 18px 0 -14px; text-align: left; font: 600 11px system-ui; color: var(--fg3); }
   .row.now { background: rgba(10,132,255,.08); } .row.now .allow { color: var(--fg3); background: transparent; pointer-events: none; }
   .row.now .allow::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 6px; vertical-align: -1px; border-radius: 50%;
@@ -125,153 +125,8 @@
   #done-check path { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14; stroke-dashoffset: 14; }
   #done.on #done-check circle { animation: pop .55s .1s var(--spring) forwards; }
   #done.on #done-check path { animation: draw .4s .4s var(--ease) forwards; }
-  /* feature pages: a short looping preview, one thing to try, then Next or Skip */
-  .kicker { font: 600 11px system-ui; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
-  .stage { position: relative; width: min(420px, 100%); flex: none; height: 178px; margin-top: 22px; border-radius: 16px; overflow: hidden; text-align: left;
-    background: linear-gradient(160deg, rgba(120,140,255,.14), rgba(191,90,242,.08) 60%, transparent), var(--card);
-    box-shadow: inset 0 0 0 .5px var(--line), 0 10px 30px rgba(0,0,0,.12); }
   .bar2 { display: flex; gap: 10px; margin-top: 26px; }
   .bar2 .btn { margin-top: 0; }
-  /* the tip page: one warm heart, then Leave a Tip beside Next */
-  #tip-heart { width: 72px; height: 72px; margin-bottom: 20px; border-radius: 22px; display: grid; place-items: center;
-    background: linear-gradient(160deg, #ff7a8a, #ff375f); box-shadow: 0 10px 28px rgba(255,55,95,.32), inset 0 .5px 0 rgba(255,255,255,.35); }
-  #tip-heart svg { width: 36px; height: 36px; fill: #fff; }
-  #tip.on #tip-heart { animation: beat 1.6s .5s var(--ease) 2; }
-  @keyframes beat { 0%, 100% { transform: none; } 15% { transform: scale(1.1); } 30% { transform: none; } 45% { transform: scale(1.06); } }
-  #tip p.sub { max-width: 420px; }
-  #kofi { display: inline-flex; align-items: center; gap: 7px; background: #ff375f; }
-  #kofi svg { width: 15px; height: 15px; fill: #fff; }
-  #tip .done-note { margin-top: 18px; }
-  @media (prefers-reduced-motion: reduce) { #tip.on #tip-heart { animation: none; } }
-  .done-note { height: 18px; margin-top: 12px; font-size: 12.5px; color: var(--fg3); }
-  #feedback-note .alt { margin: 0; font-size: 12.5px; }
-  .done-note a { color: var(--accent); cursor: pointer; } .done-note a:hover { text-decoration: underline; }
-  .fake { position: absolute; border-radius: 10px; background: rgba(28,28,30,.92); color: #f5f5f7; box-shadow: 0 8px 24px rgba(0,0,0,.3), inset 0 0 0 .5px rgba(255,255,255,.12);
-    font: 12px/1.4 system-ui; transition: opacity .45s var(--ease), transform .55s var(--out); }
-  .gone2 { opacity: 0 !important; transform: translateY(8px) scale(.97) !important; }
-
-  /* text preview: a line gets selected, the box offers a rewrite, Replace swaps it in */
-  #tx-doc { position: absolute; left: 22px; right: 22px; top: 22px; padding: 12px 14px; border-radius: 10px; background: var(--card);
-    box-shadow: inset 0 0 0 .5px var(--line); font: 13.5px/1.45 system-ui; color: var(--fg); }
-  #tx-line { position: relative; transition: opacity .3s; }
-  #tx-line mark { position: absolute; inset: -1px -2px; background: rgba(10,132,255,.32); border-radius: 3px; transform-origin: left; transform: scaleX(0); transition: transform .9s var(--ease); }
-  #tx-line.sel mark { transform: scaleX(1); }
-  #tx-words { position: relative; }
-  #tx-box { left: 22px; right: 22px; bottom: 16px; padding: 10px 12px; }
-  #tx-box .q { color: #8e8e93; font-size: 11px; margin-bottom: 4px; }
-  #tx-box .acts { display: flex; gap: 6px; margin-top: 8px; }
-  #tx-box .acts i { font: 500 11px system-ui; font-style: normal; padding: 3px 10px; border-radius: 10px; background: rgba(255,255,255,.1); transition: transform .2s, background .2s; }
-  #tx-box .acts i.go { background: #0a84ff; }
-  #tx-box .acts i.press { transform: scale(.92); background: #3d9bff; }
-  #pad { box-sizing: border-box; width: min(420px, 100%); height: 44px; margin-top: 14px; resize: none; padding: 12px 14px; border: 0; border-radius: 10px;
-    font: 13px/1.4 system-ui; color: var(--fg); background: var(--card); box-shadow: inset 0 0 0 .5px var(--line);
-    outline: none; -webkit-user-select: text; cursor: text; caret-color: var(--accent); transition: box-shadow .2s; }
-  #pad::selection { background: rgba(10,132,255,.35); }
-  #pad:focus { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px rgba(10,132,255,.18); }
-
-  .mt-row { display: flex; align-items: center; gap: 12px; width: min(420px, 100%); margin-top: 14px; padding: 10px 14px; box-sizing: border-box; border-radius: 12px; text-align: left;
-    background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); }
-  .sw { position: relative; flex: none; width: 38px; height: 22px; }
-  .sw input { appearance: none; margin: 0; width: 100%; height: 100%; border-radius: 11px; background: rgba(127,127,127,.3); cursor: pointer; transition: background .25s var(--ease); }
-  .sw input:checked { background: var(--green); }
-  .sw input:focus-visible { outline: 3px solid rgba(10,132,255,.45); outline-offset: 2px; }
-  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; pointer-events: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .3s var(--spring); }
-  .sw:has(input:checked)::after { transform: translateX(16px); }
-  /* choices and a shortcut field, as in Settings */
-  .seg { display: inline-flex; flex: none; padding: 2px; border-radius: 8px; background: var(--track); }
-  .seg button { all: unset; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: var(--fg); cursor: pointer; transition: background .2s, box-shadow .2s; }
-  .seg button.on { background: var(--on); box-shadow: 0 1px 3px rgba(0,0,0,.15), inset 0 0 0 .5px var(--line); }
-  .seg button:not(.on):hover { background: rgba(127,127,127,.12); } .seg button:focus-visible { outline: 2px solid rgba(10,132,255,.5); }
-  .seg button:disabled { opacity: .4; pointer-events: none; }
-  .page.on .r.dim { opacity: .45; }   /* greyed until it applies, as in Settings */
-  .keyfield { position: relative; flex: none; }
-  .kf { all: unset; box-sizing: border-box; min-width: 140px; height: 28px; padding: 0 10px; border-radius: 7px; display: flex; gap: 4px; align-items: center; justify-content: center;
-    font: 500 12.5px system-ui; color: var(--accent); cursor: pointer; background: var(--field); box-shadow: inset 0 0 0 .5px var(--line), 0 1px 1px rgba(0,0,0,.05); transition: box-shadow .2s; }
-  .kf.set { padding-right: 30px; } .kf.rec { color: var(--fg2); box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px rgba(10,132,255,.18); }
-  .kf.rec > span { animation: blink 1.4s ease-in-out infinite; } .kf:focus-visible { outline: 3px solid rgba(10,132,255,.45); outline-offset: 2px; }
-  .kf i { min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 4px; display: grid; place-items: center; font: 500 11px system-ui; font-style: normal; color: var(--fg);
-    background: linear-gradient(var(--key-top), var(--key-bot)); box-shadow: 0 0 0 .5px var(--key-edge), 0 1px 0 var(--key-edge); }
-  .keyfield .x { all: unset; position: absolute; right: 4px; top: 3px; width: 22px; height: 22px; border-radius: 11px; display: grid; place-items: center; color: var(--fg3); font-size: 15px; cursor: pointer; }
-  .keyfield .x:hover { background: rgba(127,127,127,.14); color: #ff453a; } .keyfield .x:focus-visible { outline: 2px solid rgba(10,132,255,.5); }
-  .txt span.warn { color: #c93400; } @media (prefers-color-scheme: dark) { .txt span.warn { color: #ff9f0a; } }
-  .subrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: min(420px, 100%); margin-top: 10px; padding: 0 14px; box-sizing: border-box; font-size: 12px; color: var(--fg2); }
-  /* dictate preview: what you say beside the pill (a wave, then the orb, then a check), the slips strike out, the clean text lands at the cursor */
-  #dc-doc { position: absolute; left: 22px; right: 22px; top: 14px; bottom: 52px; padding: 9px 14px; border-radius: 10px; background: var(--card); box-shadow: inset 0 0 0 .5px var(--line);
-    font: 13px/1.45 system-ui; color: var(--fg); }
-  #dc-doc small { display: block; font-size: 11px; color: var(--fg3); margin-bottom: 3px; }
-  #dc-words { white-space: pre-line; }
-  #dc-caret { display: inline-block; width: 1.5px; height: 16px; margin-left: 1px; vertical-align: -3px; background: var(--accent); animation: blink 1s steps(1) infinite; }
-  #dc-key { position: absolute; right: 22px; bottom: 12px; min-width: 32px; height: 32px; padding: 0 9px; border-radius: 8px; font-size: 12px; }
-  #dc-globe button { all: unset; color: var(--accent); cursor: pointer; } #dc-globe button:focus-visible { outline: 2px solid rgba(10,132,255,.5); outline-offset: 2px; }
-  #dc-pill { left: 22px; bottom: 12px; width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center;
-    transition: opacity .45s var(--ease), transform .55s var(--out), width .22s var(--ease); }
-  #dc-pill.work, #dc-pill.done { width: 32px; }
-  #dc-pill > * { grid-area: 1 / 1; } #dc-pill.work .wv, #dc-pill.done .wv, #dc-pill:not(.work) .orb, #dc-pill:not(.done) svg { display: none; }
-  #dc-pill .wv { display: flex; gap: 2px; align-items: center; height: 12px; } #dc-pill .wv i { width: 3px; border-radius: 2px; background: #0a84ff; animation: eq .9s ease-in-out infinite; }
-  #dc-pill .wv i:nth-child(2n) { animation-delay: .2s; } #dc-pill .wv i:nth-child(3n) { animation-delay: .4s; }
-  #dc-pill .orb { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #64d2ff 35%, #5e5ce6 80%); animation: blink 1s ease-in-out infinite; }
-  #dc-pill svg { width: 20px; height: 20px; } #dc-pill svg circle { fill: #30d158; } #dc-pill svg path { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-  #dc-said { position: absolute; left: 88px; right: 66px; bottom: 12px; line-height: 32px; font: italic 12px/32px system-ui; color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #dc-said:not(:empty)::before { content: "“"; } #dc-said:not(:empty)::after { content: "”"; }
-  #dc-said .x { text-decoration: line-through transparent; transition: opacity .4s var(--ease), text-decoration-color .4s var(--ease); }
-  #dc-said.done .x { opacity: .4; text-decoration-color: currentColor; }
-  #work .list { max-width: 420px; margin-top: 14px; } #work .row { padding: 9px 14px; }
-  /* point preview: a settings window, a question, then a ring lands on the answer */
-  #pt-win { position: absolute; left: 22px; top: 16px; bottom: 16px; width: 230px; border-radius: 10px; background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); overflow: hidden; }
-  #pt-win .tb { height: 22px; display: flex; gap: 5px; align-items: center; padding-left: 9px; border-bottom: .5px solid var(--line); }
-  #pt-win .tb i { width: 7px; height: 7px; border-radius: 50%; background: rgba(127,127,127,.4); }
-  #pt-win .it { display: flex; align-items: center; gap: 8px; margin: 4px 8px; padding: 5px 8px; border-radius: 6px; font: 12px system-ui; color: var(--fg); position: relative; }
-  #pt-win .it b { width: 14px; height: 14px; border-radius: 4px; flex: none; }
-  #pt-spot { position: relative; display: flex; align-items: center; gap: 8px; }
-  /* the leader line: its head runs from the box to the spot, the faint tail follows, then the ring shows */
-  #pt-lead { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  #pt-lead line { stroke: url(#pt-ink); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1 2; stroke-dashoffset: 1; }
-  #pt-lead.on line { animation: lead .85s var(--out) forwards; } @keyframes lead { 55% { stroke-dashoffset: 0; } to { stroke-dashoffset: -1; } }
-  #pt-ring { position: absolute; inset: -4px; border-radius: 9px; border: 2px solid #ff375f; box-shadow: 0 0 0 4px rgba(255,55,95,.2), 0 0 18px rgba(255,55,95,.5);
-    opacity: 0; transform: scale(1.4); transition: opacity .35s var(--ease), transform .5s var(--spring); pointer-events: none; }
-  #pt-ring.on { opacity: 1; transform: none; animation: ring 1.2s .5s ease-in-out infinite; }
-  #pt-box { right: 22px; top: 34px; width: 140px; padding: 9px 11px; }
-  #pt-box .q { color: #8e8e93; font-size: 11px; }
-  #pt-ans { margin-top: 5px; transition: opacity .35s; }
-  @keyframes ring { 50% { box-shadow: 0 0 0 7px rgba(255,55,95,.12), 0 0 24px rgba(255,55,95,.6); } }
-  /* then an explanation: the drawing builds like a whiteboard while the caption card keeps every step */
-  #pt-win, #wb { transition: opacity .45s var(--ease); }
-  #ptstage.wb :is(#pt-win, #pt-box), #ptstage:not(.wb) :is(#wb, #wb-card) { opacity: 0; }
-  #wb { position: absolute; left: 22px; top: 16px; fill: none; stroke: #ff375f; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-  #wb text { fill: #ff375f; stroke: none; font: 600 13px system-ui; } #wb text.sm { font: 500 11px system-ui; }
-  #wb [data-s] { opacity: 0; transition: opacity .4s var(--ease); } #wb [data-s].on { opacity: 1; }
-  #wb .tr { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .9s var(--ease); } #wb .on .tr { stroke-dashoffset: 0; }
-  #wb-card { right: 22px; top: 16px; width: 150px; padding: 9px 11px; box-sizing: border-box; }
-  #wb-card .hd { display: flex; justify-content: space-between; font-size: 10.5px; color: #8e8e93; }
-  #wb-card p { margin: 0; font-size: 11px; line-height: 1.35; max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s var(--out), opacity .4s var(--ease), margin .5s var(--out); }
-  #wb-card p.on { max-height: 45px; opacity: 1; margin-top: 5px; }
-  /* mac preview: two windows snap side by side, then music starts */
-  .mw { position: absolute; top: 16px; height: 110px; border-radius: 8px; background: var(--card); box-shadow: inset 0 0 0 .5px var(--line), 0 4px 12px rgba(0,0,0,.12);
-    overflow: hidden; transition: left .6s var(--out), width .6s var(--out), top .6s var(--out), height .6s var(--out); }
-  .mw .tb { height: 16px; display: flex; gap: 4px; align-items: center; padding-left: 7px; font: 500 9.5px system-ui; color: var(--fg3); border-bottom: .5px solid var(--line); }
-  .mw .tb i { width: 6px; height: 6px; border-radius: 50%; background: rgba(127,127,127,.4); }
-  .mw .tb span { margin-left: 6px; }
-  .mw .ln { height: 6px; margin: 8px 9px 0; border-radius: 3px; background: rgba(127,127,127,.18); }
-  #mw-chrome { left: 40px; width: 200px; } #mw-notes { left: 170px; top: 40px; width: 170px; }
-  #macstage.snapped #mw-chrome { left: 14px; top: 14px; width: 193px; height: 150px; }
-  #macstage.snapped #mw-notes { left: 213px; top: 14px; width: 193px; height: 150px; }
-  #mac-mini { display:flex;align-items:center;gap:8px;padding:9px;margin:7px 0;border-radius:8px;background:rgba(255,255,255,.055);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08);font-size:10px; }
-  #mac-mini span { color:#8e8e93; } #mac-mini b { font-weight:500;flex:1; }
-  #mac-box { left: 50%; bottom: 14px; width: 250px; margin-left: -125px; padding: 8px 11px; z-index: 2; }
-  #mac-box .q { color: #8e8e93; font-size: 11px; }
-  #mac-play { right: 22px; top: 22px; display: flex; align-items: center; gap: 8px; padding: 7px 10px 7px 7px; z-index: 2; }
-  #mac-play b { width: 26px; height: 26px; border-radius: 5px; background: linear-gradient(135deg, #1ed760, #0a84ff); flex: none; }
-  #mac-play small { display: block; font-size: 10px; color: #8e8e93; }
-  .eq { display: flex; gap: 2px; align-items: flex-end; height: 12px; margin-left: 4px; }
-  .eq i { width: 2px; background: #1ed760; border-radius: 1px; animation: eq .9s ease-in-out infinite; }
-  .eq i:nth-child(2) { animation-delay: .2s; } .eq i:nth-child(3) { animation-delay: .4s; }
-  @keyframes eq { 0%,100% { height: 3px; } 50% { height: 12px; } }
-  .says { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: min(440px, 100%); margin-top: 14px; }
-  .says i, .says button { font: 12px system-ui; font-style: normal; padding: 5px 11px; border: 0; border-radius: 13px; color: var(--fg2); background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); }
-  .says button { cursor: pointer; transition: background .2s, color .2s; } .says button:hover { background: rgba(127,127,127,.12); }
-  .says button[aria-pressed="true"] { color: var(--accent); background: rgba(10,132,255,.12); box-shadow: none; }
-  .says button:focus-visible { outline: 2px solid rgba(10,132,255,.5); outline-offset: 1px; }
   [hidden] { display: none !important; }
   @keyframes blink { 50% { opacity: .35; } }
   .tips { display: flex; gap: 18px; justify-content: center; margin-top: 20px; font-size: 12px; color: var(--fg3); }
@@ -287,8 +142,6 @@
   @keyframes draw { to { stroke-dashoffset: 0; } }
   @media (max-width: 520px) {
     .page { padding: 36px 24px; }
-    #work .row, .mt-row, .subrow { flex-wrap: wrap; }
-    #work .seg, .subrow .seg { margin-left: auto; }
     .tips { flex-wrap: wrap; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }   /* once: checks still land on their last frame, loops stop */
@@ -316,120 +169,7 @@
   <p class="sub r" id="try-talk">Hold the keys anywhere, say what you need, then let go. Try one now.</p>
   <div class="keys big r" id="trykeys"><div class="key">⌃</div><div class="key">⌥</div><div class="key wide">Space</div></div>
   <div id="hint" class="r">Hold the keys and say “open Calculator”.</div>
-  <div class="bar2 r"><button class="btn quiet" data-go="mac" id="try-skip">Skip</button><button class="btn" data-go="mac" id="try-next" hidden>Next</button></div>
-</section>
-
-<section class="page" id="mac">
-  <div class="kicker r">Your whole Mac, by voice</div>
-  <h2 class="r">Say it. It’s done.</h2>
-  <p class="sub r">Run apps, arrange windows and play music in the background. When the work is out of sight, a live mini screen shows it; click it to open that window.</p>
-  <div class="stage r" id="macstage" aria-hidden="true">
-    <div class="mw" id="mw-chrome"><div class="tb"><i></i><i></i><i></i><span>Chrome</span></div><div class="ln"></div><div class="ln" style="width:60%"></div><div class="ln" style="width:75%"></div></div>
-    <div class="mw" id="mw-notes"><div class="tb"><i></i><i></i><i></i><span>Notes</span></div><div class="ln" style="width:50%"></div><div class="ln"></div></div>
-    <div class="fake gone2" id="mac-play"><b></b><div>Lo-fi beats<small>Spotify</small></div><div class="eq"><i></i><i></i><i></i></div></div>
-    <div class="fake gone2" id="mac-box"><div class="q" id="mac-q">“Chrome left, Notes right”</div><div id="mac-mini"><span>Spotify · Live</span><b>Lo-fi beats</b><div class="eq"><i></i><i></i><i></i></div></div><span id="mac-a">Done.</span></div>
-  </div>
-  <div class="says r"><i>“Open Spotify and play lo-fi”</i><i>“Make Chrome full screen”</i><i>“Volume to 30%”</i><i>“Turn on dark mode”</i></div>
-  <div class="done-note r" id="safe-note">Safe mode is on: deleting, sending or buying asks you first.</div>
-  <div class="bar2 r"><button class="btn quiet" data-go="learn">Skip</button><button class="btn" data-go="learn">Next</button></div>
-</section>
-
-<section class="page" id="learn">
-  <div class="kicker r">It learns you</div>
-  <h2 class="r">Tell it once. It remembers.</h2>
-  <p class="sub r">Say “remember…” or “from now on…” and Delphi keeps it for every ask after. Tasks that worked get faster next time. Change or delete anything in Settings → Memory.</p>
-  <div class="says r"><i>“Remember I use Chrome, not Safari”</i><i>“From now on, open apps on my left screen”</i><i>“Remember my monitor is screen 2”</i><i>“No, that’s wrong”</i></div>
-  <div class="done-note r">Two screens? Say which one: “on my laptop”, “on the big screen”. Delphi remembers the answer.</div>
-  <div class="bar2 r"><button class="btn quiet" data-go="text">Skip</button><button class="btn" data-go="text">Next</button></div>
-</section>
-
-<section class="page" id="text">
-  <div class="kicker r">Any text, any app</div>
-  <h2 class="r">Select it. Say what to do.</h2>
-  <p class="sub r">Rewrite, reply, translate or delete. You see it first, then click Replace.</p>
-  <div class="stage r" aria-hidden="true">
-    <div id="tx-doc"><span id="tx-line"><mark></mark><span id="tx-words">hey can u send me the notes from today, thx</span></span></div>
-    <div class="fake gone2" id="tx-box"><div class="q">“make this polite”</div>Hi! Could you send me today’s notes? Thank you.<div class="acts"><i class="go" id="tx-go">Replace</i><i>Try again</i><i>Copy</i></div></div>
-  </div>
-  <textarea id="pad" class="r" aria-label="Practice text">hey can u send me the notes from today, thx</textarea>
-  <div class="done-note r">Your turn: select this line, hold the keys, say “make this polite”.</div>
-  <div class="bar2 r"><button class="btn quiet" data-go="dictate">Skip</button><button class="btn" data-go="dictate">Next</button></div>
-</section>
-
-<section class="page" id="dictate">
-  <div class="kicker r">Dictate anywhere</div>
-  <h2 class="r">Talk instead of typing</h2>
-  <p class="sub r" id="dc-sub"></p>
-  <div class="stage r" aria-hidden="true">
-    <div id="dc-doc"><small>To: Sam</small><span id="dc-words"></span><i id="dc-caret"></i></div>
-    <span id="dc-said"></span>
-    <div class="fake gone2" id="dc-pill"><span class="wv"><i></i><i></i><i></i><i></i><i></i></span><span class="orb"></span><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="11"/><path d="M6.5 11.3l3 3 6-6.3"/></svg></div>
-    <div class="key" id="dc-key">fn</div>
-  </div>
-  <div class="says r" id="dc-ex" role="group" aria-label="Clean up examples"></div>
-  <div class="mt-row r"><div class="ic" style="background:#ff9f0a"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></div>
-    <div class="txt"><b id="dc-label">Dictation shortcut</b><span id="dc-hint"></span></div>
-    <div class="keyfield"><button class="kf" id="dc-field" aria-labelledby="dc-label" aria-describedby="dc-hint"></button><button class="x" id="dc-clear" aria-label="Clear dictation shortcut" hidden>×</button></div></div>
-  <div class="subrow r" id="dc-globe" hidden><span>Set Press 🌐 key to Do Nothing</span><button id="dc-globe-open">Open Keyboard Settings</button></div>
-  <div class="subrow r" id="dc-mode"><span id="dc-mode-hint">Clean up tidies it as shown. Verbatim types every word.</span><div class="seg" data-k="dictateMode" role="group" aria-label="Dictated text"><button data-v="verbatim">Verbatim</button><button data-v="cleanup">Clean up</button></div></div>
-  <div class="bar2 r"><button class="btn quiet" data-go="point">Skip</button><button class="btn" data-go="point">Next</button></div>
-</section>
-
-<section class="page" id="point">
-  <div class="kicker r">Draw on screen</div>
-  <h2 class="r">It shows you, right on screen</h2>
-  <p class="sub r">Ask how to do something and Delphi marks each spot, one step at a time. Ask it to explain something and draw it, and the drawing builds up like a whiteboard.</p>
-  <div class="stage r" id="ptstage" aria-hidden="true">
-    <div id="pt-win"><div class="tb"><i></i><i></i><i></i></div>
-      <div class="it"><b style="background:#8e8e93"></b>General</div>
-      <div class="it"><span id="pt-spot"><b style="background:#0a84ff"></b>Appearance<span id="pt-ring"></span></span></div>
-      <div class="it"><b style="background:#ff9f0a"></b>Notifications</div>
-      <div class="it"><b style="background:#30d158"></b>Battery</div></div>
-    <div class="fake gone2" id="pt-box"><div class="q">“how do I turn on dark mode?”</div><div id="pt-ans">Step 1 of 2: click Appearance.</div></div>
-    <svg id="pt-lead"><defs><linearGradient id="pt-ink" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0a84ff" stop-opacity=".1"/><stop offset="1" stop-color="#0a84ff"/></linearGradient></defs><line pathLength="1"/></svg>
-    <svg id="wb" width="220" height="146"><g data-s="1"><path class="tr" pathLength="1" d="M30 26V122H150Z"/><path d="M30 110h12v12"/></g>
-      <g data-s="2"><text x="14" y="79">a</text><text x="86" y="140">b</text><text x="98" y="68">c</text></g>
-      <g data-s="3"><text x="116" y="26">a² + b² = c²</text><text class="sm" x="122" y="44">3² + 4² = 5²</text></g></svg>
-    <div class="fake" id="wb-card"><div class="hd"><span>Step <span id="wb-n">1</span> of 3</span><span>✕</span></div>
-      <p data-s="1">A right triangle has one square corner.</p><p data-s="2">Short sides a and b, long side c.</p><p data-s="3">a² + b² = c². With 3 and 4, c is 5.</p></div>
-  </div>
-  <div class="mt-row r"><div class="ic" style="background:#ff375f"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></div>
-    <div class="txt"><b>Draw on screen to show you</b><span>Then ask “how do I…?” or “explain this and draw it”. Esc clears it.</span></div>
-    <label class="sw"><input type="checkbox" data-k="draw" aria-label="Draw on screen to show you"></label></div>
-  <div class="bar2 r"><button class="btn quiet" data-go="work">Skip</button><button class="btn" data-go="work">Next</button></div>
-</section>
-
-<section class="page" id="work">
-  <div class="kicker r">Your plan, your pace</div>
-  <h2 class="r">Quick asks stay quick</h2>
-  <p class="sub r">Choose how much of your plan Delphi uses.</p>
-  <div class="list r">
-    <div class="row" id="wk-brain"><div class="txt"><b>Intelligence</b><span id="wk-why"></span></div><div class="seg" data-k="routing" role="group" aria-label="Intelligence"><button data-v="cheapest">Cheapest</button><button data-v="balanced">Balanced</button><button data-v="capable">Most capable</button></div></div>
-  </div>
-  <div class="bar2 r"><button class="btn quiet" data-go="improve">Skip</button><button class="btn" data-go="improve">Next</button></div>
-</section>
-
-<section class="page" id="improve">
-  <div class="kicker r">Optional</div>
-  <h2 class="r">Help make Delphi better</h2>
-  <p class="sub r">When a task fails, Delphi can tell its maker what went wrong, so the next version gets it right. Change it anytime in Settings.</p>
-  <div class="list r">
-    <div class="row"><div class="ic" style="background:#0a84ff"><svg viewBox="0 0 24 24"><path d="M5 5h14v10H10l-5 4z"/></svg></div>
-      <div class="txt"><b>Only what failed</b><span>What you asked, the steps Delphi took, and why it didn’t work.</span></div></div>
-    <div class="row"><div class="ic" style="background:#30d158"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
-      <div class="txt"><b>Anonymous</b><span>A random ID. Never your name, your screen, your files or passwords.</span></div></div>
-    <div class="row"><div class="ic" style="background:#8e8e93"><svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 9 6 9 6a15 15 0 0 1-2.7 3.2M6.6 7.6A15 15 0 0 0 3 12s4 6 9 6a9 9 0 0 0 3.4-.7"/></svg></div>
-      <div class="txt"><b>Cleaned first</b><span>Emails, numbers, file paths and anything typed for you are removed before it leaves your Mac.</span></div></div>
-  </div>
-  <div class="bar2 r"><button class="btn quiet" data-improve="false">Not Now</button><button class="btn" data-improve="true">Help Improve</button></div>
-</section>
-
-<section class="page" id="tip">
-  <div id="tip-heart" class="r" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg></div>
-  <h2 class="r">Delphi is free and open source</h2>
-  <p class="sub r">If you ever find yourself enjoying Delphi, a small tip goes a long way. It keeps Delphi free for everyone, and it would really support me.</p>
-  <div class="bar2 r"><button class="btn" id="kofi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>Leave a Tip</button><button class="btn quiet" data-go="done" id="tip-next">Next</button></div>
-  <p class="done-note r">You can always find “Leave a Tip” in the menu bar later.</p>
+  <div class="bar2 r"><button class="btn quiet" data-go="done" id="try-skip">Skip</button><button class="btn" data-go="done" id="try-next" hidden>Next</button></div>
 </section>
 
 <section class="page" id="done">
@@ -437,7 +177,6 @@
   <h2 class="r" id="done-title">You’re all set</h2>
   <p class="sub r" id="done-sub">Hold the keys anytime and just ask. Everything else lives in Settings, in the menu bar.</p>
   <div class="tips r"><div><kbd>esc</kbd> stops an answer</div><div>Click an answer to copy</div><div>Click away to close</div><div>Hover the box to type</div></div>
-  <p class="done-note r" id="feedback-note">Delphi is new and growing, and your feedback helps a lot. <button class="alt" id="feedback-link">Report feedback ↗</button></p>
   <button class="btn r" id="finish">Start Using Delphi</button>
 </section>
 
@@ -463,75 +202,33 @@
   </div>
 </div>
 
-<div id="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div id="dots"><i></i><i></i><i></i><i></i></div>
 
 <script type="text/plain" id="orbsrc">/*ORBS*/</script>
 <script type="module">
   const $ = id => document.getElementById(id);
   const post = m => window.webkit?.messageHandlers.ob.postMessage(m);
-  const pages = ['welcome', 'perms', 'try', 'mac', 'learn', 'text', 'dictate', 'point', 'work', 'improve', 'tip', 'done'];
+  const pages = ['welcome', 'perms', 'try', 'done'];
   let cur = '', orbWake = null;
-  const skip = id => id === 'work' && ['devin', 'pi', 'server'].includes(provider);   // they pick their own model: no plan to choose
   const go = id => {
-    while (skip(id)) id = pages[pages.indexOf(id) + 1];
-    if (recording) post({ do: 'cancelRecord' });
     if (cur) { $(cur).classList.remove('on'); $(cur).classList.add('gone'); const c = cur; setTimeout(() => $(c).classList.remove('gone'), 600); }
     cur = id; orbWake?.(); orbWake = null; $(id).classList.add('on');
     for (const page of pages) { $(page).inert = page !== id; $(page).setAttribute('aria-hidden', String(page !== id)); }
-    [...$('dots').children].forEach((d, i) => { d.classList.toggle('on', pages[i] === id); d.hidden = skip(pages[i]); });
+    [...$('dots').children].forEach((d, i) => d.classList.toggle('on', pages[i] === id));
     $('back').hidden = pages.indexOf(id) < 1;
   };
   document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
-  $('back').onclick = () => { let i = pages.indexOf(cur) - 1; while (skip(pages[i])) i--; go(pages[i]); };
+  $('back').onclick = () => go(pages[pages.indexOf(cur) - 1]);
   $('finish').onclick = () => post({ do: 'done' });
-  $('kofi').onclick = () => post({ do: 'kofi' });
-  $('feedback-link').onclick = () => post({ do: 'feedback' });   // Settings → Report feedback, over this window
-  document.querySelectorAll('[data-improve]').forEach(b => b.onclick = () => { post({ do: 'set', k: 'improve', v: b.dataset.improve }); go('tip'); });
-  document.querySelectorAll('.sw input').forEach(i => i.onchange = () => post({ do: 'set', k: i.dataset.k, v: String(i.checked) }));
   let prefs = {};
-  const WHY = { cheapest: 'Haiku for every ask. Fastest, and uses the least of your plan.', balanced: 'Haiku for quick asks. Your work model takes over real work.',
-    capable: 'Your work model for every ask. Slower, and uses the most of your plan.' };
   const paintPrefs = () => {
-    const other = ['devin', 'pi'].includes(provider);
-    document.querySelectorAll('.seg[data-k]').forEach(g => g.querySelectorAll('button').forEach(b => {
-      const on = prefs[g.dataset.k] === b.dataset.v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
-    }));
-    $('wk-why').textContent = WHY[prefs.routing] || '';
-    $('safe-note').hidden = prefs.safe === false;
-    if (!recording) dcKeys(prefs.dictateHotkeyLabel || '', 'Record Shortcut');
     if (prefs.hotkeyLabel && prefs.hotkeyLabel !== talkLabel) {   // the talk shortcut as set; redrawn only when it changes, so held keys stay lit
       talkLabel = prefs.hotkeyLabel;
       const caps = () => capsOf(talkLabel).map(c => Object.assign(document.createElement('div'), { className: c.length > 3 ? 'key wide' : 'key', textContent: c }));
       $('welkeys').replaceChildren(...caps()); $('trykeys').replaceChildren(...caps());
     }
-    const key = prefs.dictateHotkeyLabel;
-    $('dc-sub').textContent = key ? `Hold ${key} to talk. Double-tap to lock.` : 'Give dictation a shortcut. Hold it to talk, double-tap to lock.';
-    $('dc-key').textContent = key || 'fn'; $('dc-globe').hidden = !prefs.globeTaken;
-    $('dc-mode').classList.toggle('dim', !prefs.dictateHotkeyLabel);
-    document.querySelector('[data-k=dictateMode] [data-v=cleanup]').disabled = other;
-    $('dc-mode-hint').textContent = other ? 'Clean up needs Claude.' : 'Clean up tidies it as shown. Verbatim types every word.';
-  };
-  document.querySelectorAll('.seg[data-k]').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {
-    prefs[g.dataset.k] = b.dataset.v; paintPrefs(); post({ do: 'set', k: g.dataset.k, v: b.dataset.v });
-  }));
-  // Dictation's shortcut: Delphi.swift records the next keys (the same recorder as Settings) and answers with ob.rec / ob.taken / ob.recorded.
-  let recording = false, dcWarn = 0;
-  const dcHint = () => prefs.dictateHotkeyLabel ? 'In any text field, your words land at the cursor.' : 'Click, then press the keys you want.';
-  const dcKeys = (label, text) => {
-    $('dc-field').innerHTML = label ? capsOf(label).map(c => `<i>${c.replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]))}</i>`).join('') : `<span>${text}</span>`;
-    $('dc-field').classList.toggle('set', !!label && !recording); $('dc-clear').hidden = !label || recording;
-    if (!dcWarn && !recording) { $('dc-hint').textContent = dcHint(); $('dc-hint').className = ''; }
   };
   const capsOf = label => { const m = label.match(/^((?:fn|[⌃⌥⇧⌘])*)(.*)$/); return (m[1].match(/fn|./g) || []).concat(m[2] ? [m[2]] : []); };
-  $('dc-field').onclick = () => {
-    if (recording) return post({ do: 'cancelRecord' });
-    recording = true; $('dc-field').classList.add('rec'); dcKeys('', 'Type Shortcut');
-    $('dc-hint').textContent = 'Press a key combo, a modifier on its own, or an F-key. Esc cancels.'; $('dc-hint').className = '';
-    post({ do: 'recordDictate' });
-  };
-  $('dc-clear').onclick = () => { prefs.dictateHotkeyLabel = ''; paintPrefs(); post({ do: 'clearDictate' }); };
-  $('dc-globe-open').onclick = () => post({ do: 'globeKey' });
-  document.addEventListener('pointerdown', e => { if (recording && !e.target.closest('#dc-field')) post({ do: 'cancelRecord' }); });
 
   // Permissions: icon color + SF-style glyph, why it's needed.
   const P = [
@@ -672,14 +369,7 @@
       };
     },
     server(s) { saved = { apiBase: s.apiBase || '', apiModel: s.apiModel || '' }; },
-    prefs(p) { document.querySelectorAll('.sw input').forEach(i => { if (document.activeElement !== i) i.checked = !!p[i.dataset.k]; }); prefs = p; paintPrefs(); },
-    rec(m) { if (recording) /^Add/.test(m) || !m ? dcKeys('', m || 'Type Shortcut') : dcKeys(m); },   // held modifiers, live
-    taken(kind, own) {
-      clearTimeout(dcWarn); $('dc-hint').className = 'warn';
-      $('dc-hint').textContent = own ? 'That’s already your Delphi shortcut. Kept your old one.' : 'Another app already uses that shortcut. Kept your old one.';
-      dcWarn = setTimeout(() => { dcWarn = 0; paintPrefs(); }, 4000);
-    },
-    recorded(label) { recording = false; $('dc-field').classList.remove('rec'); prefs.dictateHotkeyLabel = label; paintPrefs(); },
+    prefs(p) { prefs = p; paintPrefs(); },
     set(s) {
       last = s; s = { ...s, claude: planOK };
       let n = 0;
@@ -699,7 +389,6 @@
   // Welcome keys press in, hold, let go: the gesture itself.
   const keys = () => [...$('welkeys').children];   // the welcome demo keys
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const motionChange = () => new Promise(resolve => reduced.addEventListener('change', resolve, { once: true }));
   let welcomeGeneration = 0;
   const press = () => {
     if (reduced.matches) return;
@@ -710,91 +399,11 @@
     setTimeout(() => generation === welcomeGeneration && press(), 3600);
   };
   if (!reduced.matches) setTimeout(press, 1200);
-
-  // Feature previews: short scripted loops, run only while their page shows (the final frame under Reduce Motion).
-  const MOTION_CHANGED = {}; let previewGeneration = 0;
-  const wait = ms => {
-    const generation = previewGeneration;
-    return new Promise(r => setTimeout(r, ms)).then(() => { if (generation !== previewGeneration) throw MOTION_CHANGED; });
-  };
-  // Dictate's examples: what you say, then what Clean up types. [Brackets] mark the words that go.
-  const DC = [['Fillers', '[Um,] I was, [like, you know,] thinking we could leave.', 'I was thinking we could leave.'],
-    ['Scratch that', '[Table for six, scratch that,] table for eight.', 'Table for eight.'],
-    ['Actually…', 'Meet me at [four, actually] five.', 'Meet me at five.'],
-    ['Lists', 'Shopping list: eggs, milk, and bread.', 'Shopping list:\n- Eggs\n- Milk\n- Bread'],
-    ['New line', 'Hi Sam [new line] can you review this [question mark]', 'Hi Sam\nCan you review this?']];
-  const said = s => s.match(/\[[^\]]+\]|\S+/g).flatMap(t => t[0] === '[' ? t.slice(1, -1).split(' ').map(w => [w, true]) : [[t, false]]);
-  const word = ([w, x]) => Object.assign(document.createElement('span'), { textContent: w, className: x ? 'x' : '' });
-  let dcAt = 0, dcGen = 0, dcWake = null;
-  const dcPaint = i => $('dc-ex').querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
-  const dcShow = i => {   // the finished example: what was said with the slips struck, the pill's check, clean text in the note
-    $('dc-said').replaceChildren(...said(DC[i][1]).flatMap(t => [word(t), ' ']).slice(0, -1)); $('dc-said').classList.add('done');
-    $('dc-pill').classList.remove('gone2', 'work'); $('dc-pill').classList.add('done'); $('dc-words').textContent = DC[i][2]; dcPaint(i);
-  };
-  $('dc-ex').replaceChildren(...DC.map(([name, s, out], i) => Object.assign(document.createElement('button'), {
-    textContent: name, ariaLabel: `${name}: you say “${s.replace(/[[\]]/g, '')}”, Clean up types “${out.replace(/\n/g, ' ')}”`,
-    onclick() { dcAt = i; dcPaint(i); if (reduced.matches) dcShow(i); else { dcGen++; dcWake?.(); } } })));
-  const wb = k => {   // whiteboard step k: every layer and caption up to k stays
-    document.querySelectorAll('#ptstage [data-s]').forEach(e => e.classList.toggle('on', +e.dataset.s <= k));
-    $('wb-n').textContent = Math.max(k, 1);
-  };
-  const lead = () => {   // from the box's edge to just outside the spot, measured, so it fits any stage width
-    const s = $('ptstage').getBoundingClientRect(), b = $('pt-box').getBoundingClientRect(), t = $('pt-spot').getBoundingClientRect();
-    const xy = { x1: b.left - s.left, y1: b.top - s.top + b.height / 2, x2: t.right - s.left + 6, y2: t.top - s.top + t.height / 2 };
-    for (const el of [$('pt-lead').querySelector('line'), $('pt-ink')]) for (const k in xy) el.setAttribute(k, xy[k]);
-    $('pt-lead').classList.remove('on'); void $('pt-lead').getBoundingClientRect(); $('pt-lead').classList.add('on');
-  };
-  const loops = {
-    async text() {
-      const line = $('tx-line'), words = $('tx-words'), box = $('tx-box'), btn = $('tx-go');
-      line.classList.remove('sel'); words.textContent = 'hey can u send me the notes from today, thx'; box.classList.add('gone2');
-      await wait(700); line.classList.add('sel'); await wait(1300); box.classList.remove('gone2'); await wait(1900);
-      btn.classList.add('press'); await wait(220); btn.classList.remove('press'); box.classList.add('gone2'); line.classList.remove('sel');
-      line.style.opacity = 0; await wait(300); words.textContent = 'Hi! Could you send me today’s notes? Thank you.'; line.style.opacity = 1; await wait(2400);
-    },
-    async mac() {
-      const st = $('macstage'), box = $('mac-box'), play = $('mac-play');
-      st.classList.remove('snapped'); box.classList.add('gone2'); play.classList.add('gone2');
-      $('mac-q').textContent = '“Chrome left, Notes right”';
-      await wait(600); box.classList.remove('gone2'); await wait(700); st.classList.add('snapped'); await wait(1500);
-      box.classList.add('gone2'); await wait(400); $('mac-q').textContent = '“Play lo-fi on Spotify”'; box.classList.remove('gone2');
-      await wait(700); play.classList.remove('gone2'); await wait(2600);
-    },
-    async dictate() {   // one example per pass; picking an example wakes the current wait so it starts at once
-      const gen = dcGen, i = dcAt, pill = $('dc-pill'), heard = $('dc-said'), words = $('dc-words'), key = $('dc-key');
-      const ok = ms => new Promise(r => { dcWake = r; setTimeout(r, ms); }).then(() => !reduced.matches && gen === dcGen && cur === 'dictate');
-      dcPaint(i); words.textContent = ''; heard.replaceChildren(); heard.classList.remove('done'); pill.classList.remove('work', 'done'); pill.classList.add('gone2'); key.classList.remove('down');
-      if (!await ok(600)) return; key.classList.add('down'); pill.classList.remove('gone2');   // held: the pill's wave listens
-      for (const [n, t] of said(DC[i][1]).entries()) { heard.append(...(n ? [' '] : []), word(t)); if (!await ok(210)) return; }
-      if (!await ok(350)) return; key.classList.remove('down'); pill.classList.add('work'); heard.classList.add('done');   // let go: the orb cleans up
-      if (!await ok(1000)) return; words.textContent = DC[i][2]; pill.classList.replace('work', 'done');   // the words land, the check shows
-      if (!await ok(800)) return; pill.classList.add('gone2');
-      if (await ok(2400)) dcAt = (i + 1) % DC.length;
-    },
-    async point() {   // a guide marks the spot, then an explanation builds up
-      const st = $('ptstage'), box = $('pt-box'), ring = $('pt-ring');
-      st.classList.remove('wb'); wb(0); box.classList.add('gone2'); ring.classList.remove('on'); $('pt-lead').classList.remove('on');
-      await wait(700); box.classList.remove('gone2'); await wait(1100); lead(); await wait(400); ring.classList.add('on'); await wait(2600);
-      st.classList.add('wb'); for (let k = 1; k <= 3; k++) { await wait(k === 1 ? 500 : 1600); wb(k); } await wait(3200);
-    },
-  };
-  const finals = { dictate() { dcShow(dcAt); },
-                   mac() { $('macstage').classList.add('snapped'); $('mac-play').classList.remove('gone2'); $('mac-box').classList.remove('gone2'); }, point() { $('ptstage').classList.add('wb'); wb(3); }, text() { $('tx-box').classList.remove('gone2'); $('tx-line').classList.add('sel'); } };
-  for (const id of Object.keys(loops)) (async () => {
-    for (;;) {
-      try {
-        if (reduced.matches) { finals[id](); await motionChange(); }
-        else if (cur === id) await loops[id]();
-        else await wait(300);
-      } catch (error) { if (error !== MOTION_CHANGED) throw error; }
-    }
-  })();
   reduced.addEventListener('change', () => {
-    welcomeGeneration++; previewGeneration++;
+    welcomeGeneration++;
     orbWake?.(); orbWake = null;
     keys().forEach(k => k.classList.remove('down'));
-    if (reduced.matches) { dcGen++; dcWake?.(); Object.keys(loops).forEach(id => finals[id]()); }
-    else setTimeout(press, 1200);
+    if (!reduced.matches) setTimeout(press, 1200);
   });
 
   paintPrefs(); go('welcome');

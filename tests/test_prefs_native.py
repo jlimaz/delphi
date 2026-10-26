@@ -56,7 +56,7 @@ let controlKey = 1, optionKey = 2
 if CommandLine.arguments.contains("--saved") {
     precondition(Prefs.str("workIn") == "front" && !Prefs.bool("askMe") && Prefs.num("aheadDelay") == 1.2, "retired choices changed")
     precondition(Prefs.bool("quietAudio") && !Prefs.bool("selection") && !Prefs.bool("learn") && !Prefs.bool("dictateLearn"), "hidden choices changed")
-    precondition(!Prefs.bool("tips") && Prefs.bool("speak") && Prefs.str("routing") == "capable", "visible choices changed")
+    precondition(!Prefs.bool("stats") && Prefs.bool("speak") && Prefs.str("routing") == "capable", "visible choices changed")
 } else {
     precondition(Prefs.str("workIn") == "back" && Prefs.bool("askMe") && Prefs.num("aheadDelay") == 0.7, "new user missed defaults")
     precondition(!Prefs.bool("quietAudio") && Prefs.bool("selection") && Prefs.bool("learn") && Prefs.bool("dictateLearn"), "new hidden defaults are wrong")
@@ -67,7 +67,7 @@ if CommandLine.arguments.contains("--saved") {
             path.write_text(swift)
             compiled = subprocess.run(["swiftc", str(path), "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(compiled.returncode, 0, compiled.stderr)
-            saved = '{"workIn":"front","askMe":false,"tips":false,"aheadDelay":1.2,"speak":true,"routing":"capable","quietAudio":true,"selection":false,"learn":false,"dictateLearn":false}'
+            saved = '{"workIn":"front","askMe":false,"stats":false,"aheadDelay":1.2,"speak":true,"routing":"capable","quietAudio":true,"selection":false,"learn":false,"dictateLearn":false}'
             settings = Path(root) / "settings.json"
             settings.write_text(saved)
             result = subprocess.run([str(binary), "--saved"], capture_output=True, text=True, env={**os.environ, "DELPHI_DIR": root})

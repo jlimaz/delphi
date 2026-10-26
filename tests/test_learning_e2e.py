@@ -51,9 +51,9 @@ class Ask(unittest.TestCase):
         brain.ok, brain.modes, brain.cmds, brain.ran = ok, {'text'}, list(cmds), list(cmds)
         brain.observed = [{'action': c, 'error': False, 'result': 'done'} for c in cmds]
         say, tip = Mock(), Mock()
-        with patch('sys.argv', ['delphi.py', words]), patch.multiple(delphi, run=brain, say=say, tip=tip):
+        with patch('sys.argv', ['delphi.py', words]), patch.multiple(delphi, run=brain, say=say, learned_pill=tip):
             delphi.main()
-        pills = [c.args[1] for c in tip.call_args_list if c.args[1]]
+        pills = [c.args[0] for c in tip.call_args_list if c.args[0]]
         return say.call_args.args[1], (pills[-1] if pills else ''), brain.called
 
 

@@ -220,7 +220,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn('jazz', delphi.workflows('create calendar event'))
         with patch.dict(os.environ, {'DELPHI_LIVE': '1'}):
             self.assertIsNone(delphi.fast('remember how to create calendar event'))
-        full = delphi.SYSTEM + delphi.ASK_ME + delphi.POINTER + delphi.LEARN_ME + delphi.TEACH + delphi.ASK_FIRST + delphi.WORKFLOW
+        full = delphi.SYSTEM + delphi.ASK_ME + delphi.POINTER + delphi.LEARN_ME + delphi.ASK_FIRST + delphi.WORKFLOW
         self.assertLessEqual(len(full), 10000)
         installed = os.path.expanduser("~/Applications/Delphi.app/Contents/Resources/delphi.py")
         self.assertLessEqual(len(full.replace(delphi.ME, installed)), 10000)

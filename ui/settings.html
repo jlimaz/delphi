@@ -17,8 +17,6 @@
     font: 13px -apple-system, system-ui, sans-serif; color: var(--fg); -webkit-font-smoothing: antialiased; }
   body { display: flex; }
 
-  #dictationsearch { width:100%;height:32px;box-sizing:border-box;background:var(--ctl);color:var(--fg);border:0;border-radius:8px;padding:0 12px;font:13px system-ui;box-shadow:inset 0 0 0 .5px var(--line),0 1px 1px rgba(0,0,0,.04);outline:none;-webkit-user-select:text; }
-  #dictationsearch:focus { box-shadow:inset 0 0 0 .5px var(--line),0 0 0 3px rgba(10,132,255,.35); }
   #notice { position:fixed;bottom:16px;left:208px;right:0;margin:0 auto;width:fit-content;max-width:420px;display:flex;align-items:center;gap:12px;
     padding:8px 8px 8px 14px;border-radius:11px;background:var(--pop);box-shadow:inset 0 0 0 .5px var(--line),0 6px 20px rgba(0,0,0,.18);font-size:12.5px;animation:rise .2s var(--out); }
   @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important; } }
@@ -39,7 +37,6 @@
   .ni { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; flex: none; }
   .ni svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
   nav .spacer { flex: 1; }
-  #feedbacknav { color: #0066cc; } @media (prefers-color-scheme: dark) { #feedbacknav { color: var(--accent); } } #feedbacknav.on { color: #fff; } #feedbacknav .out { width: 13px; height: 13px; margin-left: -4px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }   /* reads as a link: easy to miss as plain text */
   #dictationnav { margin-bottom: 10px; }
   nav .ver { color: var(--fg3); font-size: 11px; padding: 0 8px; }
 
@@ -154,26 +151,13 @@
   .row:hover > .x, .row:focus-within > .x, .row > .x.save { opacity: 1; transform: none; }
   .row > .x + .x { margin-left: -10px; }
   .x svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-  .x.copy:hover, .x.save:hover { color: var(--accent); } .x.save { color: var(--accent); }
+  .x.save:hover { color: var(--accent); } .x.save { color: var(--accent); }
   .add { display: flex; align-items: center; gap: 8px; padding: 9px 10px 9px 14px; box-shadow: inset 0 .5px 0 var(--line); }
   .add:first-child { box-shadow: none; }
   .add input { flex: 1; min-width: 0; height: 28px; padding: 0 10px; border-radius: 7px; font: 13px system-ui; color: var(--fg); background: var(--well); border: 0; outline: 0; }
   .add input::placeholder { color: var(--fg3); }
-  /* history: the text gets the whole row; time and app sit small above it; actions float over the right end */
-  .hist { position: relative; align-items: flex-start; padding: 10px 14px 11px; }
-  .hist .t small { display: block; color: var(--fg3); font-size: 11px; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
-  .hist .t > span { color: var(--fg); font-size: 13px; line-height: 1.45; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .hist details { margin-top: 6px; font-size: 11.5px; color: var(--fg3); } .hist details summary { cursor: pointer; }
-  .hist details span { display: block; margin-top: 3px; color: var(--fg2); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .hist > .x { position: absolute; top: 6px; right: 10px; background: var(--card); box-shadow: -10px 0 10px -2px var(--card); }
-  .hist > .x.copy { right: 36px; margin: 0; }
-  .hist:hover > .x { background: var(--hover); box-shadow: -10px 0 10px -2px var(--hover); }
-  .hist > .x:hover { background: linear-gradient(var(--sel), var(--sel)) var(--hover); }
   #dictationwords > .row:first-child { box-shadow: inset 0 .5px 0 var(--line); }
   #dictationwords .field { text-align: left; }
-  #dictationhistory { max-height: 440px; overflow-y: auto; }
-  #dictationsearch { margin-bottom: 8px; } #dictationhistory + .group { margin-top: 12px; }
-  h3 #dictationclear { color: var(--fg3); } h3 #dictationclear:hover { color: var(--danger); } h3 .all:disabled { visibility: hidden; }
   .field:focus, .add input:focus { box-shadow: 0 0 0 3px rgba(10,132,255,.35); border-radius: 4px; }
   .app:hover, .seg button:not(.on):hover { background: var(--sel); }
   .empty { padding: 14px; color: var(--fg3); }
@@ -229,8 +213,6 @@
   .about { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 0 6px; }
   .about img { width: 96px; height: 96px; margin-bottom: 8px; }
   .about h1 { margin: 0; } .about p { color: var(--fg2); margin: 4px 0 0; }
-  #feedbacktext { display:block;width:100%;box-sizing:border-box;resize:vertical;font:13px/1.5 system-ui;color:var(--fg);background:transparent;border:0;padding:14px;margin:14px 0 0;outline:none; }
-  #feedbackbody { white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 system-ui;color:var(--fg2);padding:14px;margin:14px 0;-webkit-user-select:text; }
   #dictation .field { text-align:left; }
 </style></head><body>
 
@@ -243,7 +225,6 @@
   <button data-s="account"><i class="ni" style="background:#0a84ff"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Account &amp; Access</button>
   <button data-s="about"><i class="ni" style="background:#bf5af2"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></svg></i>About &amp; Updates</button>
   <div class="spacer"></div>
-  <button data-s="feedback" id="feedbacknav">Report feedback<svg class="out" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 16 16 8M9.5 8H16v6.5"/></svg></button>
   <div class="ver" id="ver"></div>
 </nav>
 
@@ -269,10 +250,6 @@
       <div id="dictationwords"></div>
     </div>
     <p class="note" id="dictationnote">Names, slang and product names.</p>
-    <h3>History<button class="all" id="dictationclear">Clear All…</button></h3>
-    <input id="dictationsearch" type="search" placeholder="Search dictations" aria-label="Search dictation history" autocomplete="off">
-    <div class="group" id="dictationhistory" role="list" aria-label="Dictation history"></div>
-    <div class="group"><div class="row"><div class="t"><b>Save dictation history</b><span>Only on this Mac. <i class="info" title="Last 500 dictations, up to 30 days. Turning off keeps what’s saved.">i</i></span></div><label class="sw"><input type="checkbox" data-k="dictateHistory" aria-label="Save dictation history"></label></div></div>
   </section>
   <section id="general" class="on">
     <h1>General</h1>
@@ -399,17 +376,7 @@
     <h3>Delphi</h3>
     <div class="group">
       <div class="row"><div class="t"><b>Source code</b><span>On GitHub.</span></div><button class="btn" data-do="github">Open</button></div>
-      <div class="row"><div class="t"><b>Support Delphi</b><span>A tip keeps it going.</span></div><button class="btn" data-do="kofi">Leave a Tip</button></div>
-      <div class="row"><div class="t"><b>Tip reminders</b><span>Now and then, a small ask under an answer.</span></div><label class="sw"><input type="checkbox" data-k="support"></label></div>
     </div>
-  </section>
-  <section id="feedback">
-    <h1>Report feedback</h1><p class="lede">Something off? You see exactly what gets sent.</p>
-    <div class="group"><div class="row"><div class="t"><b>Include my last ask</b><span>It may contain private details.</span></div><label class="sw"><input id="feedbackinclude" type="checkbox" aria-label="Include my last ask"></label></div></div>
-    <textarea id="feedbacktext" class="group" rows="5" maxlength="4000" placeholder="What happened? What did you expect?" aria-label="Your feedback"></textarea>
-    <pre id="feedbackbody" class="group" aria-live="polite">Preparing preview…</pre>
-    <button class="btn blue" id="feedbackopen" disabled>Open GitHub issue ↗</button>
-    <p class="note">Only the text above goes in. Nothing is sent until you submit on GitHub.</p>
   </section>
 </main>
 <div id="notice" role="status" aria-live="polite" hidden><span id="noticetext"></span><button class="btn" id="noticebtn" hidden></button></div>
@@ -438,11 +405,9 @@
 
   const svg = d => `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}"/></svg>`;
   const ICON = { trash: svg('M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5M7 7v3.5M9 7v3.5'),
-    copy: svg('M6.5 5.5h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zM10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2'),
     check: svg('M3.5 8.5l3 3 6-7') };
-  const copied = b => { b.innerHTML = ICON.check; setTimeout(() => b.innerHTML = ICON.copy, 1200); };
   const iconButton = (kind, label, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.className = 'x' + cls; b.innerHTML = ICON[kind]; b.setAttribute('aria-label', label); return b; };
-  let dictations = { words: [], history: [], stats: {} };
+  let dictations = { words: [], stats: {} };
   function paintDictation() {
     const d = dictations, n = d.stats;
     const num = v => (v || 0).toLocaleString(undefined, v >= 1e5 ? { notation: 'compact', maximumFractionDigits: 1 } : {}), mins = n.minutes || 0;
@@ -460,26 +425,8 @@
     }
     $('dictationwords').hidden = !d.words.length;
     $('dictationnote').textContent = d.words.length ? 'Names, slang and product names.' : 'No words yet. Add names, slang or product names.';
-    const query = $('dictationsearch').value.toLocaleLowerCase();
-    const rows = d.history.filter(r => `${r.text} ${r.raw || ''} ${r.app}`.toLocaleLowerCase().includes(query));
-    $('dictationhistory').replaceChildren(); $('dictationclear').disabled = !d.history.length;
-    for (const item of rows) {
-      const row = document.createElement('div'); row.className = 'row hist'; row.setAttribute('role', 'listitem');
-      const text = document.createElement('div'); text.className = 't';
-      const meta = document.createElement('small');
-      meta.textContent = `${new Date(item.timestamp * 1000).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'})} · ${item.app}`;
-      const final = document.createElement('span'); final.textContent = item.text;
-      text.append(meta, final);
-      if (item.raw) { const raw = document.createElement('details'), title = document.createElement('summary'), body = document.createElement('span'); title.textContent = 'Raw transcript'; body.textContent = item.raw; raw.append(title, body); text.append(raw); }
-      const copy = iconButton('copy', 'Copy dictation', ' copy'); copy.onclick = () => { post({do: 'copy', text: item.text}); copied(copy); };
-      const remove = iconButton('trash', 'Delete dictation'); remove.onclick = () => post({do: 'dictationDelete', id: item.id});
-      row.append(text, copy, remove); $('dictationhistory').append(row);
-    }
-    if (!rows.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = query ? 'No matching dictations.' : 'Your dictations will appear here.'; $('dictationhistory').append(empty); }
   }
   $('dictationadd').onsubmit = e => { e.preventDefault(); post({do: 'dictationWord', word: $('dictationword').value}); $('dictationword').value = ''; };
-  $('dictationsearch').oninput = paintDictation;
-  $('dictationclear').onclick = () => { showNotice('Clear all saved dictations?', 'Clear all', () => post({do: 'dictationClear'})); };
 
   document.querySelectorAll('nav button[data-s] .ni').forEach(i => {
     const icon = i.cloneNode(true); icon.setAttribute('aria-hidden', 'true');
@@ -492,7 +439,6 @@
     nav.classList.add('on');
     document.querySelectorAll('nav button[data-s]').forEach(b => b.toggleAttribute('aria-current', b === nav));
     $(s).classList.add('on'); document.querySelector('main').scrollTop = 0;
-    if (s === 'feedback') { $('feedbackinclude').checked=false; feedbackPreview(); }
     if (s === 'apps') post({ do: 'apps' });   // fresh list and statuses each visit
     if (s === 'brain') probe();
   }
@@ -707,15 +653,7 @@
     asking = total = ids.length; count(); post({ do: 'allow', ids });
   };
 
-  let feedbackTimer,feedbackRevision=0;
-  function feedbackInvalidate(){clearTimeout(feedbackTimer);feedbackRevision++;$('feedbackopen').disabled=true;$('feedbackbody').textContent='Preparing preview…';post({do:'feedbackInvalidate'});}
-  function feedbackRequest(){post({do:'feedbackPreview',include:$('feedbackinclude').checked,text:$('feedbacktext').value,revision:feedbackRevision});}
-  function feedbackPreview(){feedbackInvalidate();feedbackRequest();}
-  $('feedbackinclude').onchange=feedbackPreview;
-  $('feedbacktext').oninput=()=>{feedbackInvalidate();feedbackTimer=setTimeout(feedbackRequest,300);};
-  $('feedbackopen').onclick=()=>post({do:'feedbackOpen'});
   window.st = {
-    feedback(result){if(result.revision!==feedbackRevision)return;if(result.error){$('feedbackbody').textContent=result.error;$('feedbackopen').disabled=true;return;}if(result.include!==$('feedbackinclude').checked)return;$('feedbackbody').textContent=result.body;$('feedbackopen').disabled=false;},
     profileImport(result) {
       $('profileImport').disabled = false;
       const errors = result.errors || [], counts = result.counts || {}, failed = errors.map(e => ({contacts: 'Contacts', mail: 'Mail'}[e] || e)).join(' and ');

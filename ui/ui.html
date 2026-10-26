@@ -224,18 +224,17 @@
   #mode.on { display: flex; animation: in .35s var(--ease) both; } #mode:is(:hover,.hot) { transform: scale(1.05); background: rgba(255,159,10,.16); }
   #mode:focus-visible { outline: 2px solid #64d2ff; outline-offset: 3px; }
 
-  /* tip: once in a while, one quiet line under the answer */
+  /* learned: one green line under the answer when it saved a shortcut or procedure */
   .tip { display: flex; align-items: baseline; gap: 7px; width: fit-content; max-width: 100%; margin-top: 14px; padding: 7px 12px 7px 10px; box-sizing: border-box;
     border-radius: 12px; font-size: 12px; line-height: 1.4; color: #e5e5ea; background: rgba(10,132,255,.16); box-shadow: inset 0 0 0 .5px rgba(10,132,255,.45);
     animation: pop .5s var(--spring) .4s both; }
   .tip::before { content: attr(data-k); flex: none; font-weight: 600; color: #64d2ff; }
   .tip.learned { background: rgba(48,209,88,.14); box-shadow: inset 0 0 0 .5px rgba(48,209,88,.45); } .tip.learned::before { color: #30db5b; }
-  .tip .off, .ok .details { flex: none; margin-left: auto; padding: 0; border: 0; background: none; font: 500 11px -apple-system, system-ui, sans-serif; color: var(--fg2); cursor: pointer; transition: color .2s; }
-  .tip .off:is(:hover,.hot), .ok .details:is(:hover,.hot) { color: #f5f5f7; }
+  .ok .details { flex: none; margin-left: auto; padding: 0; border: 0; background: none; font: 500 11px -apple-system, system-ui, sans-serif; color: var(--fg2); cursor: pointer; transition: color .2s; }
+  .ok .details:is(:hover,.hot) { color: #f5f5f7; }
   .ok.offer { cursor: default; } .ok.offer:is(:hover,.hot) { background: rgba(255,255,255,.07); }   /* a question, not a command: nothing to unfold */
   .ok.offer p { margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: var(--fg2); }
   .ok.offer .details { display: block; margin: 9px auto 0; height: auto; flex: none; border-radius: 0; background: none; box-shadow: none; }
-  .tip.kofi { cursor: pointer; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.16); } .tip.kofi::before { color: #ff375f; }   /* quiet: no accent, it's an ask not a hint */
   .tip.gone { opacity: 0; transform: translateY(-4px); transition: opacity .4s, transform .4s; }
 
   /* memory receipt: one quiet row under an answer that remembered or forgot something. Click: it opens in place; click an item: Settings → Memory there */
@@ -300,7 +299,7 @@
   #pointbar.has .chip { display: inline-flex; }
 
   /* resize: drag the bottom-right corner */
-  #grip { position: absolute; right: 4px; bottom: 4px; width: 12px; height: 12px; opacity: 0; transition: opacity .25s; cursor: nwse-resize; }
+  #grip { position: absolute; right: 8px; bottom: 8px; width: 12px; height: 12px; opacity: 0; transition: opacity .25s; cursor: nwse-resize; }
   .e { position: fixed; z-index: 3; }
   #eL, #eR { top: 0; bottom: 0; width: 6px; cursor: ew-resize; } #eL { left: 0; } #eR { right: 0; }
   #eT, #eB { left: 0; right: 0; height: 6px; cursor: ns-resize; } #eT { top: 0; } #eB { bottom: 0; }
@@ -720,18 +719,13 @@
       listening = false; boost = 1; $('orb').style.transform = ''; document.body.classList.remove('locked', 'hearing');
       setState('solving'); pill('finishing', label);
     },
-    dictated({ text, ok, words, history }) {   // landed (no text): a green check; otherwise one short line (ok: with a check); words: unsaved, so they can be copied; history: saved there
+    dictated({ text, ok, words }) {   // landed (no text): a green check; otherwise one short line (ok: with a check); words: not inserted, so they can be copied
       listening = false; boost = 1; $('orb').style.transform = ''; document.body.classList.remove('locked', 'hearing');
       setState('breathing');
       const n = text ? pill('said', text, ok) : pill('done', 'Inserted');
       if (words) {
         const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Copy';
         button.onclick = () => { post({ copy: words }); button.textContent = 'Copied'; };
-        n.append(' ', button); fit(false);
-      }
-      if (history) {
-        const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'History';
-        button.onclick = () => post({ dictationHistory: true });
         n.append(' ', button); fit(false);
       }
     },
@@ -771,9 +765,7 @@
         const a = part('a'); if (a) { const shown = a.classList.contains('streaming'); a.classList.remove('streaming'); a.dataset.answer = s; reveal(a, s, shown); if (shown) top = a; } setState('breathing');   // words already on screen do not fade in again
       } else if (tag === '✎' && turn()) { try { receipt(JSON.parse(s)); } catch {}
       } else if (tag === 'i' && turn()) {
-        const learned = s.startsWith('Learned: '), kofi = s.startsWith('Support: '), d = document.createElement('div');   // "Learned" when it saved a rule, the Ko-fi line, else "Tip"
-        d.className = 'tip' + (learned ? ' learned' : kofi ? ' kofi' : ''); d.dataset.k = learned ? 'Learned' : kofi ? '♥' : 'Tip'; d.textContent = learned || kofi ? s.slice(9) : s;
-        if (!learned) { const o = document.createElement('button'); o.className = 'off'; o.textContent = kofi ? 'Turn off' : 'Turn off tips'; d.append(o); }
+        const d = document.createElement('div'); d.className = 'tip learned'; d.dataset.k = 'Learned'; d.textContent = s.replace(/^Learned: /, '');   // it saved a shortcut or procedure
         turn().append(d);
         setTimeout(() => { d.classList.add('gone'); setTimeout(() => { d.remove(); fit(); }, 400); }, 9000);   // never sticks around
       }
@@ -821,9 +813,7 @@
       if (document.body.classList.contains('dictate')) return;   // the pill has no typing box: only its buttons act
       if (el?.closest('#mode')) return enableSafeMode();
       if ($('comp').classList.contains('pick')) pickRow(false);   // a click anywhere else closes the model row
-      if (el?.closest('.tip .off')) { const k = el.closest('.tip.kofi') ? 'support' : 'tips'; post({ off: k }); el.closest('.tip').remove(); status(k === 'tips' ? 'Tips off · The menu bar turns them back on' : 'Tip reminders off · Settings → About turns them back on'); return fit(); }   // its own "Turn off": no more of that kind
-      if (el?.closest('.tip.kofi')) post({ kofi: true });   // the support line opens Ko-fi, then goes like any tip
-      if (el?.closest('.tip')) { el.closest('.tip').remove(); return fit(); }   // click a tip: it goes
+      if (el?.closest('.tip')) { el.closest('.tip').remove(); return fit(); }   // click the Learned line: it goes
       const on = el?.closest('.a:not(.stopped):not(.cancel)'), q = el?.closest('.q:not(.empty)');
       drop();
       if (on?.dataset.answer) post({ copy: on.dataset.answer });

@@ -5,7 +5,6 @@
   Delphi moves your windows, finds your files, reads your screen and gets it done.
 </p>
 
-<p align="center"><a href="https://ko-fi.com/saarthr"><b>☕ Leave a tip</b></a> · Delphi is free; tips keep it going.</p>
 
 <p align="center">
   <b>🧠 Learns as you use it</b> &nbsp;·&nbsp; <b>⚡ Fast</b> &nbsp;·&nbsp; <b>🔑 No API key</b> &nbsp;·&nbsp; <b>Free and open source</b>
@@ -37,7 +36,6 @@ Needs macOS 26 and an AI client: Claude Code on a Claude plan, Devin, Pi or a lo
   <img alt="Swift" src="https://img.shields.io/badge/Swift-1d1d1f?style=for-the-badge&logo=swift&logoColor=white">
   <img alt="Claude" src="https://img.shields.io/badge/Claude_Haiku-1d1d1f?style=for-the-badge&logo=anthropic&logoColor=white">
   <img alt="Cost" src="https://img.shields.io/badge/~0.18%C2%A2_per_ask-1d1d1f?style=for-the-badge">
-  <a href="https://ko-fi.com/saarthr"><img alt="Support on Ko-fi" src="https://img.shields.io/badge/Support_on_Ko--fi-1d1d1f?style=for-the-badge&logo=kofi&logoColor=white"></a>
 </p>
 
 <br>
@@ -85,7 +83,7 @@ When Delphi acts but can't see the result, it says so ("…but I couldn't confir
 
 ## Dictate anywhere
 
-Hold fn to talk. Double-tap to lock. In any text field, hold the fn (🌐) key, speak, then let go. Double-tap it to lock dictation on for hands-free talking; an orange ring circles the pill, and one more press inserts. fn is the shortcut until you record another in Settings → Dictation (a key combo, an F-key, or a modifier chord like fn+Control); a shortcut you already set stays. If macOS's "Press 🌐 key to" setting opens emoji, switches input source or starts Apple dictation, Settings and setup show "Set Press 🌐 key to Do Nothing" with a button to Keyboard settings. fn with another key (fn+Delete, fn+←) stays that key's shortcut. While you talk, a small pill shows a sound wave. The Dictation tab shows your words today and all time, time saved, sessions, your dictionary and history. **Verbatim** types Apple's on-device transcript with no AI. **Clean up** makes one quick AI pass that keeps your words, fixes words it clearly misheard ("talk it and it' type" becomes "talk to it and it'll type"), and drops the slips: "um" and "you know" go, "scratch that" removes the thought before it, "four, actually five" leaves five, a spoken list becomes a list, and "new line" or "question mark" become formatting. It types what you dictate and never answers or acts on it. To spell names and terms it uses your Dictionary and the text just before your cursor. It starts while you talk, so the text lands soon after you let go; if the AI's version adds or drops too much, Delphi types your words with only the obvious fillers removed. Highlight text first and Clean up tidies that text in place. Esc cancels. When the words land, the pill turns into a green check and fades. With no text field selected, it says "Nothing selected to insert — saved to History." Dictation never leaves your words on the clipboard: if a field only takes a paste, Delphi borrows the clipboard for that one paste and puts back what you had copied. If the field changes or Delphi can't confirm the words landed, it saves them to Dictation History and says "Saved to History" instead of typing twice; with History off, the words stay in the pill.
+Hold fn to talk. Double-tap to lock. In any text field, hold the fn (🌐) key, speak, then let go. Double-tap it to lock dictation on for hands-free talking; an orange ring circles the pill, and one more press inserts. fn is the shortcut until you record another in Settings → Dictation (a key combo, an F-key, or a modifier chord like fn+Control); a shortcut you already set stays. If macOS's "Press 🌐 key to" setting opens emoji, switches input source or starts Apple dictation, Settings and setup show "Set Press 🌐 key to Do Nothing" with a button to Keyboard settings. fn with another key (fn+Delete, fn+←) stays that key's shortcut. While you talk, a small pill shows a sound wave. The Dictation tab shows your words today and all time, time saved, sessions and your dictionary. Delphi never saves what you dictate, only the counts. **Verbatim** types Apple's on-device transcript with no AI. **Clean up** makes one quick AI pass that keeps your words, fixes words it clearly misheard ("talk it and it' type" becomes "talk to it and it'll type"), and drops the slips: "um" and "you know" go, "scratch that" removes the thought before it, "four, actually five" leaves five, a spoken list becomes a list, and "new line" or "question mark" become formatting. It types what you dictate and never answers or acts on it. To spell names and terms it uses your Dictionary and the text just before your cursor. It starts while you talk, so the text lands soon after you let go; if the AI's version adds or drops too much, Delphi types your words with only the obvious fillers removed. Highlight text first and Clean up tidies that text in place. Esc cancels. When the words land, the pill turns into a green check and fades. Dictation never leaves your words on the clipboard: if a field only takes a paste, Delphi borrows the clipboard for that one paste and puts back what you had copied. With no text field selected, or if the field changes or Delphi can't confirm the words landed, it doesn't type twice: the words stay in the pill with a Copy button, and ⌃⌘V pastes your last dictation.
 
 ## Draw on screen
 
@@ -124,10 +122,6 @@ Small local models are usually weaker at reliable tool use and following long sc
 
 Pi and Devin handle asks just like Claude. Pi has no built-in sandbox, so Delphi disables its direct file-edit and MCP tools and Safe mode asks before every shell command; its read tools still have your account’s file access.
 
-## Feedback
-
-Choose **Report Feedback…** in the menu bar, **Report feedback** in Settings, or say/type “report feedback” or “report a bug”. Review the exact text before opening a GitHub issue draft. It contains a short template, version/commit, macOS and Mac model, model, safe mode and input settings. **Include my last ask** starts off; answers, screen content and command logs are never attached. Submit the draft yourself on GitHub.
-
 ## Install
 
 You need:
@@ -163,7 +157,7 @@ To see it again: `defaults delete com.delphi.app onboarded`, then restart the ap
 
 Test: `python3 delphi.py --selftest` on macOS, plus `python3 -m unittest discover -s tests -v` for offline regressions. After building, `~/Applications/Delphi.app/Contents/MacOS/Delphi --selftest` checks native transcript matching without opening the app. Node, when installed, also checks embedded JavaScript syntax. For the UI interaction checks, run `python3 -m http.server 8765 --bind 127.0.0.1` from the repo and open `http://127.0.0.1:8765/tests/ui.html`; it uses a mock native bridge and makes no Mac actions or AI calls.
 
-Remove: `launchctl bootout gui/$(id -u)/com.delphi.app`, then delete `~/Applications/Delphi.app`, `~/.delphi`, `~/.config/delphi` (your settings and history) and `~/Library/LaunchAgents/com.delphi.app.plist`.
+Remove: `launchctl bootout gui/$(id -u)/com.delphi.app`, then delete `~/Applications/Delphi.app`, `~/.delphi`, `~/.config/delphi` (your settings, chat and stats) and `~/Library/LaunchAgents/com.delphi.app.plist`.
 
 ## Watch for me
 

@@ -308,7 +308,8 @@ print("dictation target safety ok")
         self.assertEqual(apply.count('.post(tap: .cghidEventTap)'), 1)
         self.assertEqual(apply.count('postToPid'), 1)   # one send, never both: per-process only while Delphi holds the keyboard
         self.assertIn('if NSApp.keyWindow == nil { e.post(tap: .cghidEventTap) } else { e.postToPid(', apply)
-        self.assertIn('Saved to History', insert)
+        self.assertIn('"words": value', insert)   # the words stay in the pill: nothing keeps them on disk
+        self.assertNotIn('saveDictation', insert)
         self.assertNotIn('NSPasteboard', insert)   # dictation never leaves its words on the clipboard
         # Oct 21, 2026: a paste into an Electron chat box landed but its field read back unchanged, so Delphi said "Couldn't insert".
         swift = r'''import Foundation
@@ -479,11 +480,11 @@ print("clipboard borrow ok")
         cancel = source[source.index('    func cancel()'):source.index('    // ✕ also ends')]
         self.assertNotIn('NSPasteboard', delivery)
         swift = r'''import Foundation
-struct Prefs { static var on: Set<String> = ["dictateHistory"]; static func bool(_ key: String) -> Bool { on.contains(key) } }
+struct Prefs { static var on: Set<String> = []; static func bool(_ key: String) -> Bool { on.contains(key) } }
 enum DictationData { static func fixed(_ text: String) -> String { text } }
 final class AppRef: Equatable { static func == (a: AppRef, b: AppRef) -> Bool { a === b } }
 final class NSWorkspace { static let shared = NSWorkspace(); var frontmostApplication: AppRef? }
-var saves = true, saved: [String] = [], pasteHotkeyRegistered = true
+var pasteHotkeyRegistered = true
 final class Target {
     let app: AppRef; var received: [String] = [], deferred = false, pending: (() -> Void)?
     init(_ app: AppRef) { self.app = app }
@@ -494,8 +495,7 @@ final class Target {
 }
 final class Harness {
     var dictateSelection: Target?, busy = false, dictating = true, dictateID = 1, dictateCleanup = false
-    var dictationAppName = "App", lastDictation: String?
-    func saveDictation(_ value: String, appName: String) -> Bool { if saves { saved.append(value) }; return saves }
+    var lastDictation: String?
     var log: [String] = [], hides: [Double] = [], words: [String] = []
     func cue(_ value: String) {}
     func hide(after s: Double) { hides.append(s) }
@@ -515,22 +515,16 @@ precondition(done.log == ["finishing ", "dictated  true"] && done.hides == [0.8]
 let clean = Harness(); clean.dictateCleanup = true; clean.release()
 precondition(clean.log == ["finishing Cleaning up…"], "Clean up mode did not label its wait")
 let fallback = Harness(); fallback.release(); fallback.insertDictation("keep me safe")
-precondition(fallback.log == ["finishing ", "dictated No text field. Press ⌃⌘V to paste it. false"] && saved == ["keep me safe"] && fallback.hides == [6], "fallback: \(fallback.log)")
+precondition(fallback.log == ["finishing ", "dictated No text field. Press ⌃⌘V to paste it. false"] && fallback.hides.isEmpty, "fallback words faded away: \(fallback.log)")
+precondition(fallback.words == ["keep me safe"], "words that failed to insert cannot be copied from the pill")
 precondition(fallback.lastDictation == "keep me safe", "⌃⌘V would not paste the words that failed to insert")
 let moved = Harness(); moved.dictateSelection = Target(user); moved.release(); NSWorkspace.shared.frontmostApplication = AppRef(); moved.insertDictation("switched away")
 NSWorkspace.shared.frontmostApplication = user
 precondition(moved.log == ["finishing ", "dictated Couldn’t insert. Press ⌃⌘V to paste it. false"], "a failed insert into a field said nothing was selected: \(moved.log)")
-saves = false
-let fail = Harness(); fail.release(); fail.insertDictation("keep me")
-precondition(fail.log == ["finishing ", "dictated No text field. Press ⌃⌘V to paste it. false"] && fail.hides.isEmpty, "unsaved words faded away: \(fail.log)")
-saves = true; Prefs.on = []; saved = []
-let off = Harness(); off.release(); off.insertDictation("history off")
-precondition(off.log == ["finishing ", "dictated No text field. Press ⌃⌘V to paste it. false"] && off.hides.isEmpty && saved.isEmpty, "History off: \(off.log)")
-precondition(off.words == ["history off"] && fallback.words.isEmpty, "unsaved words cannot be copied from the pill")
-Prefs.on = ["dictateHistory"]; pasteHotkeyRegistered = false   // another app (Willow Voice) holds ⌃⌘V
+pasteHotkeyRegistered = false   // another app (Willow Voice) holds ⌃⌘V
 let taken = Harness(); taken.dictateSelection = Target(user); NSWorkspace.shared.frontmostApplication = AppRef(); taken.insertDictation("raw words")
 NSWorkspace.shared.frontmostApplication = user
-precondition(taken.log == ["dictated Couldn’t insert. Saved to History. false"] && saved == ["raw words"], "a shortcut Delphi does not own was offered: \(taken.log)")
+precondition(taken.log == ["dictated Couldn’t insert. Your words are still here. false"] && taken.words == ["raw words"], "a shortcut Delphi does not own was offered: \(taken.log)")
 pasteHotkeyRegistered = true
 let late = Target(user); late.deferred = true
 let cancelled = Harness(); cancelled.dictateSelection = late; cancelled.release(); cancelled.insertDictation("never"); cancelled.cancel(); late.pending?()
@@ -593,8 +587,8 @@ ui.finishing('Cleaning up…');
 if (state() !== 'finishing' || classes.has('hearing') || classes.has('locked') || states.at(-1) !== 'solving' || dn.textContent !== 'Cleaning up…' || !fits) fail('release did not fold into the working orb: ' + state());
 ui.dictated({ text: '', ok: true });
 if (state() !== 'done' || states.at(-1) !== 'breathing' || dn.textContent !== 'Inserted') fail('landing did not end on the check: ' + state());
-ui.dictated({ text: 'Nothing selected to insert — saved to History.', ok: false });
-if (state() !== 'said' || dn.className !== 'dn' || dn.textContent !== 'Nothing selected to insert — saved to History.') fail('nothing to insert into was not one line');
+ui.dictated({ text: 'No text field. Press ⌃⌘V to paste it.', ok: false });
+if (state() !== 'said' || dn.className !== 'dn' || dn.textContent !== 'No text field. Press ⌃⌘V to paste it.') fail('nothing to insert into was not one line');
 ui.finishing('');
 if (state() !== 'finishing' || dn.textContent) fail('a new release kept the last line');
 '''

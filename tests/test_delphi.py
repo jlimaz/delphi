@@ -198,7 +198,7 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
                             describe=lambda *a: '', selection_context=lambda: '', relevant_rules=lambda _: '',
                             recent=lambda: [], workflows=lambda *a: '', screen_for=lambda *a: None, wait_commit=lambda: True,
                             run=brain, remember_turn=lambda *a: None, restore_focus=lambda *a: None,
-                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, tip=tip or (lambda *a: None)), \
+                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, learned_pill=tip or (lambda *a: None)), \
              patch.object(delphi, 'pref', side_effect=lambda k,d:prefs.get(k,d)), \
              patch.object(delphi, 'ask_user', return_value=retry) as ask, \
              patch.object(delphi, 'start_ai', return_value=None) as start, \
@@ -270,7 +270,7 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
         # "remember how to X" only reports a procedure that was already saved, so suggesting it here is a dead end
         tip = unittest.mock.Mock()
         self.routing_ask({'routing': 'cheapest'}, [('Opened.', True, ['open -a Notes'])], tip=tip)
-        self.assertEqual(tip.call_args.args, ('Opened.', ''))
+        self.assertEqual(tip.call_args.args, ('',))
         self.assertIn('do not have a verified procedure', delphi.fast('remember how to fixture task'))
 
     def test_a_cursor_request_tells_the_model_to_return_an_insertable_draft(self):
@@ -381,7 +381,7 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
                             relevant_rules=lambda _: '', recent=lambda: [], workflows=lambda *a: '',
                             screen_for=lambda *a: None, wait_commit=lambda: True, run=brain,
                             remember_turn=lambda *a: None, restore_focus=lambda *a: None,
-                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, tip=lambda *a: None), \
+                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, learned_pill=lambda *a: None), \
              patch.object(delphi.threading, 'Thread', NoThread), patch('sys.argv', ['delphi.py', 'Do fixture']), \
              patch('sys.stdout', io.StringIO()):
             delphi.main()
@@ -397,7 +397,7 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
                             relevant_rules=lambda _: '', recent=lambda: earlier, workflows=lambda *a: '',
                             screen_for=lambda *a: None, wait_commit=lambda: True, run=brain, unlearn=lambda *a: None,
                             remember_turn=lambda *a: None, restore_focus=lambda *a: None, POSTHOG_KEY='fixture-token',
-                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, tip=lambda *a: None), \
+                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, learned_pill=lambda *a: None), \
              patch.object(delphi, 'pref', side_effect=lambda k, d: True if k == 'improve' else d), \
              patch.object(delphi, 'posthog') as sent, patch.object(delphi.threading, 'Thread'), \
              patch('sys.argv', ['delphi.py', 'no, I meant the work inbox']), patch('sys.stdout', io.StringIO()):
@@ -415,7 +415,7 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
                             window_summary=lambda *a: {'text': 'Readable'}, tool_help=lambda *a, **k: '', selection_context=lambda: '',
                             relevant_rules=lambda _: '', recent=lambda: [], workflows=lambda *a: '', wait_commit=lambda: True, run=brain,
                             remember_turn=lambda *a: None, restore_focus=lambda *a: None, remember_workflow=lambda task, reply, *a: (reply, False),
-                            learn=lambda *a: False, tip=lambda *a: None), \
+                            learn=lambda *a: False, learned_pill=lambda *a: None), \
              patch.dict(os.environ, {'DELPHI_FRONT': 'Notes', 'DELPHI_UI': '1'}), patch('sys.argv', ['delphi.py', 'Do fixture']), patch('sys.stdout', io.StringIO()):
             delphi.main()
         prompt = brain.call_args.args[0]
@@ -488,38 +488,14 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
         self.assertIn('threading.Thread(target=tool_help', critical)
         self.assertNotIn('helping.join', critical)
 
-    def test_miss_and_learned_tips(self):
-        with patch.dict(os.environ, {'DELPHI_UI': '1'}), patch.object(delphi, 'pref', return_value=False), patch('sys.stdout', new_callable=io.StringIO) as out:
-            delphi.tip('Joined Zoom.')
+    def test_only_the_learned_pill_shows_under_an_answer(self):
+        with patch.dict(os.environ, {'DELPHI_UI': '1'}), patch('sys.stdout', new_callable=io.StringIO) as out:
+            delphi.learned_pill('')
         self.assertEqual(out.getvalue(), '')
         with patch.dict(os.environ, {'DELPHI_UI': '1'}), patch('sys.stdout', new_callable=io.StringIO) as out:
-            delphi.tip('Could not join Zoom.')
-        self.assertIn(delphi.MISS, out.getvalue())
-        with patch.dict(os.environ, {'DELPHI_UI': '1'}), patch.object(delphi, 'pref', return_value=False), \
-             patch('sys.stdout', new_callable=io.StringIO) as out:
-            delphi.tip('Done.', 'Learned: Procedure saved for next time.')
+            delphi.learned_pill('Learned: Procedure saved for next time.')
         self.assertIn('Learned: Procedure saved for next time.', out.getvalue())
-
-    def test_tip_jar_line_has_its_own_switch_and_clock(self):
-        with tempfile.TemporaryDirectory() as d, patch.object(delphi, 'DIR', d), patch.dict(os.environ, {'DELPHI_UI': '1'}):
-            def ask(prefs, reply='Done.'):
-                with patch.object(delphi, 'pref', side_effect=lambda k, v: prefs.get(k, v)), patch('sys.stdout', new_callable=io.StringIO) as out:
-                    delphi.tip(reply)
-                return out.getvalue()
-            self.assertEqual(ask({}), '')   # first ask: nothing
-            os.remove(os.path.join(d, 'kofi'))
-            self.assertEqual(ask({}), '')   # an install from before the tip jar: no crash, its clock starts
-            old = time.time() - 5 * 3600
-            os.utime(os.path.join(d, 'kofi'), (old, old)); os.utime(os.path.join(d, 'tip'), (old, old))
-            self.assertEqual(ask({'support': False}).count('Support: '), 0)
-            with patch.object(delphi, 'posthog') as sent:
-                self.assertIn('Support: ', ask({'tips': False, 'support': True}))   # tips off, tip jar on
-            sent.assert_called_once_with('support', {'action': 'shown', 'from': 'overlay'})
-            self.assertNotIn('Support: ', ask({}))   # 4 h clock restarted: the plain tip is next
-            os.utime(os.path.join(d, 'kofi'), (old, old))
-            self.assertNotIn('Support: ', ask({'tips': False}))   # tips turned off before the tip jar existed: it stays off too
-            with patch.object(delphi, 'failed_action_reply', return_value=True):
-                self.assertNotIn('Support: ', ask({}, 'Could not join Zoom.'))   # never right after a miss
+        self.assertFalse(hasattr(delphi, 'TIPS') or hasattr(delphi, 'SUPPORT') or hasattr(delphi, 'TEACH'))
 
     def test_domain_dots_and_url_case_survive(self):
         with patch.object(delphi, 'skills', return_value={}), \
@@ -1777,7 +1753,7 @@ class WatchAndBudgetTests(unittest.TestCase):
 
     def test_prompt_stays_under_budget(self):
         # Every ask pays for this prompt. Raising the cap is a decision: check `delphi.py --budget` first.
-        full = delphi.SYSTEM + delphi.ASK_ME + delphi.POINTER + delphi.LEARN_ME + delphi.TEACH + delphi.ASK_FIRST + delphi.WORKFLOW
+        full = delphi.SYSTEM + delphi.ASK_ME + delphi.POINTER + delphi.LEARN_ME + delphi.ASK_FIRST + delphi.WORKFLOW
         self.assertIn('Stable facts: answer only if sure.', full)
         self.assertIn('Use relevant window text', full)
         self.assertLessEqual(len(delphi.MODEL_OFFER), 211)

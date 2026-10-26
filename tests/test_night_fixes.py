@@ -145,7 +145,7 @@ class NightTests(unittest.TestCase):
                             selection_context=lambda: '', me_line=lambda: '', relevant_rules=lambda _: '', workflows=lambda *a: '',
                             recent=lambda: [], screen_for=lambda *a: None, wait_commit=lambda: True, run=brain,
                             remember_turn=lambda *a: None, log_turn=lambda *a, **k: None, restore_focus=lambda *a: None,
-                            tip=lambda *a: None, remember_workflow=lambda t, r, *a: (r, False)), \
+                            learned_pill=lambda *a: None, remember_workflow=lambda t, r, *a: (r, False)), \
              patch.object(delphi.threading, 'Thread'), patch('sys.argv', ['delphi.py', '--wait']), \
              patch('sys.stdout', new_callable=io.StringIO) as out, patch.object(delphi, 'fast', return_value='Other: right.') as fast:
             with patch('sys.stdin', io.StringIO(json.dumps(request) + '\n')): delphi.main()

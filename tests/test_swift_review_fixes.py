@@ -227,7 +227,7 @@ print("hidden rewrite target kept")
         self.assertIn("if !busy && !engine.isRunning { noteHidden() }", run)
 
     def test_follow_keeps_side_offsets(self):
-        geometry = self.swift[self.swift.index("enum PanelFrame {"):self.swift.index("\nlet kofi")]
+        geometry = self.swift[self.swift.index("enum PanelFrame {"):self.swift.index("\n// Structured EventKit backend")]
         harness = "import Cocoa\n" + geometry + r'''
 let a = NSRect(x: 0, y: 0, width: 1440, height: 875), b = NSRect(x: 1440, y: -200, width: 1920, height: 1055)
 func go(_ f: NSRect) -> NSRect { PanelFrame.clamp(PanelFrame.follow(f, a, b, right: f.midX > a.midX, top: f.midY > a.midY), b) }

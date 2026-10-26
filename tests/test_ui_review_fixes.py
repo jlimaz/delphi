@@ -85,11 +85,9 @@ const fit = () => {}, setState = () => {}, $ = () => ({ style: {} }), post = m =
 let listening = true, boost = 1;
 const document = { body: { classList: { remove() {} } }, createElement: () => ({}) }, pill = () => ({ append: (...a) => { button = a[1]; } });
 const ui = {''' + dictated + r'''};
-ui.dictated({ text: 'Nothing selected to insert — saved to History.', ok: false }); if (button) process.exit(1);
+ui.dictated({ text: 'Inserted', ok: true }); if (button) process.exit(1);
 ui.dictated({ text: 'Couldn’t insert. Your words are still here.', ok: false, words: 'my words' }); button.onclick();
 if (sent?.copy !== 'my words' || button.textContent !== 'Copied') process.exit(1);
-ui.dictated({ text: 'Couldn’t insert. Press ⌃⌘V to paste it.', ok: false, history: true }); button.onclick();
-if (sent?.dictationHistory !== true || button.textContent !== 'History') process.exit(1);
 ''')
 
     def test_learned_word_shows_in_the_pill_after_it_folded(self):
@@ -100,9 +98,7 @@ if (sent?.dictationHistory !== true || button.textContent !== 'History') process
         self.assertIn('animation-iteration-count: 1 !important', rule)
         self.assertIn("const reduced = matchMedia('(prefers-reduced-motion: reduce)')", self.onboarding)
         self.assertIn("reduced.addEventListener('change'", self.onboarding)
-        self.assertIn('welcomeGeneration++; previewGeneration++;', self.onboarding)
-        self.assertIn('Object.keys(loops).forEach(id => finals[id]())', self.onboarding)
-        self.assertIn('if (reduced.matches) { finals[id](); await motionChange(); }', self.onboarding)
+        self.assertIn('welcomeGeneration++;', self.onboarding)
         self.assertNotIn("const still = matchMedia('(prefers-reduced-motion: reduce)').matches", self.onboarding)
 
     def test_onboarding_welcome_orb_keeps_animating(self):
@@ -142,14 +138,11 @@ if (away.frames || away.timers || !away.waiting) process.exit(3);
         self.assertIn('id="appview" role="group" aria-label="App list"', self.settings)
         self.assertIn("b.setAttribute('aria-pressed', on)", self.settings)
 
-    def test_onboarding_recorder_names_a_lone_modifier(self):
-        self.assertIn('a modifier on its own', self.onboarding)
-        self.assertNotIn('Use modifiers with a key', self.onboarding)
-
-    def test_turned_off_tips_come_back_from_the_menu_bar(self):
+    def test_no_tips_or_tip_jar_anywhere(self):
         menu = self.swift[self.swift.index('final class MenuBar'):self.swift.index('// Settings window (ui/settings.html)')]
-        self.assertIn('if !Prefs.bool("tips") { add(m, "Show Tips Again", #selector(tipsOn), "") }', menu)
-        self.assertIn('@objc func tipsOn() { settings.apply("tips", true); settings.push() }', menu)
+        self.assertNotIn('Tip', menu)
+        for text in (self.swift, self.settings, self.onboarding, self.box):
+            self.assertNotIn('kofi', text.lower())
 
     def test_removed_sonnet_offer_leaves_no_card_branch(self):
         self.assertNotIn('Sonnet', self.box[self.box.index('    respond(text)'):self.box.index('    improve()')])
@@ -199,12 +192,10 @@ if (classes.has('held') || card.style.minHeight || fitted !== 2) process.exit(2)
     def test_settings_disabled_segment_looks_off(self):
         self.assertIn("[data-k=dictateMode] [data-v=cleanup]').disabled = other", self.settings)
         self.assertIn('.seg button:disabled { opacity: .4; pointer-events: none; }', self.settings)
-        self.assertIn('.seg button:disabled { opacity: .4; pointer-events: none; }', self.onboarding)
 
     def test_small_leftovers(self):
         self.assertNotIn('js("shortcut"', self.swift)
         self.assertNotIn('shortcut() {}', self.box)
-        self.assertIn('d.hidden = skip(pages[i])', self.onboarding)   # Devin/Pi/server: no dots for skipped pages
         self.assertNotIn('These need your click', self.onboarding)
         self.assertNotIn('Use Verbatim instead', self.onboarding)
         self.assertIn('id="appsback" onclick="st.tab(\'account\')"', self.settings)

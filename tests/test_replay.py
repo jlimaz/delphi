@@ -50,7 +50,7 @@ class ReplayTests(unittest.TestCase):
     def test_a_generalized_replay_learns_the_app_it_actually_used(self):
         delphi.save_skills({'put fixture alpha left':{'cmds':['open -a "Fixture Alpha"'],'reply':'Done.','mine':True}})
         resolve=lambda name:{'fixture alpha':'Fixture Alpha','fixture beta':'Fixture Beta'}.get(name.lower())
-        with patch.object(delphi,'app_named',side_effect=resolve),patch.object(delphi,'show',return_value='opened'),patch.object(delphi,'tip'):
+        with patch.object(delphi,'app_named',side_effect=resolve),patch.object(delphi,'show',return_value='opened'),patch.object(delphi,'learned_pill'):
             self.assertEqual(delphi.fast('when I say layout mode, put fixture beta left'),'Done.')
         command=delphi.skills()['layout mode']['cmds'][0]
         self.assertIn('Fixture Beta',command);self.assertNotIn('Fixture Alpha',command)
@@ -128,7 +128,7 @@ class ReplayTests(unittest.TestCase):
             def start(self): pass
             def join(self,*a): pass
         missing=self.root/'fresh';brain=unittest.mock.Mock(return_value=('Found them. [unlearn]',0,[]));brain.ok=True;brain.cmds=[];brain.ran=[];brain.observed=[]
-        with patch.object(delphi,'DIR',str(missing)),patch.object(delphi,'RECENT',str(missing/'recent.jsonl')),patch.object(delphi,'MEMORY',str(missing/'memory.md')),patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py','Find fixture notes']),patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',screen_for=lambda *a:None,run=brain,wait_commit=lambda:True,restore_focus=lambda *a:None,say=lambda *a:None,tip=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
+        with patch.object(delphi,'DIR',str(missing)),patch.object(delphi,'RECENT',str(missing/'recent.jsonl')),patch.object(delphi,'MEMORY',str(missing/'memory.md')),patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py','Find fixture notes']),patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',screen_for=lambda *a:None,run=brain,wait_commit=lambda:True,restore_focus=lambda *a:None,say=lambda *a:None,learned_pill=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
             delphi.main();self.assertEqual(delphi.recent()[0]['a'],'Found them.');self.assertTrue((missing/'log.jsonl').exists())
         brain.assert_called_once()
 
@@ -146,9 +146,9 @@ class ReplayTests(unittest.TestCase):
         def ask(task,reply,cmds):
             brain=unittest.mock.Mock(return_value=(reply,0,[]));brain.ok=True;brain.cmds=cmds;brain.ran=cmds;brain.observed=[]
             tip=unittest.mock.Mock()
-            with patch.object(delphi,'DIR',str(self.root)),patch.object(delphi,'RECENT',str(self.root/'recent.jsonl')),patch.object(delphi,'MEMORY',str(self.root/'memory.md')),patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py',task]),patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',screen_for=lambda *a:None,run=brain,wait_commit=lambda:True,restore_focus=lambda *a:None,say=lambda *a:None,tip=tip,look=lambda:[],hands_map=lambda *a:None,cached_hands=lambda:None):
+            with patch.object(delphi,'DIR',str(self.root)),patch.object(delphi,'RECENT',str(self.root/'recent.jsonl')),patch.object(delphi,'MEMORY',str(self.root/'memory.md')),patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py',task]),patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',screen_for=lambda *a:None,run=brain,wait_commit=lambda:True,restore_focus=lambda *a:None,say=lambda *a:None,learned_pill=tip,look=lambda:[],hands_map=lambda *a:None,cached_hands=lambda:None):
                 with patch.object(delphi,'app_id',return_value='com.example.fixture'),patch.object(delphi,'app_running',return_value=False): delphi.main()
-            return tip.call_args.args[1]
+            return tip.call_args.args[0]
         self.assertEqual(ask('Close fixture','Fixture is closed.',[quit,check]),'Learned: Say “Close fixture” any time.')
         self.assertEqual(delphi.skills()['close fixture']['cmds'],[quit])
         self.assertEqual(delphi.recent()[-1]['shortcut']['key'],'close fixture')
@@ -199,7 +199,7 @@ class ReplayTests(unittest.TestCase):
              patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),
                             osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',
                             screen_for=lambda *a:None,tool_help=lambda *a,**k:'',run=brain,wait_commit=lambda:True,
-                            restore_focus=lambda *a:None,say=say,tip=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
+                            restore_focus=lambda *a:None,say=say,learned_pill=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
             delphi.main()
         self.assertEqual(say.call_args.args[1],'Fixture is hidden now.')   # no control tag shows, and the redo saves nothing
         self.assertEqual(delphi.workflows(),{})
@@ -228,7 +228,7 @@ class ReplayTests(unittest.TestCase):
              patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),
                             osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',
                             screen_for=lambda *a:None,tool_help=lambda *a,**k:'',run=brain,wait_commit=lambda:True,
-                            restore_focus=lambda *a:None,say=lambda *a:None,tip=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
+                            restore_focus=lambda *a:None,say=lambda *a:None,learned_pill=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
             delphi.main()
         self.assertIn('Previous learned shortcut',brain.call_args.args[0])
         self.assertIn('hide fixture',delphi.skills())
@@ -245,7 +245,7 @@ class ReplayTests(unittest.TestCase):
              patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),
                             osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',
                             screen_for=lambda *a:None,tool_help=lambda *a,**k:'',run=brain,wait_commit=lambda:True,
-                            restore_focus=lambda *a:None,say=say,tip=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
+                            restore_focus=lambda *a:None,say=say,learned_pill=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
             delphi.main()
         self.assertEqual(say.call_args.args[1],'Done.')
         self.assertEqual(delphi.recent()[-1]['a'],'Done.')
@@ -276,7 +276,7 @@ class ReplayTests(unittest.TestCase):
         with patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py','bye fixture']),patch.object(delphi,'app_running',return_value=True),patch.object(delphi.time,'sleep'), \
              patch.multiple(delphi,**stubs,licensed=lambda:True,ping=lambda:None,front=lambda:('Fixture','Scratch'),screens=lambda:[],describe=lambda *a:'Scratch display',
                             selection_context=lambda:'',screen_for=lambda *a:None,tool_help=lambda *a,**k:'',run=brain,wait_commit=lambda:True,
-                            restore_focus=lambda *a:None,say=say,tip=tip,look=lambda:[],hands_map=lambda *a:None,report=lambda *a:None,cached_hands=lambda:None):
+                            restore_focus=lambda *a:None,say=say,learned_pill=tip,look=lambda:[],hands_map=lambda *a:None,report=lambda *a:None,cached_hands=lambda:None):
             delphi.main()
         said=[c.args for c in say.call_args_list]
         self.assertIn(('▸','The shortcut did not work. Redoing it'),said)
@@ -285,7 +285,7 @@ class ReplayTests(unittest.TestCase):
         prompt=brain.call_args.args[0]
         self.assertIn('still open',prompt);self.assertIn('failed (see its output): redo the request',prompt)
         self.assertEqual(delphi.skills()['bye fixture']['cmds'],[replacement])
-        self.assertEqual(tip.call_args.args[1],'Learned: Say “bye fixture” any time.')
+        self.assertEqual(tip.call_args.args[0],'Learned: Say “bye fixture” any time.')
 
     def test_a_quit_that_is_still_running_is_not_learned(self):
         command='osascript -e \'tell application id "com.example.fixture" to quit\''
@@ -305,7 +305,7 @@ class ReplayTests(unittest.TestCase):
         brain=unittest.mock.Mock(return_value=('Opened the earlier post.',0,[]));brain.ok=True;brain.cmds=[];brain.ran=[];brain.observed=[]
         with patch.object(delphi,'RECENT',str(self.root/'recent.jsonl')),patch.object(delphi,'MEMORY',str(self.root/'memory.md')):
             delphi.remember_turn('Find a useful post','Opened '+url)
-            with patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py','Open that post you opened']),patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',screen_for=lambda *a:None,run=brain,wait_commit=lambda:True,restore_focus=lambda *a:None,say=lambda *a:None,tip=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
+            with patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py','Open that post you opened']),patch.multiple(delphi,licensed=lambda:True,ping=lambda:None,fast=lambda _:None,front=lambda:('Fixture','Scratch'),osa=lambda *a:'',screens=lambda:[],describe=lambda *a:'Scratch display',selection_context=lambda:'',screen_for=lambda *a:None,run=brain,wait_commit=lambda:True,restore_focus=lambda *a:None,say=lambda *a:None,learned_pill=lambda *a:None,look=lambda:[],hands_map=lambda *a:None):
                 delphi.main()
         prompt=brain.call_args.args[0]
         self.assertIn('Earlier:\nQ: Find a useful post\nA: Opened '+url,prompt)

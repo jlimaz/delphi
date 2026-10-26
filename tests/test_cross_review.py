@@ -29,7 +29,7 @@ class CrossReviewTests(unittest.TestCase):
 
     def test_failed_resume_does_not_apply_success_effects(self):
         source = (ROOT / 'Delphi.swift').read_text()
-        resume = source[source.index('            if b["resume"] != nil'):source.index('            if b["kofi"]')]
+        resume = source[source.index('            if b["resume"] != nil'):source.index('            if b["replace"]')]
         swift_check(self, 'enum Prefs { static func bool(_ k:String)->Bool { true } }\n'
                     + 'final class Settings { func apply(_ k:String,_ v:Bool) {}; func push() {} }\n'
                     + 'enum Delphi { static let settings=Settings() }\n'

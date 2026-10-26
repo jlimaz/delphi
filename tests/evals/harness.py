@@ -287,7 +287,7 @@ def run_scenario(scenario, repo, live=False):
         mock.patch.object(att, 'restore_focus', return_value=None),
         mock.patch.object(att, 'remember_turn', return_value=None),
         mock.patch.object(att, 'learn', return_value=False),
-        mock.patch.object(att, 'tip', return_value=None),
+        mock.patch.object(att, 'learned_pill', return_value=None),
         mock.patch.object(att, 'emit', return_value=None),
         mock.patch.object(att, 'report', return_value=None),
         mock.patch.object(att, 'POSTHOG_KEY', ''),
