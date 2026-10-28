@@ -18,47 +18,10 @@ import AudioToolbox
 
 let dir = ProcessInfo.processInfo.environment["DELPHI_RESOURCES_DIR"] ?? Bundle.main.resourcePath!   // build.sh copies delphi.py and ui/ in here
 
-// Totals only: dictated words are never kept on disk.
 enum DictationData {
-    struct Archive: Codable {
-        var words = 0, sessions = 0, todayWords = 0
-        var day = ""
-        var seconds = 0.0
-    }
-    static var path: String { (Prefs.path as NSString).deletingLastPathComponent + "/dictation.json" }
-    static var archive: Archive = {
-        let data = try? Data(contentsOf: URL(fileURLWithPath: path))
-        // An older Delphi kept a dictation history in this file: rewrite it with the totals only.
-        if let data, (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["history"] != nil { DispatchQueue.main.async { _ = save() } }
-        return data.flatMap { try? JSONDecoder().decode(Archive.self, from: $0) } ?? Archive()
-    }()
     static var words: [String] { Prefs.d["dictateWords"] as? [String] ?? [] }
-    static func day(_ date: Date = Date()) -> String {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: date)
-    }
-    @discardableResult static func save() -> Bool {
-        do {
-            let folder = (path as NSString).deletingLastPathComponent
-            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-            let data = try JSONEncoder().encode(archive)
-            // Set permissions before writing any bytes, including on replacement.
-            let tmp = folder + "/.dictation-" + UUID().uuidString
-            guard FileManager.default.createFile(atPath: tmp, contents: nil, attributes: [.posixPermissions: 0o600]) else { return false }
-            defer { try? FileManager.default.removeItem(atPath: tmp) }
-            try data.write(to: URL(fileURLWithPath: tmp))
-            guard rename(tmp, path) == 0 else { return false }
-            return true
-        } catch { return false }
-    }
-    @discardableResult static func record(_ text: String, seconds: Double) -> Bool {
-        let old = archive, count = text.split(whereSeparator: { $0.isWhitespace }).count
-        if archive.day != day() { archive.day = day(); archive.todayWords = 0 }
-        archive.words += count; archive.todayWords += count; archive.sessions += 1
-        archive.seconds += max(0, Double(count) / 40 * 60 - seconds)
-        if save() { return true }; archive = old; return false
-    }
     static func state() -> [String: Any] {
-        ["words": words, "stats": ["today": archive.day == day() ? archive.todayWords : 0, "words": archive.words, "sessions": archive.sessions, "minutes": Int(archive.seconds / 60)]]
+        ["words": words]
     }
     @discardableResult static func word(_ value: String, replacing: String? = nil) -> Bool {
         let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -178,7 +141,7 @@ enum Prefs {
         "microphone": "automatic", "quietAudio": false, "quietLevel": 0.18, "agentModel": "sonnet", "fixSetup": false,
         "selection": true, "ahead": true, "aheadDelay": 0.7, "live": true, "screen": "auto", "openOn": "here", "workIn": "back", "miniScreen": true, "draw": true, "guideSteps": "auto", "pageJS": false,
         "speak": false, "showAnswers": "stream", "autoCopy": false, "hideWhenSharing": true, "menuIcon": true, "autoUpdate": true,
-        "learn": true, "safe": true, "pointer": false, "learnMe": true, "stats": true, "askMe": true, "input": "voice", "talkMode": "hold", "speechModel": "speech", "speechLanguage": "en-US", "improve": false, "improveAsked": false, "draftInsert": "ask",
+        "learn": true, "safe": true, "pointer": false, "learnMe": true, "stats": true, "askMe": true, "input": "voice", "talkMode": "hold", "speechModel": "speech", "speechLanguage": "en-US", "draftInsert": "ask",
         "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyLabel": "", "dictateMode": "cleanup", "dictateLearn": true, "dictateWords": [], "dictateFixes": [String: String](), "boxW": 500, "boxH": 420]
     static let retiredKeys = ["quietAudio", "quietLevel", "autoCopy", "askMe", "corner", "linger", "soundStart", "soundRelease", "soundDone", "soundStop",
         "instant", "live", "ahead", "aheadDelay", "learn", "selection", "guideSteps", "workIn", "openOn", "miniScreen", "draftInsert",
@@ -2171,7 +2134,6 @@ final class App: NSObject, WKScriptMessageHandler {
                 }
                 try? i.write(toFile: askFile, atomically: true, encoding: .utf8); askFile = ""
             }   // an index, or "" = none; failure cards also use r/n
-            if let v = b["improve"] as? Bool { Delphi.settings.apply("improve", v); Delphi.settings.push() }
             if let item = b["memory"] as? [String: Any] { Delphi.settings.reveal(item) }   // a receipt's item: Settings → Memory, at that item
             if let ok = b["allow"] as? Bool, !askFile.isEmpty { allow(ok) }
             return
@@ -2452,7 +2414,6 @@ final class App: NSObject, WKScriptMessageHandler {
 
     func captureDictationSelection(retry: Bool = false) {
         if !retry {
-            dictateSeconds = 0
             dictationTargetApp = NSWorkspace.shared.frontmostApplication
             dictateID += 1; dictateSelection = nil; dictateBefore = ""; dictateSelectionRetried = false
         }
@@ -2741,7 +2702,7 @@ final class App: NSObject, WKScriptMessageHandler {
     func stop() {
         guard engine.isRunning, !clickTalk || text.isEmpty == false else { return }
         let inputs = speechInputs
-        if dictating { dictateSeconds = Date().timeIntervalSince(began); dictateReleased = Date(); startDictateAhead() }   // cleanup runs while the last words finalize
+        if dictating { dictateReleased = Date(); startDictateAhead() }   // cleanup runs while the last words finalize
         engine.stop { inputs?.finishAll() }
         quietAudio.end()
         clickTalk = false; toggleTalk = false; quiet?.cancel()
@@ -2796,21 +2757,14 @@ final class App: NSObject, WKScriptMessageHandler {
         }
     }
 
-    var correctionTimer: Timer?, learnedWord: String?, dictateSeconds = 0.0, lastDictation: String?
+    var correctionTimer: Timer?, learnedWord: String?, lastDictation: String?
     var dictateFellBack = false, dictateTimedOut = false
-    @discardableResult func saveDictation(_ value: String) -> Bool {
-        let saved = DictationData.record(value, seconds: dictateSeconds > 0 ? dictateSeconds : Date().timeIntervalSince(began))
-        if !saved { js("dictated", ["text": "Your words are ready. Couldn’t save stats.", "ok": false]) }
-        Delphi.settings.send("dictation", DictationData.state())
-        return saved
-    }
     func prepareDictation(_ value: String, target: TextSelection) -> () -> Void {
         let before = axAttribute(target.element, kAXSubroleAttribute) as? String == kAXSecureTextFieldSubrole ? nil : target.value
         let range = target.range
         return { [weak self] in
             guard let self else { return }
             lastDictation = value
-            saveDictation(value)
             stopReplay()
             guard Prefs.bool("dictateLearn"), axAttribute(target.element, kAXSubroleAttribute) as? String != kAXSecureTextFieldSubrole else { return }
             let readable = before.flatMap { before -> (String, String)? in
@@ -3136,7 +3090,6 @@ final class App: NSObject, WKScriptMessageHandler {
                 while let i = buffer.firstIndex(of: 10) {
                     let line = String(decoding: buffer[..<i], as: UTF8.self); buffer.removeSubrange(...i)
                     if line == "! setup" { onboarding.open(); continue }   // Claude not installed, signed out or no plan
-                    if line == "! improve" { self.js("improve"); continue }   // the one-time "help make Delphi better?" card
                     if line.hasPrefix("▣ "), let value = try? JSONSerialization.jsonObject(with:Data(line.dropFirst(2).utf8)) as? [String:Any] { if Prefs.d["miniScreen"] as? Bool ?? true { self.mini.receive(value) }; continue }
                     if line.hasPrefix("✎ ") {
                         if Prefs.bool("draw"), self.drawing.receive(Data(line.dropFirst(2).utf8)) {
@@ -3425,7 +3378,7 @@ final class Onboarding: NSObject, WKScriptMessageHandler, NSWindowDelegate {
         if b["do"] == "localServers" { return detectLocalServers { [weak self] found in self?.call("ob.local", found) } }
         if b["do"] == "set", let k = b["k"], let v = b["v"] {   // the feature pages' switches and choices
             let choices = ["routing": ["cheapest", "balanced", "capable"], "dictateMode": ["verbatim", "cleanup"]]
-            if ["draw", "improve"].contains(k) { Delphi.settings.apply(k, v == "true") } else if choices[k]?.contains(v) == true { Delphi.settings.apply(k, v) } else { return }
+            if k == "draw" { Delphi.settings.apply(k, v == "true") } else if choices[k]?.contains(v) == true { Delphi.settings.apply(k, v) } else { return }
             Delphi.settings.push(); return push()
         }
         if b["do"] == "recordDictate" { return Delphi.settings.record("dictate") { [weak self] call in self?.web?.evaluateJavaScript("ob." + call) } }
@@ -3893,7 +3846,7 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
     func push() {   // the settings, and the app icon for the sidebar
         send("dictation", DictationData.state())
         js("st.motion(\(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion))")
-        var d: [String: Any] = ["prefs": Prefs.d, "mics": microphoneChoices(), "version": Updater.version, "update": Updater.status, "managedUpdates": Updater.managedByNix,
+        var d: [String: Any] = ["prefs": Prefs.d, "mics": microphoneChoices(), "version": Updater.version,
                                 "hotkeyTaken": !hotkeyRegistered, "dictateHotkeyTaken": !Prefs.str("dictateHotkeyLabel").isEmpty && !dictateHotkeyRegistered, "globeTaken": globeKeyTaken()]
         if let t = NSApp.applicationIconImage?.tiffRepresentation, let png = NSBitmapImageRep(data: t)?.representation(using: .png, properties: [:]) {
             d["icon"] = "data:image/png;base64," + png.base64EncodedString()
@@ -3981,7 +3934,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
             app.unwarm(); app.js("models", app.modelChoices())
         }
         if k == "speechModel" || k == "speechLanguage" { app.prepareSpeech() }
-        if k == "improve" { Prefs.set("improveAsked", true) }   // any answer, here or in setup or the card, is the answer
         if k == "speak" { if v as? Bool == true { siriVoice() } else { app.shush() } }
         if k == "hideWhenSharing" { NSApp.windows.forEach(applySharing) }
         if k == "menuIcon" { bar.item.isVisible = v as? Bool == true }
@@ -4022,8 +3974,6 @@ final class SettingsWindow: NSObject, WKScriptMessageHandler, WKNavigationDelega
         case "unlearn":
             guard let say = b["say"] as? String else { return }
             DispatchQueue.global().async { [weak self] in self?.helper(["--unlearn", say]); DispatchQueue.main.async { self?.refresh() } }
-        case "checkUpdate": Updater.check { [weak self] in self?.push() }
-        case "github": NSWorkspace.shared.open(URL(string: "https://github.com/SaarthurR/atticus-mac")!)
         case "resetHotkey":
             done((49, controlKey | optionKey, "⌃⌥Space"))   // same rollback and warning as a recorded shortcut
         case "preview":
@@ -5668,7 +5618,7 @@ let delegate = Delegate()
 NSApplication.shared.delegate = delegate
 if !hotkeyRegistered || !dictateHotkeyRegistered { DispatchQueue.main.async { settings.open() } }   // another app owns a saved shortcut: show the warning, not a silent dead key
 Updater.schedule()
-_ = DictationData.archive   // loads now, so a saved history from an older Delphi is wiped at launch
+try? FileManager.default.removeItem(atPath: (Prefs.path as NSString).deletingLastPathComponent + "/dictation.json")   // dictation totals from an older Delphi
 
 // Test hook: `defaults write com.delphi.app demo -string "<request>"` then restart runs it once without the mic.
 if let demo = UserDefaults.standard.string(forKey: "demo") {

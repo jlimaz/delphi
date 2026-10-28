@@ -54,14 +54,10 @@ class RepoFixTests(unittest.TestCase):
 
     def test_nix_install_does_not_offer_the_git_updater(self):
         swift = (ROOT / 'Delphi.swift').read_text()
-        settings = (ROOT / 'ui/settings.html').read_text()
         readme = (ROOT / 'README.md').read_text()
         self.assertIn('static let managedByNix = src.hasPrefix("/nix/store/")', swift)
         self.assertIn('if managedByNix { status = "Run nix profile upgrade or nix run again."; return }', swift)
         self.assertIn('CFBundleShortVersionString', swift[swift.index('static let version: String'):swift.index('static func check')])
-        self.assertIn("'Updates are managed by Nix'", settings)
-        self.assertIn("$('autoUpdateRow').hidden = $('checkUpdate').hidden = !!d.managedUpdates", settings)
-        self.assertIn('Nix installations show this update path in Settings', readme)
         self.assertNotIn('keeps the writable clone Delphi uses for updates', readme)
 
     def test_onboarding_fixture_waits_for_state(self):

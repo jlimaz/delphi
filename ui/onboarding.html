@@ -26,7 +26,7 @@
   h2 { font: 600 24px/1.15 system-ui; letter-spacing: -.02em; margin: 0 0 8px; }
   p.sub { font-size: 14px; line-height: 1.5; color: var(--fg2); margin: 0; max-width: 400px; text-wrap: balance; }
   /* children rise in one after another when their page comes on */
-  .page .r { opacity: 0; transform: translateY(12px); transition: opacity .5s var(--ease), transform .6s var(--out); }
+  .page .r { opacity: 0; transform: translateX(12px); transition: opacity .5s var(--ease), transform .6s var(--out); }
   .page.on .r { opacity: 1; transform: none; }
   .page.on .r:nth-child(2) { transition-delay: .07s; } .page.on .r:nth-child(3) { transition-delay: .14s; }
   .page.on .r:nth-child(4) { transition-delay: .21s; } .page.on .r:nth-child(5) { transition-delay: .28s; }
@@ -42,7 +42,6 @@
     font: 500 15px system-ui; color: var(--fg); background: var(--well); box-shadow: inset 0 0 0 .5px var(--line);
     transition: background-color .14s var(--ease), box-shadow .14s var(--ease), color .2s; }
   .key.wide { min-width: 76px; font-size: 13px; }
-  .key.down { background: color-mix(in srgb, var(--fg) 12%, transparent); }
 
   .btn { margin-top: 30px; height: 36px; padding: 0 22px; border: 0; border-radius: 18px; font: 500 14px system-ui; cursor: pointer;
     color: #fff; background: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.15), inset 0 .5px 0 rgba(255,255,255,.25);
@@ -50,17 +49,20 @@
   .btn:hover { filter: brightness(1.08); } .btn:active { transform: scale(.97); }
   .btn:focus-visible, .allow:focus-visible { outline: 3px solid rgba(10,132,255,.45); outline-offset: 2px; }
   .btn.quiet { background: var(--card); color: var(--fg); box-shadow: inset 0 0 0 .5px var(--line); }
-  #back { position: absolute; z-index: 10; top: 18px; left: 22px; margin: 0; padding: 0 10px; height: 30px; color: var(--fg2); background: transparent; box-shadow: none; }
+  #back { position: absolute; z-index: 10; top: 18px; left: 22px; margin: 0; padding: 0; width: 30px; height: 30px; display: grid; place-items: center; color: var(--fg2); background: transparent; box-shadow: none; }
+  #back:hover { background: var(--card); filter: none; }
+  #back svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* permissions list, grouped like System Settings */
   #list, .list { width: 100%; max-width: 480px; margin-top: 22px; border-radius: 12px; background: var(--card); text-align: left;
     box-shadow: inset 0 0 0 .5px var(--line), 0 1px 3px rgba(0,0,0,.04); overflow: hidden; }
-  .row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; opacity: 0; transform: translateY(8px);
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; opacity: 0; transform: translateX(8px);
     transition: opacity .45s var(--ease), transform .55s var(--out), background .4s; }
   .row + .row { box-shadow: inset 0 .5px 0 var(--line); }
   #perms.on .row { opacity: 1; transform: none; }
-  /* the whole list fits the window: tighter rows and gaps on this page only */
-  #perms { padding-block: 24px; } #perms #list { margin-top: 16px; } #perms .row { padding-block: 8px; } #perms #count { margin-top: 10px; } #perms .btn { margin-top: 16px; }
+  /* room to breathe; a short window scrolls the page instead of squeezing the rows */
+  #perms { padding-block: 32px; } #perms #list { margin-top: 20px; } #perms .row { gap: 14px; padding: 12px 16px; } #perms #count { margin-top: 12px; } #perms .btn { margin-top: 20px; }
+  #perms .txt span { margin-top: 2px; line-height: 1.35; }
   .cap { width: 100%; max-width: 480px; margin: 18px 0 -14px; text-align: left; font: 600 11px system-ui; color: var(--fg3); }
   .row.now { background: rgba(10,132,255,.08); } .row.now .allow { color: var(--fg3); background: transparent; pointer-events: none; }
   .row.now .allow::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 6px; vertical-align: -1px; border-radius: 50%;
@@ -108,7 +110,7 @@
   #srv-note { min-height: 15px; font-size: 11.5px; color: var(--fg3); } #srv-note.bad { color: #ff453a; }
   #prov .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; } #prov .acts .btn { margin: 0; height: 30px; padding: 0 16px; font-size: 13px; }
   #prov .acts .btn:disabled { opacity: .45; pointer-events: none; }
-  .row.ok .allow { display: none; } .row.ok .check { display: block; margin: 0 21px; }
+  .row.ok .allow { display: none; } .row.ok .check { display: block; margin-left: 42px; }   /* flush right; the left margin keeps the text width the button had */
   #count { margin-top: 14px; font-size: 12px; color: var(--fg3); font-variant-numeric: tabular-nums; transition: color .3s; }
   #count.all { color: var(--green); }
 
@@ -128,8 +130,11 @@
   .bar2 .btn { margin-top: 0; }
   [hidden] { display: none !important; }
   @keyframes blink { 50% { opacity: .35; } }
-  .tips { display: flex; gap: 18px; justify-content: center; margin-top: 20px; font-size: 12px; color: var(--fg3); }
-  .tips kbd { font: 500 11px system-ui; padding: 1px 6px; border-radius: 4px; background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); color: var(--fg2); }
+  /* done: a few things worth knowing, the gesture on the left and what it does on the right */
+  .tips { max-width: 340px; margin-top: 24px; }
+  .tips > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 14px; font-size: 13px; color: var(--fg2); }
+  .tips > div + div { box-shadow: inset 0 .5px 0 var(--line); }
+  .tips kbd { font: 500 12px system-ui; padding: 2px 7px; border-radius: 5px; background: var(--well); box-shadow: inset 0 0 0 .5px var(--line); color: var(--fg); white-space: nowrap; }
 
   #dots { position: absolute; bottom: 24px; left: 0; right: 0; display: flex; gap: 6px; justify-content: center; }
   #dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--fg3); opacity: .35; transition: width .45s var(--out), opacity .3s; }
@@ -141,12 +146,11 @@
   @keyframes draw { to { stroke-dashoffset: 0; } }
   @media (max-width: 520px) {
     .page { padding: 36px 24px; }
-    .tips { flex-wrap: wrap; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }   /* once: checks still land on their last frame, loops stop */
 </style></head>
 <body>
-<button class="btn quiet" id="back" hidden>Back</button>
+<button class="btn quiet" id="back" aria-label="Back" title="Back" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
 <section class="page" id="welcome">
   <div id="orbwrap" class="r"><canvas id="orb"></canvas></div>
   <h1 class="r">Meet Delphi</h1>
@@ -175,7 +179,12 @@
   <svg id="done-check" class="r" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11"/><path d="M6.5 11.3l3 3 6-6.3"/></svg>
   <h2 class="r" id="done-title">You’re all set</h2>
   <p class="sub r" id="done-sub">Hold the keys anytime and just ask. Everything else lives in Settings, in the menu bar.</p>
-  <div class="tips r"><div><kbd>esc</kbd> stops an answer</div><div>Click an answer to copy</div><div>Click away to close</div><div>Hover the box to type</div></div>
+  <div class="list tips r">
+    <div><kbd>esc</kbd><span>Stops an answer</span></div>
+    <div><kbd>Click an answer</kbd><span>Copies it</span></div>
+    <div><kbd>Click away</kbd><span>Closes the box</span></div>
+    <div><kbd>Hover the box</kbd><span>Lets you type</span></div>
+  </div>
   <button class="btn r" id="finish">Start Using Delphi</button>
 </section>
 
@@ -231,7 +240,7 @@
 
   // Permissions: icon color + SF-style glyph, why it's needed.
   const P = [
-    ['claude', 'AI Provider', 'Checking…', '<path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>'],
+    ['claude', 'AI Provider', 'Checking…', '<path d="M12 4c.5 4.5 3.5 7.5 8 8-4.5.5-7.5 3.5-8 8-.5-4.5-3.5-7.5-8-8 4.5-.5 7.5-3.5 8-8z"/>'],
     ['mic', 'Microphone', 'Listens when you start a voice request.', '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'],
     ['speech', 'Speech Recognition', 'Turns your words into text, on this Mac.', '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>'],
     ['ax', 'Accessibility', 'Moves windows and clicks buttons for you.', '<circle cx="12" cy="4.5" r="1.6"/><path d="M5 8.5l7 1.5 7-1.5M12 10v4.5M12 14.5l-3 6M12 14.5l3 6"/>'],
@@ -330,14 +339,14 @@
       $('try-talk').textContent = (toggle ? 'Press the shortcut anywhere. Say what you need, then press again to send.' : 'Hold the keys anywhere, say what you need, then let go.') + ' Try one now.';
     },
     keys(held) {   // the modifiers held now ("⌃⌥", "fn"…), many times a second
-      const k = cur === 'try' ? [...$('trykeys').children] : [];   // only the try page reacts; the welcome keys are a demo
+      const k = cur === 'try' ? [...$('trykeys').children] : [];   // only the try page reacts; the welcome keys are static
       if (!k.length || k[0].classList.contains('yes')) return;
       k.forEach(c => c.classList.toggle('lit', /^(fn|[⌃⌥⇧⌘])$/.test(c.textContent) && held.includes(c.textContent)));
     },
     tried() {   // the hotkey fired: keys go green, then on to the next step
       const k = cur === 'try' ? [...$('trykeys').children] : [];
       if (!k.length || k[0].classList.contains('yes')) return;
-      k.forEach((c, i) => setTimeout(() => { c.classList.remove('lit', 'down'); c.classList.add('yes'); }, i * 70));
+      k.forEach((c, i) => setTimeout(() => { c.classList.remove('lit'); c.classList.add('yes'); }, i * 70));
       { $('hint').textContent = 'That’s it. Delphi is on it.'; $('hint').classList.add('yes'); }
       $('try-skip').hidden = true; $('try-next').hidden = false;
     },
@@ -385,25 +394,8 @@
     },
   };
 
-  // Welcome keys press in, hold, let go: the gesture itself.
-  const keys = () => [...$('welkeys').children];   // the welcome demo keys
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let welcomeGeneration = 0;
-  const press = () => {
-    if (reduced.matches) return;
-    if (cur !== 'welcome') return setTimeout(press, 1500);
-    const generation = welcomeGeneration;
-    keys().forEach((k, i) => setTimeout(() => generation === welcomeGeneration && k.classList.add('down'), i * 130));
-    setTimeout(() => generation === welcomeGeneration && keys().forEach(k => k.classList.remove('down')), 2100);
-    setTimeout(() => generation === welcomeGeneration && press(), 3600);
-  };
-  if (!reduced.matches) setTimeout(press, 1200);
-  reduced.addEventListener('change', () => {
-    welcomeGeneration++;
-    orbWake?.(); orbWake = null;
-    keys().forEach(k => k.classList.remove('down'));
-    if (!reduced.matches) setTimeout(press, 1200);
-  });
+  reduced.addEventListener('change', () => { orbWake?.(); orbWake = null; });
 
   paintPrefs(); go('welcome');
 

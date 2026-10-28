@@ -207,12 +207,12 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
             delphi.main()
         return brain, start, ask, log
 
-    def test_a_declined_model_action_is_not_retried_or_reported_as_a_failure(self):
+    def test_a_declined_model_action_is_not_retried_or_reported_as_an_error(self):
         with patch.object(delphi, 'save_request', side_effect=lambda directory, _: Path(directory, 'declined').touch()), \
-             patch.object(delphi, 'report_error') as error, patch.object(delphi, 'report') as report:
+             patch.object(delphi, 'report_error') as error:
             brain, start, ask, log = self.routing_ask({'routing': 'balanced'}, [('Not done.', False, ['fixture action'])])
         self.assertEqual(brain.call_count, 1); start.assert_not_called(); ask.assert_not_called()
-        error.assert_not_called(); report.assert_not_called()
+        error.assert_not_called()
         self.assertEqual(delphi.TURN['status'], 'cancelled'); log.assert_called_once()
 
     def test_declining_a_tool_does_not_hide_a_later_worker_exit(self):
@@ -227,10 +227,9 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
         self.assertEqual(delphi.run.why, 'stopped')
         self.assertIn('Claude stopped', reply)
         with patch.object(delphi, 'save_request', side_effect=lambda directory, _: Path(directory, 'declined').touch()), \
-             patch.object(delphi, 'report') as report, patch.object(delphi, 'report_error') as error:
+             patch.object(delphi, 'report_error') as error:
             self.routing_ask({'routing': 'cheapest'}, [(reply, False, [])], why=delphi.run.why)
         self.assertEqual(delphi.TURN['status'], 'failed')
-        report.assert_called_once()
         error.assert_called_once_with('worker_exit', worker='claude', model='haiku', why='stopped')
 
     def test_main_reports_one_real_failure_or_one_setup_problem(self):
@@ -325,14 +324,6 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
         brain, start, _, _ = self.routing_ask({'routing':'balanced'}, [("I can't answer that without more detail.", True, [])])
         self.assertEqual(brain.call_count, 1); start.assert_not_called()   # no tools tried: a plain answer stays on Haiku
 
-    def test_explanatory_failure_words_are_not_task_failures_without_an_action(self):
-        with patch.object(delphi, 'report') as report:
-            for reply in ("In this equation, you can't combine those terms first.", "This membrane channel cannot carry every molecule."):
-                self.routing_ask({'routing':'cheapest'}, [(reply, True, [])])
-            report.assert_not_called()
-            self.routing_ask({'routing':'cheapest'}, [("The sandbox blocks app launches, so I couldn't open it.", True, ['open -a Fixture'])])
-        self.assertEqual(report.call_args.args[-1], 'could not do it')
-
     def test_balanced_offer_to_continue_escalates_and_a_finished_reply_does_not(self):
         # Oct 21: "play it and win" looked, then offered "say the word and I'll keep playing"; the model marks stopping short with [sonnet], no word list
         gave_up = "Board is open on your monitor. Say the word and I'll keep playing move by move. [sonnet]"
@@ -387,24 +378,6 @@ print(json.dumps({{"type": "result", "is_error": True, "result": "Authentication
             delphi.main()
         self.assertEqual(NoThread.made[0].starts, 0)
         self.assertIn('Text head unavailable', brain.call_args.args[0])
-
-    def test_a_correction_reports_the_ask_not_the_answer_it_corrects(self):
-        brain = unittest.mock.Mock(return_value=('Done.', 0, [])); brain.ok = True; brain.cmds = brain.ran = []; brain.observed = []
-        earlier = [{'t': time.time(), 'q': 'Summarize my inbox', 'a': 'Dana wrote about the lawsuit settlement'}]
-        with patch.multiple(delphi, licensed=lambda: True, ping=lambda: None, fast=lambda _: None,
-                            front=lambda: ('Fixture', 'Scratch'), osa=lambda *a: '', screens=lambda: [],
-                            describe=lambda *a: '', me_line=lambda: '', selection_context=lambda: '',
-                            relevant_rules=lambda _: '', recent=lambda: earlier, workflows=lambda *a: '',
-                            screen_for=lambda *a: None, wait_commit=lambda: True, run=brain, unlearn=lambda *a: None,
-                            remember_turn=lambda *a: None, restore_focus=lambda *a: None, POSTHOG_KEY='fixture-token',
-                            remember_workflow=lambda task, reply, *a: (reply, False), learn=lambda *a: False, learned_pill=lambda *a: None), \
-             patch.object(delphi, 'pref', side_effect=lambda k, d: True if k == 'improve' else d), \
-             patch.object(delphi, 'posthog') as sent, patch.object(delphi.threading, 'Thread'), \
-             patch('sys.argv', ['delphi.py', 'no, I meant the work inbox']), patch('sys.stdout', io.StringIO()):
-            delphi.main()
-        props = next(call.args[1] for call in sent.call_args_list if call.args[0] == 'task_failed')
-        self.assertEqual((props['task'], props['why']), ('Summarize my inbox', 'the user said it was wrong'))
-        self.assertNotIn('lawsuit', json.dumps(props))
 
     def test_front_window_is_one_system_events_call_and_displays_are_read_alongside(self):
         calls = []

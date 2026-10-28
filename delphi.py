@@ -3088,7 +3088,7 @@ def ping():
 
 
 def clean(text):
-    """Failure reports carry no emails, numbers, file paths, link queries, long tokens or text typed for the user."""
+    """Error text carries no emails, numbers, file paths, link queries, long tokens or text typed for the user."""
     t = str(text).replace(ME, 'delphi').replace(HOME, '~')
     t = re.sub(r'((?:--type|--hands type (?:"[^"]*"|\S+)|--web fill \d+)\s+)("(?:[^"\\]|\\.)*"|\'[^\']*\')', r'\1<text>', t)
     t = re.sub(r'((?:--hands|--web) type-after\s+(?:"(?:[^"\\]|\\.)*"|\'[^\']*\'|\S+)\s+)("(?:[^"\\]|\\.)*"|\'[^\']*\')', r'\1<text>', t)
@@ -3100,13 +3100,6 @@ def clean(text):
     t = re.sub(r'(?<![:/.\w])(?:[\w.-]+/)+[\w.-]+', '<path>', t)
     t = re.sub(r'\b[A-Za-z0-9_-]{24,}\b', '<secret>', t)
     return re.sub(r'\d[\d\s().-]{4,}\d', '<number>', t)[:300]
-
-
-def report(task, reply, ran, secs, why):
-    """Settings → Help improve Delphi (off until the user says yes): a task that failed goes to the maker, cleaned."""
-    if POSTHOG_KEY and pref('improve', False) and os.environ.get('DELPHI_LIVE') != '1':
-        posthog('task_failed', {'task': clean(task), 'reply': clean(reply), 'steps': [clean(c) for c in list(ran)[:12]], 'why': why,
-                                'secs': round(secs, 1), 'model': pref('model', 'haiku')})
 
 
 def report_error(kind, **props):
@@ -5504,10 +5497,8 @@ def main():
         learned = learn(learned_task, run.cmds, reply)
         workflow = learned or workflow
         if learned is True: learned_key, learned_say = plain(learned_task), learned_task
-    if (fix or failed_shortcut and not failed_replay) and turns: report(turns[-1]['q'], '', (), 0, 'the user said it was wrong')   # the answer is the user's own content (screen, mail, files), not why it failed
     failed = failed_action_reply(reply, run.work)
     final_ran = list(failed_replay.get('output', ())) + run.ran if failed_replay else run.ran
-    if not run.ok or failed: report(task, reply, final_ran, time.time() - t, 'error' if not run.ok else 'could not do it')
     if not run.ok: report_worker_failure(client(), model, getattr(run, 'why', '') or 'other')
     learned_entry = skills().get(learned_key) if learned_key else None
     learned_turn = {'key': learned_key, 'commands': learned_entry['cmds'],
@@ -5527,10 +5518,6 @@ def main():
     # "When I say focus mode, …" saved: a green Learned pill
     said = shortcut or learned_say   # a new shortcut, named or learned from these words
     learned_pill(f'Learned: Say “{said}” any time.' if said else 'Learned: Procedure saved for next time.' if workflow else '')
-    asked = os.path.join(DIR, 'improve-asked')   # people who updated never saw setup's question: ask once a day after a task that worked, until they answer
-    if run.ok and not failed and POSTHOG_KEY and not pref('improveAsked', False) and os.environ.get('DELPHI_UI') == '1' \
-            and not (os.path.exists(asked) and Path(asked).read_text() == time.strftime('%Y-%m-%d')):
-        Path(asked).write_text(time.strftime('%Y-%m-%d')); say('!', 'improve')
     if os.environ.get('DELPHI_UI') != '1':   # typed from the menu bar: no overlay, so a notification
         osa('on run argv\ndisplay notification (item 1 of argv) with title "Delphi"\nend run', reply)
 

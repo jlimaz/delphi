@@ -42,7 +42,7 @@ class Ask(unittest.TestCase):
                                  licensed=lambda: True, ping=lambda: None, front=lambda: ('Other Fixture', 'Scratch'), osa=lambda *a, **k: '',
                                  screens=lambda: [], describe=lambda *a: 'Scratch display', selection_context=lambda: '', screen_for=lambda *a: None,
                                  tool_help=lambda *a, **k: '', wait_commit=lambda: True, restore_focus=lambda *a: None, look=lambda *a, **k: [],
-                                 hands_map=lambda *a, **k: None, report=lambda *a: None, cached_hands=lambda: None, ask_user=lambda *a: '')]:
+                                 hands_map=lambda *a, **k: None, cached_hands=lambda: None, ask_user=lambda *a: '')]:
             p.start(); self.addCleanup(p.stop)
 
     def ask(self, words, reply='', cmds=(), ok=True):

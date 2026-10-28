@@ -85,4 +85,9 @@ if [ -e ~/Applications/Atticus.app ] || [ -e ~/Library/LaunchAgents/com.atticus.
   launchctl bootout gui/$(id -u)/com.atticus.app 2>/dev/null || true
   pkill -f "Atticus.app/Contents/MacOS/Atticus$" 2>/dev/null || true
 fi
-echo "Delphi is running. Hold Control+Option+Space and talk."
+if [ -t 1 ]; then B=$'\e[1m'; D=$'\e[2m'; G=$'\e[32m'; R=$'\e[0m'; else B=; D=; G=; R=; fi   # styling only in a terminal
+echo
+echo "  ${G}●${R} ${B}Delphi $VERSION${R} is running"
+echo "    Hold (Control+Option+Space) and talk. Let go when you're done."
+echo "    ${D}Settings live in the menu bar icon. Run ./build.sh again after any change.${R}"
+echo

@@ -53,18 +53,7 @@ class TelemetryTests(unittest.TestCase):
                 self.assertEqual(send.call_count, 2)
                 self.assertEqual((root / 'id').read_text(), identity)
 
-    def test_failure_and_used_events_include_the_same_app_version_field(self):
-        with tempfile.TemporaryDirectory() as root, patch.object(delphi, 'DIR', root), \
-             patch.object(delphi, 'POSTHOG_KEY', 'fixture-token'), \
-             patch.object(delphi, 'pref', side_effect=lambda k, d: {'improve': True}.get(k, d)), \
-             patch.object(delphi.subprocess, 'Popen') as send:
-            delphi.report('Open the fixture', 'Could not open it', (), 1, 'error')
-        payload = json.loads(send.call_args.args[0][4])
-        self.assertEqual(payload['event'], 'task_failed')
-        self.assertEqual(payload['properties']['version'], delphi.APP_VERSION)
-        self.assertEqual(set(payload['properties']), {'$process_person_profile', 'version', 'task', 'reply', 'steps', 'why', 'secs', 'model', 'client', 'macos'})
-
-    def test_failure_reports_drop_text_applescript_types_or_writes(self):
+    def test_cleaned_errors_drop_text_applescript_types_or_writes(self):
         steps = ['osascript -e \'tell application "System Events" to keystroke "hunter2"\'',
                  'osascript -e \'tell application "Notes" to make new note with properties {name:"Diary", body:"private words"}\'',
                  'osascript -e \'tell application "Notes" to set body of note 1 to "private words"\'']
@@ -262,12 +251,11 @@ for (p, expected) in [(Worker(terminationReason: .exit, terminationStatus: 0), 0
             with patch.object(delphi, 'POSTHOG_KEY', ''):
                 delphi.ping()
             with patch.object(delphi, 'POSTHOG_KEY', 'fixture-token'), \
-                 patch.object(delphi, 'pref', side_effect=lambda key, default: True if key == 'improve' else False):
+                 patch.object(delphi, 'pref', side_effect=lambda key, default: False):
                 delphi.ping()
                 delphi.ask_done({'status': 'completed'})
                 delphi.report_error('stopped')
                 delphi.dictation_event('verbatim', 1, False, False, False, 'ok')
-                delphi.report('Private request', 'Private reply', (), 1, 'error')
             send.assert_not_called()
             self.assertEqual(list(Path(root).iterdir()), [])
 

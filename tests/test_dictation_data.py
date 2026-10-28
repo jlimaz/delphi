@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DictationDataTests(unittest.TestCase):
-    def test_private_stats_and_dictionary_never_keep_dictated_text(self):
+    def test_dictionary_never_keeps_dictated_text(self):
         source = (ROOT / 'Delphi.swift').read_text()
         store = source[source.index('enum DictationData {'):source.index('enum Prefs {')]
         swift = r'''import AppKit
@@ -27,35 +27,7 @@ precondition(DictationData.word("Saarth"))
 precondition(DictationData.word("Saarth") && DictationData.words == ["Saarth"])
 precondition(DictationData.word("Delphi", replacing: "Saarth") && DictationData.words == ["Delphi"])
 precondition(!DictationData.word("\n") && !DictationData.word("bad\nword") && !DictationData.word(String(repeating:"a", count:81)))
-// An older Delphi kept transcripts here: loading rewrites the file with the totals only.
-let legacy = #"{"history":[{"id":"1","timestamp":1,"app":"Mail","text":"secret words"}],"words":4,"sessions":1,"todayWords":0,"day":"","seconds":0}"#
-try! FileManager.default.createDirectory(atPath: (Prefs.path as NSString).deletingLastPathComponent, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-try! legacy.write(toFile: DictationData.path, atomically: true, encoding: .utf8)
-precondition(DictationData.archive.words == 4)
-RunLoop.main.run(until: Date().addingTimeInterval(0.2))
-precondition(!(try! String(contentsOfFile: DictationData.path, encoding: .utf8)).contains("secret"), "old history survived launch")
-DictationData.archive = DictationData.Archive()
-precondition(DictationData.record("Three final words", seconds: 1))
-precondition(!(try! String(contentsOfFile: DictationData.path, encoding: .utf8)).contains("final"), "dictated text was saved")
-let attr = try! FileManager.default.attributesOfItem(atPath: DictationData.path)
-precondition((attr[.posixPermissions] as! NSNumber).intValue == 0o600)
-let folder = try! FileManager.default.attributesOfItem(atPath: (Prefs.path as NSString).deletingLastPathComponent)
-precondition((folder[.posixPermissions] as! NSNumber).intValue == 0o700)
-let decoded = try! JSONDecoder().decode(DictationData.Archive.self, from: Data(contentsOf: URL(fileURLWithPath: DictationData.path)))
-precondition(decoded.words == 3 && decoded.todayWords == 3)
-precondition(DictationData.record("No stored text", seconds: 1))
-precondition(DictationData.archive.words == 6 && DictationData.archive.sessions == 2)
-precondition(DictationData.state()["history"] == nil)
-DictationData.archive.day = "2000-01-01"
-precondition((DictationData.state()["stats"] as! [String: Int])["today"] == 0)
-precondition(DictationData.record("New day", seconds: 0))
-precondition(DictationData.archive.todayWords == 2 && DictationData.archive.words == 8)
-// A failed write must leave the previous in-memory totals intact.
-let count = DictationData.archive.words
-try! FileManager.default.removeItem(atPath: (Prefs.path as NSString).deletingLastPathComponent)
-try! Data().write(to: URL(fileURLWithPath: (Prefs.path as NSString).deletingLastPathComponent))
-precondition(!DictationData.record("failure", seconds:0))
-precondition(DictationData.archive.words == count)
+precondition(DictationData.state().keys.sorted() == ["words"])
 print("private dictation data ok")
 '''
         self.assertIn('private dictation data ok', run_swift(self, swift))
@@ -208,7 +180,7 @@ print("learned fixes ok")
 
 @unittest.skipUnless(shutil.which('node'), 'Node UI logic check')
 class DictationUIDataTests(unittest.TestCase):
-    def test_dictionary_actions_and_stats_use_text(self):
+    def test_dictionary_actions_use_text(self):
         page = (ROOT / 'ui/settings.html').read_text()
         code = page[page.index('  const svg = d =>'):page.index("  document.querySelectorAll('nav button[data-s] .ni')")]
         script = r'''const assert = (x, m) => { if (!x) throw Error(m); };
@@ -222,11 +194,8 @@ const ids = new Map(), $ = id => { if (!ids.has(id)) ids.set(id, new Element());
 const document = {createElement: () => new Element()}, posts = [];
 const post = m => posts.push(m);
 ''' + code + r'''
-dictations = {words:['<Saarth>'], stats:{today:2, words:9, minutes:1, sessions:2}};
+dictations = {words:['<Saarth>']};
 paintDictation();
-assert([$('dstoday'), $('dsall'), $('dssaved'), $('dssavedunit'), $('dssessions')].map(e => String(e.textContent)).join() === '2,9,1,minutes,2', 'stats absent');
-dictations.stats = {today: 0, words: 12345, minutes: 90, sessions: 1}; paintDictation();
-assert($('dsall').textContent === '12,345' && $('dssaved').textContent === '1.5' && $('dssavedunit').textContent === 'hours', 'stats not formatted for long use');
 const word = $('dictationwords').children[0];
 assert(word.children[0].value === '<Saarth>', 'dictionary did not preserve literal text');
 assert(word.children[1].hidden === true, 'save icon showed before an edit');
@@ -236,7 +205,7 @@ assert(posts.at(-1).word === 'Saarth' && posts.at(-1).old === '<Saarth>', 'edit 
 word.children[2].onclick(); assert(posts.at(-1).do === 'dictationWordDelete', 'remove not wired');
 $('dictationword').value = 'New'; $('dictationadd').onsubmit({preventDefault(){}});
 assert(posts.at(-1).word === 'New' && $('dictationword').value === '', 'add not wired');
-dictations = {words: [], stats: {}}; paintDictation();
+dictations = {words: []}; paintDictation();
 assert($('dictationwords').hidden && $('dictationnote').textContent.startsWith('No words yet'), 'empty dictionary not a quiet line');
 '''
         result = subprocess.run(['node'], input=script, text=True, capture_output=True)

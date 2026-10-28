@@ -136,7 +136,7 @@ Paste this in Terminal:
 curl -fsSL https://raw.githubusercontent.com/SaarthurR/atticus-mac/main/install.sh | bash
 ```
 
-It checks your Mac, downloads Delphi to `~/.delphi`, builds `~/Applications/Delphi.app`, and opens it. Delphi starts at login and updates itself from there (turn that off in Settings → About & Updates).
+It checks your Mac, downloads Delphi to `~/.delphi`, builds `~/Applications/Delphi.app`, and opens it. Delphi starts at login and updates itself from there.
 
 ### Nix
 
@@ -146,7 +146,7 @@ On macOS with Nix flakes enabled:
 nix run github:SaarthurR/atticus-mac
 ```
 
-The flake installs its packaged Delphi version, so macOS 26+ and Apple's command line tools are still required. Run that command again to update. `nix profile add github:SaarthurR/atticus-mac` installs a `delphi` launcher; update it with `nix profile upgrade delphi`, then run `delphi`. Nix installations show this update path in Settings instead of using Delphi's Git updater.
+The flake installs its packaged Delphi version, so macOS 26+ and Apple's command line tools are still required. Run that command again to update. `nix profile add github:SaarthurR/atticus-mac` installs a `delphi` launcher; update it with `nix profile upgrade delphi`, then run `delphi`. Nix installations don't use Delphi's Git updater.
 
 Working on the code instead? Clone the repo anywhere and run `./build.sh` after each change. A Devbox environment is included for Python regression tests; run `devbox shell`, then `devbox run test`.
 
@@ -175,8 +175,6 @@ Delphi has to stay fast and nearly free, so new features must fit under these li
 ## Anonymous usage
 
 Delphi sends a random ID (made on your Mac, not tied to you) with daily use, ask outcomes, feature names, timings, dictation outcomes, and code locations for errors. It never sends task text, dictated words, file contents, paths, or screen content. Turn it off in Settings → Account & Access → Count me as a user.
-
-If you say yes to **Help improve Delphi** (asked once, off until you do), a task that fails sends what you asked, the steps Delphi took and why it failed, under the same random ID. Emails, numbers, file paths, link details and anything typed for you are removed on your Mac first. Turn it off in Settings → Account & Access → Help improve Delphi.
 
 ## Files
 

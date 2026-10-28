@@ -145,7 +145,7 @@ if (away.frames || away.timers || !away.waiting) process.exit(3);
             self.assertNotIn('kofi', text.lower())
 
     def test_removed_sonnet_offer_leaves_no_card_branch(self):
-        self.assertNotIn('Sonnet', self.box[self.box.index('    respond(text)'):self.box.index('    improve()')])
+        self.assertNotIn('Sonnet', self.box[self.box.index('    respond(text)'):self.box.index('    pick({ q, options })')])
         self.assertNotIn('"escalate"', self.swift[self.swift.index('func userContentController'):self.swift.index('    func show()')])
         self.assertNotIn("j.get('off'", (ROOT / 'delphi.py').read_text())
 

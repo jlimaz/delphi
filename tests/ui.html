@@ -122,10 +122,6 @@ try {
   ui.respond('maybe later'); assert(d.querySelector('.ok.retry:not(.gone)') && d.getElementById('ask').value==='maybe later', 'A reply that is not an answer keeps the card and shows what was heard');
   ui.respond('Um, try again, please.'); await new Promise(r=>setTimeout(r,380));
   assert(messages.some(m=>m.pick==='r'), 'Spoken or typed try again answers Retry');
-  ui.improve(); ui.improve(); const imp = d.querySelectorAll('.ok.improve');
-  assert(imp.length === 1 && imp[0].querySelector('.go').textContent === 'Help Improve', 'The help-improve question shows once, Help Improve in blue');
-  imp[0].querySelector('.go').click(); await new Promise(r=>setTimeout(r,380));
-  assert(messages.some(m=>m.improve===true) && !d.querySelector('.ok.improve'), 'Help Improve says yes and the card goes');
   ui.ask(['Couldn’t finish this', 'Try again.', 'retry']);
   ui.respond('yes'); await new Promise(r=>setTimeout(r,380)); assert(messages.filter(m=>m.pick==='r').length===2,'Yes on a failure card means Retry');
   ui.ask(['Couldn’t finish this', 'Try again.', 'retry']);

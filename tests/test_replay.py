@@ -276,7 +276,7 @@ class ReplayTests(unittest.TestCase):
         with patch.object(delphi.threading,'Thread',NoThread),patch('sys.argv',['delphi.py','bye fixture']),patch.object(delphi,'app_running',return_value=True),patch.object(delphi.time,'sleep'), \
              patch.multiple(delphi,**stubs,licensed=lambda:True,ping=lambda:None,front=lambda:('Fixture','Scratch'),screens=lambda:[],describe=lambda *a:'Scratch display',
                             selection_context=lambda:'',screen_for=lambda *a:None,tool_help=lambda *a,**k:'',run=brain,wait_commit=lambda:True,
-                            restore_focus=lambda *a:None,say=say,learned_pill=tip,look=lambda:[],hands_map=lambda *a:None,report=lambda *a:None,cached_hands=lambda:None):
+                            restore_focus=lambda *a:None,say=say,learned_pill=tip,look=lambda:[],hands_map=lambda *a:None,cached_hands=lambda:None):
             delphi.main()
         said=[c.args for c in say.call_args_list]
         self.assertIn(('▸','The shortcut did not work. Redoing it'),said)

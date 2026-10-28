@@ -69,7 +69,7 @@ class SettingsPageTests(unittest.TestCase):
     def test_row_lines_stay_short(self):
         page = (ROOT / 'ui/settings.html').read_text()
         lines = [re.sub(r'<i class="info"[^>]*>i</i>|<[^>]+>', '', m).strip() for m in re.findall(r'</b><span[^>]*>(.*?)</span></div>', page) if '${' not in m]
-        self.assertGreater(len(lines), 35)
+        self.assertGreater(len(lines), 25)
         self.assertEqual([t for t in lines if len(t.split()) > 14], [])   # rare detail goes in an info tip
         self.assertTrue(all(re.search(r'<i class="info" title="[^"]+">i</i></span>', m) for m in re.findall(r'<span>[^<]*<i class="info".*?</span>', page)))
         self.assertIn('Risky actions need approval.</span>', page)
@@ -131,11 +131,6 @@ class SettingsPageTests(unittest.TestCase):
         self.assertEqual(out['result'], [True, 0, True, 'account'])
         self.assertIn({'do': 'apps'}, out['posts'])
 
-    def test_nix_install_shows_its_real_update_path(self):
-        out = self.page("""st.load({prefs:{hotkeyLabel:'⌃⌥Space'},managedUpdates:true,update:'Run nix profile upgrade or nix run again.',version:'1.3.3 · Nix'});
-            return [$('autoUpdateRow').hidden,$('checkUpdate').hidden,$('updateTitle').textContent,$('upstatus').textContent,$('aboutver').textContent];""")
-        self.assertEqual(out['result'], [True, True, 'Updates are managed by Nix', 'Run nix profile upgrade or nix run again.', 'Version 1.3.3 · Nix'])
-
     def test_retired_settings_are_hidden_and_keep_saved_values(self):
         sys.path.insert(0, str(ROOT)); import delphi
         source, page = (ROOT / 'Delphi.swift').read_text(), (ROOT / 'ui/settings.html').read_text()
@@ -150,7 +145,7 @@ class SettingsPageTests(unittest.TestCase):
                 self.assertNotIn(f'data-k="{key}"', page)
                 self.assertNotIn(key, delphi.switches())
                 self.assertNotIn(key, delphi.picks())
-        self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 6)   # 6 pages
+        self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 5)   # 5 pages
 
     def test_pages_wear_their_sidebar_icon_and_row_actions_show_on_focus(self):
         out = self.page("""document.body.classList.add('reduce');
