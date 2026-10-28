@@ -96,7 +96,7 @@ class OnboardingPageTests(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_every_page_and_provider_sheet_scroll_at_small_sizes(self):
-        for width, height in ((640, 612), (480, 420), (360, 320)):
+        for width, height in ((640, 752), (480, 420), (360, 320)):
             with self.subTest(size=(width, height)):
                 result = subprocess.run(
                     [str(self.binary), str(self.page), str(width), str(height)],

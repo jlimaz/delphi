@@ -3259,7 +3259,7 @@ final class Onboarding: NSObject, WKScriptMessageHandler, NSWindowDelegate {
     func open() {
         guard win == nil else { win?.makeKeyAndOrderFront(nil); return }
         screenInitiallyGranted = CGPreflightScreenCaptureAccess(); screenGrantedDuringSetup = false
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 640),
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 780),
                          styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
         applySharing(w)
         w.titlebarAppearsTransparent = true; w.titleVisibility = .hidden; w.isMovableByWindowBackground = true
@@ -3268,7 +3268,7 @@ final class Onboarding: NSObject, WKScriptMessageHandler, NSWindowDelegate {
         bg.material = .underWindowBackground; bg.blendingMode = .behindWindow; bg.state = .active
         let cfg = WKWebViewConfiguration()
         cfg.userContentController.add(self, name: "ob")
-        let v = WKWebView(frame: NSRect(x: 0, y: 0, width: 640, height: 612), configuration: cfg)   // top 28 pt stays draggable
+        let v = WKWebView(frame: NSRect(x: 0, y: 0, width: 640, height: 752), configuration: cfg)   // top 28 pt stays draggable
         v.setValue(false, forKey: "drawsBackground")
         loadPage(v, "onboarding.html")
         bg.addSubview(v); w.contentView = bg
