@@ -152,10 +152,10 @@ class SettingsPageTests(unittest.TestCase):
                 self.assertNotIn(key, delphi.picks())
         self.assertEqual(len(page.split('<nav>')[1].split('</nav>')[0].split('data-s=')) - 1, 6)   # 6 pages
 
-    def test_pages_wear_their_sidebar_color_and_row_actions_show_on_focus(self):
+    def test_pages_wear_their_sidebar_icon_and_row_actions_show_on_focus(self):
         out = self.page("""document.body.classList.add('reduce');
-            const nav=[...document.querySelectorAll('nav button[data-s] .ni')].map(i=>i.style.background);
-            const titled=[...document.querySelectorAll('nav button[data-s] .ni')].map(i=>$(i.parentNode.dataset.s).querySelector('h1 .ni')?.style.background===i.style.background);
+            const nav=[...document.querySelectorAll('nav button[data-s] .ni')].map(i=>i.innerHTML);
+            const titled=[...document.querySelectorAll('nav button[data-s] .ni')].map(i=>$(i.parentNode.dataset.s).querySelector('h1 .ni')?.innerHTML===i.innerHTML);
             st.load({prefs:{hotkeyLabel:'⌃⌥Space'}}); st.state({rules:['Keep it short'],skills:[],plan:{ok:true,text:'Ready'},me:{facts:[]}}); const x=$('rules').querySelector('.x');
             const reveal=[...document.styleSheets[0].cssRules].find(r=>r.selectorText?.includes('.row:hover > .x'))?.selectorText||'';   // a windowless view never takes focus
             return [new Set(nav).size===nav.length,titled,getComputedStyle(x).opacity,reveal.includes('.row:focus-within > .x'),!!$('general').querySelector('[data-do=quit]'),!!$('account').querySelector('[data-do=quit]')];""")

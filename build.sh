@@ -17,6 +17,7 @@ swiftc -O -target "$(uname -m)-apple-macos26.0" Delphi.swift -o "$STAGE/Delphi"
 APP=~/Applications/Delphi.app   # in Applications so System Settings can list it for permissions
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/ui"
 cp delphi.py "$APP/Contents/Resources/"
+if [ -f .env ]; then install -m 600 .env "$APP/Contents/Resources/.env"; else rm -f "$APP/Contents/Resources/.env"; fi   # TYPESAFE_API_KEY for Jev
 cp ui/*.html ui/*.js "$APP/Contents/Resources/ui/"
 cp ui/AppIcon.icns "$APP/Contents/Resources/"
 cat > "$APP/Contents/Info.plist" <<P

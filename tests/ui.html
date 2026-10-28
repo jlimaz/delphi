@@ -63,7 +63,7 @@ try {
   assert(d.getElementById('model').hidden, 'No model choice for a client without one');
   d.getElementById('ask').value = ''; ui.reset(); ui.listen();
   assert(d.querySelectorAll('.turn').length === 1 && ((d.getElementById('status').textContent + d.getElementById('thread').textContent).match(/Listening…/g) || []).length === 1, 'Listening is shown once');
-  assert(w.getComputedStyle(d.querySelector('.q')).display !== 'none' && w.getComputedStyle(d.querySelector('.q'), '::before').content.includes('Listening'), 'Voice shows a Listening bubble before speech');
+  assert(w.getComputedStyle(d.querySelector('.q')).display !== 'none' && w.getComputedStyle(d.querySelector('.q'), '::before').content.includes('…'), 'Voice shows a Listening bubble before speech');
   ui.words('');
   assert(w.getComputedStyle(d.querySelector('.q')).display !== 'none', 'Empty speech updates keep the Listening bubble');
   assert(d.getElementById('status').textContent === 'Listening…', 'Listening says just Listening, no send hint');

@@ -5,12 +5,12 @@
 <style>
   :root {
     --fg: #1d1d1f; --fg2: #6e6e73; --fg3: #6e6e73; --card: rgba(255,255,255,.62); --line: rgba(0,0,0,.08);
-    --key-top: #fdfdfd; --key-bot: #e8e8ed; --key-edge: rgba(0,0,0,.16); --accent: #0a84ff; --green: #28c840;
+    --well: rgba(0,0,0,.045); --accent: #0a84ff; --green: #28c840;
     --glow: rgba(120,140,255,.28); --sheet: #fbfbfd; --field: #fff; --track: rgba(120,120,128,.18); --on: #fff; --ease: cubic-bezier(.4,0,.2,1); --out: cubic-bezier(.16,1,.3,1); --spring: cubic-bezier(.34,1.56,.64,1);
   }
   @media (prefers-color-scheme: dark) { :root {
     --fg: #f5f5f7; --fg2: #a1a1a6; --fg3: #98989d; --card: rgba(255,255,255,.06); --line: rgba(255,255,255,.08);
-    --key-top: #3a3a3c; --key-bot: #2c2c2e; --key-edge: rgba(0,0,0,.55); --glow: rgba(110,130,255,.22); --sheet: #2a2a2c; --field: rgba(255,255,255,.07); --track: rgba(120,120,128,.32); --on: #636366;
+    --well: rgba(255,255,255,.07); --glow: rgba(110,130,255,.22); --sheet: #2a2a2c; --field: rgba(255,255,255,.07); --track: rgba(120,120,128,.32); --on: #636366;
   } }
   html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; -webkit-user-select: none; cursor: default;
     font: 13px -apple-system, system-ui, sans-serif; color: var(--fg); -webkit-font-smoothing: antialiased; }
@@ -35,13 +35,13 @@
     background: radial-gradient(closest-side, var(--glow), transparent); animation: drift 7s ease-in-out infinite; }
   #orb { position: relative; width: 128px; height: 128px; }
 
-  .keys { display: flex; gap: 8px; justify-content: center; margin-top: 26px; }
-  .key { min-width: 40px; height: 40px; padding: 0 12px; box-sizing: border-box; border-radius: 9px; display: grid; place-items: center;
-    font: 500 15px system-ui; color: var(--fg2); background: linear-gradient(var(--key-top), var(--key-bot));
-    box-shadow: 0 0 0 .5px var(--key-edge), 0 2px 0 var(--key-edge), 0 4px 10px rgba(0,0,0,.08);
-    transition: transform .14s var(--ease), box-shadow .14s var(--ease), color .2s; }
-  .key.wide { min-width: 120px; font-size: 13px; }
-  .key.down { transform: translateY(2px); color: var(--fg); box-shadow: 0 0 0 .5px var(--key-edge), 0 0 0 var(--key-edge), 0 1px 3px rgba(0,0,0,.1); }
+  /* flat keycaps, the same as the shortcut in Settings */
+  .keys { display: flex; gap: 5px; justify-content: center; margin-top: 26px; }
+  .key { min-width: 34px; height: 34px; padding: 0 10px; box-sizing: border-box; border-radius: 7px; display: grid; place-items: center;
+    font: 500 15px system-ui; color: var(--fg); background: var(--well); box-shadow: inset 0 0 0 .5px var(--line);
+    transition: background-color .14s var(--ease), box-shadow .14s var(--ease), color .2s; }
+  .key.wide { min-width: 76px; font-size: 13px; }
+  .key.down { background: color-mix(in srgb, var(--fg) 12%, transparent); }
 
   .btn { margin-top: 30px; height: 36px; padding: 0 22px; border: 0; border-radius: 18px; font: 500 14px system-ui; cursor: pointer;
     color: #fff; background: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.15), inset 0 .5px 0 rgba(255,255,255,.25);
@@ -62,9 +62,8 @@
   .row.now { background: rgba(10,132,255,.08); } .row.now .allow { color: var(--fg3); background: transparent; pointer-events: none; }
   .row.now .allow::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 6px; vertical-align: -1px; border-radius: 50%;
     border: 1.5px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
-  .ic { flex: none; width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
-    box-shadow: inset 0 .5px 0 rgba(255,255,255,.3), 0 .5px 1px rgba(0,0,0,.2); }
-  .ic svg { width: 17px; height: 17px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ic { flex: none; width: 22px; height: 22px; display: grid; place-items: center; color: var(--fg2); }   /* a bare line glyph, like Settings */
+  .ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .txt { flex: 1; min-width: 0; }
   .txt b { display: block; font: 500 13px system-ui; }
   .txt span { display: block; font-size: 12px; color: var(--fg3); margin-top: 1px; }
@@ -111,12 +110,9 @@
   #count.all { color: var(--green); }
 
   /* try it: keys light up as the user holds them, then turn green once Delphi hears the hotkey */
-  .keys.big { margin-top: 30px; gap: 10px; } .keys.big .key { height: 52px; min-width: 52px; font-size: 19px; border-radius: 11px; }
-  .keys.big .key.wide { min-width: 160px; font-size: 15px; }
-  .key.lit { transform: translateY(2px); color: #fff; background: linear-gradient(#3d9bff, var(--accent));
-    box-shadow: 0 0 0 .5px rgba(0,0,0,.3), 0 0 0 4px rgba(10,132,255,.18), 0 0 24px rgba(10,132,255,.45); }
-  .key.yes { color: #fff; background: linear-gradient(#4fd86a, var(--green));
-    box-shadow: 0 0 0 .5px rgba(0,0,0,.3), 0 0 0 4px rgba(40,200,64,.16), 0 0 24px rgba(40,200,64,.4); transition-duration: .35s; }
+  .keys.big { margin-top: 30px; }
+  .key.lit { color: #fff; background: var(--accent); box-shadow: none; }
+  .key.yes { color: #fff; background: var(--green); box-shadow: none; transition-duration: .35s; }
   #hint { margin-top: 22px; height: 18px; font-size: 13px; color: var(--fg3); transition: color .3s; }
   #hint.yes { color: var(--green); }
   /* done: the check pops and draws each time the page comes on */
@@ -232,17 +228,17 @@
 
   // Permissions: icon color + SF-style glyph, why it's needed.
   const P = [
-    ['claude', 'AI Provider', 'Checking…', '#d97757', '<path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>'],
-    ['mic', 'Microphone', 'Listens when you start a voice request.', '#ff9f0a', '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'],
-    ['speech', 'Speech Recognition', 'Turns your words into text, on this Mac.', '#8e8e93', '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>'],
-    ['ax', 'Accessibility', 'Moves windows and clicks buttons for you.', '#0a84ff', '<circle cx="12" cy="4.5" r="1.6"/><path d="M5 8.5l7 1.5 7-1.5M12 10v4.5M12 14.5l-3 6M12 14.5l3 6"/>'],
-    ['screen', 'Screen Recording', 'Looks at your screen when you say “this”.', '#bf5af2', '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/>'],
-    ['chrome', 'Chrome Pages', 'Reads and clicks web pages in Chrome, in the background.', '#34c759', '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5h8.2M9 13.7L4.9 6.6M15 13.7l-4.1 7.1"/>'],
-    ['auto', 'Automation', 'Pick the apps Delphi can control, all at once.', '#636366', '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>'],
+    ['claude', 'AI Provider', 'Checking…', '<path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>'],
+    ['mic', 'Microphone', 'Listens when you start a voice request.', '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'],
+    ['speech', 'Speech Recognition', 'Turns your words into text, on this Mac.', '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>'],
+    ['ax', 'Accessibility', 'Moves windows and clicks buttons for you.', '<circle cx="12" cy="4.5" r="1.6"/><path d="M5 8.5l7 1.5 7-1.5M12 10v4.5M12 14.5l-3 6M12 14.5l3 6"/>'],
+    ['screen', 'Screen Recording', 'Looks at your screen when you say “this”.', '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/>'],
+    ['chrome', 'Chrome Pages', 'Reads and clicks web pages in Chrome, in the background.', '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5h8.2M9 13.7L4.9 6.6M15 13.7l-4.1 7.1"/>'],
+    ['auto', 'Automation', 'Pick the apps Delphi can control, all at once.', '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>'],
   ];
-  const rows = (list, prefix, label = 'Allow') => list.map(([id, name, why, color, svg], i) => `
+  const rows = (list, prefix, label = 'Allow') => list.map(([id, name, why, svg], i) => `
     <div class="row" id="${prefix}${id}" style="transition-delay:${.25 + i * .06}s">
-      <div class="ic" style="background:${color}"><svg viewBox="0 0 24 24">${svg}</svg></div>
+      <div class="ic"><svg viewBox="0 0 24 24">${svg}</svg></div>
       <div class="txt"><b>${name}</b><span>${why}</span></div>
       <button class="allow" data-id="${id}">${label}</button>
       <svg class="check" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11"/><path d="M6.5 11.3l3 3 6-6.3"/></svg>

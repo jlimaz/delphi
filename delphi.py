@@ -2132,6 +2132,70 @@ def move_target(t):
     return app, 'center' if where == 'middle' else where, screen
 
 
+def dotenv(name):
+    """A value from the .env beside delphi.py (build.sh copies it into Delphi.app), or ''."""
+    try:
+        with open(os.path.join(os.path.dirname(ME), '.env')) as f:
+            for line in f:
+                k, _, v = line.strip().removeprefix('export ').partition('=')
+                if k.strip() == name: return v.strip().strip('\'"')
+    except OSError:
+        pass
+    return ''
+
+
+JEV = 'https://api.typesafe.ai/v1/systemone'   # TypeSafe's Jev, on with TYPESAFE_API_KEY: a typed pick in ~0.1-0.5 s, no tokens out
+TYPESAFE_KEY = os.environ.get('TYPESAFE_API_KEY', dotenv('TYPESAFE_API_KEY')).strip()   # read once: tests set it empty before import
+
+
+def jev_apps():
+    """Top-level app names for one Choice: 255 options at most, one kept for "none"."""
+    return sorted({f[:-4] for d in ('/Applications', '/System/Applications', '/System/Applications/Utilities', HOME + '/Applications')
+                   if os.path.isdir(d) for f in os.listdir(d) if f.endswith('.app')})[:254]
+
+
+def jev(text):
+    """A loose phrasing the regexes missed ("fire up my music app", "get rid of Slack", "throw the browser on my big screen")
+    -> the same instant open, quit or move, or None for the AI. Jev only picks from fixed lists (action, installed app, place),
+    so it cannot invent a command; every pick must be confident, and anything slow, unsure or failed goes to the AI as before."""
+    jev.hit = False
+    key, t = TYPESAFE_KEY, plain(text)
+    if not key or os.environ.get('DELPHI_LIVE') == '1' or len(t.split()) > 12 or DEICTIC.search(t) or MORE.search(t):
+        return None   # "close this" needs the screen, "and then" is two steps: both are the AI's
+    places = {'left': 'Left half', 'right': 'Right half', 'full': 'Fill the screen, maximize, make it big', 'center': 'Centered', 'none': 'No place is said'}
+    body = {'model': pref('typesafeModel', 'jev-latest'), 'state': text, 'questions': {
+        'action': {'type': 'choice', 'instructions': 'What the user asks their Mac to do', 'criteria': {
+            'open': 'Open, launch, show or switch to an app', 'quit': 'Quit or close an app',
+            'move': "Move, snap, resize or maximize an app's window",
+            'other': 'Anything else: a question, typing, searching, a website, a file, a setting, or more than one step'}},
+        'app': {'type': 'choice', 'instructions': 'The app the request names or clearly means',
+                'criteria': {**{a: None for a in jev_apps()}, 'none': 'No app in this list is named or clearly meant'}},
+        'where': {'type': 'choice', 'instructions': 'Where on the screen the window should go', 'criteria': places},
+        'screen': {'type': 'choice', 'instructions': 'Which display the window should go to', 'criteria': {
+            'laptop': "The Mac's built-in screen", 'monitor': 'An external, second or bigger display', 'current': 'No display is said'}},
+        'one': {'type': 'noul', 'instructions': 'The request asks for exactly one action on one app, with nothing to read, answer or do afterwards'}}}
+    request = urllib.request.Request(JEV, json.dumps(body).encode(), {'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
+    try:
+        with urllib.request.urlopen(request, timeout=float(pref('typesafeTimeout', 1))) as r:
+            a = json.load(r)['answers']
+        action, app, where, screen = (a[q]['choice'] for q in ('action', 'app', 'where', 'screen'))
+        sure = min(a['action']['confidence'], a['app']['confidence']) >= (.9 if action == 'quit' else .8) and a['one']['noul'] >= .8
+        placed = min(a['where']['confidence'], a['screen']['confidence']) >= .8
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if not sure or action not in ('open', 'quit', 'move') or app == 'none':
+        return None
+    if action == 'move':
+        if not placed or (where, screen) == ('none', 'current'):
+            return None
+        said = ' '.join(['move', app] + [w for w in (where, screen) if w not in ('none', 'current')])
+    else:
+        said = f'{action} {app}'
+    reply = fast(said)   # the existing instant command does the work, checks it and fills fast.cmds
+    jev.hit = bool(reply)
+    return reply
+
+
 def look(cleanup=True, window=None):
     """Every display, 1280 px wide -> [(path, label)]. Standalone CLI callers remove their own files.
     window (a window_target): only its display, with that window painted where it sits, covered or not."""
@@ -5292,6 +5356,11 @@ def main():
     if pref('instant', True) and hands_command(plain(task)):
         if not wait_commit(): return
     quick = not marked and (not commit or os.path.exists(commit)) and pref('instant', True) and fast(remaining if remaining is not None else task)
+    jev.hit = False
+    if not quick and not marked and not done and (not commit or os.path.exists(commit)) and pref('instant', True) and not getattr(fast, 'failed', None):   # a failed shortcut is the AI's to redo
+        quick = jev(task)
+        if jev.hit and pref('learn', True) and learn(task, fast.cmds, quick):   # next time this phrasing is a local shortcut: no call at all
+            learned_pill(f'Learned: Say “{task}” any time.')
     if quick:
         quick_cancelled = quick.startswith('The user said no.')
         quick_failed = failed_action_reply(quick, bool(getattr(fast, 'cmds', [])))
@@ -5304,7 +5373,7 @@ def main():
         elif quick_failed: end_turn('failed', emit=False)
         remember_turn(task, quick, getattr(fast, 'shortcut', None))
         log_turn(task, quick, t, model='instant',
-                 path='shortcut' if getattr(fast, 'shortcut', None) else 'instant', attempt_usd=[])
+                 path='shortcut' if getattr(fast, 'shortcut', None) else 'jev' if jev.hit else 'instant', attempt_usd=[])
         return say('!' if quick.startswith('The user said no.') else '✓', quick)
     failed_replay = None if quick or not isinstance(getattr(fast, 'failed', None), dict) else fast.failed
     if failed_replay: say('▸', 'The shortcut did not work. Redoing it')

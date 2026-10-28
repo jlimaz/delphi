@@ -34,10 +34,10 @@
   nav button:hover { background: var(--sel); }
   nav button.on { background: var(--accent); color: #fff; }
   nav button:focus-visible { outline: 2px solid rgba(10,132,255,.5); }
-  .ni { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; flex: none; }
-  .ni svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .ni { width: 18px; height: 18px; display: grid; place-items: center; flex: none; color: var(--fg2); }   /* a bare line glyph, no tile */
+  .ni svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  nav button.on .ni { color: inherit; }
   nav .spacer { flex: 1; }
-  #dictationnav { margin-bottom: 10px; }
   nav .ver { color: var(--fg3); font-size: 11px; padding: 0 8px; }
 
   /* content */
@@ -46,8 +46,8 @@
   section.on { display: block; animation: rise .35s var(--out); }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
   h1 { font: 700 24px/1.15 system-ui; letter-spacing: -.02em; margin: 0 0 4px; }
-  h1:has(> .ni) { display: flex; align-items: center; gap: 11px; margin-bottom: 8px; }   /* the page's sidebar icon, larger, beside its title */
-  h1 .ni { width: 32px; height: 32px; border-radius: 8px; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.08); } h1 .ni svg { width: 19px; height: 19px; }
+  h1:has(> .ni) { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }   /* the page's sidebar icon, larger, beside its title */
+  h1 .ni { width: 24px; height: 24px; color: var(--fg); } h1 .ni svg { width: 22px; height: 22px; stroke-width: 1.4; }
   p.lede { color: var(--fg2); margin: 0 0 22px; line-height: 1.45; }
   h3 { font: 600 13px system-ui; letter-spacing: -.005em; color: var(--fg); margin: 30px 2px 9px; }
 
@@ -88,29 +88,26 @@
   input[type=range] { width: 150px; accent-color: var(--accent); }
   .val { width: 44px; text-align: right; color: var(--fg2); font-variant-numeric: tabular-nums; }
 
-  /* the shortcut: big keycaps, one button to record a new one */
-  .shortcut { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 16px 18px; border-radius: 11px;
+  /* the shortcut: flat keycaps, quiet buttons to record a new one */
+  .shortcut { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 16px 16px; border-radius: 11px;
     background: var(--card); box-shadow: inset 0 0 0 .5px var(--line); transition: box-shadow .25s; }
-  .shortcut.rec { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 4px rgba(10,132,255,.15); }
-  .caps { display: flex; gap: 7px; min-height: 40px; align-items: center; }
-  .caps .cap { min-width: 40px; height: 40px; font-size: 16px; border-radius: 9px; padding: 0 12px; }
-  .caps .cap.wide { min-width: 96px; font-size: 14px; }
-  .caps .hint { color: var(--fg2); font-size: 14px; animation: blink 1.4s ease-in-out infinite; }
+  .shortcut.rec { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .caps { display: flex; gap: 5px; min-height: 34px; align-items: center; }
+  .caps .cap { min-width: 34px; height: 34px; font-size: 15px; border-radius: 7px; padding: 0 10px; }
+  .caps .cap.wide { min-width: 76px; font-size: 13px; }
+  .caps .hint { color: var(--fg2); font-size: 13px; animation: blink 1.4s ease-in-out infinite; }
   @keyframes blink { 50% { opacity: .45; } }
-  .shortcut .acts { display: flex; gap: 8px; align-items: center; }
+  .shortcut .acts { display: flex; gap: 6px; align-items: center; }
   .shortcut small { color: var(--fg3); font-size: 11.5px; } .shortcut small.warn, .shortcut small.taken { color: var(--warn); }
   .cap { min-width: 26px; height: 26px; padding: 0 7px; box-sizing: border-box; border-radius: 6px; display: grid; place-items: center;
-    font: 500 12px system-ui; background: linear-gradient(#fdfdfd, #e8e8ed); color: #1d1d1f;
-    box-shadow: 0 0 0 .5px rgba(0,0,0,.16), 0 1.5px 0 rgba(0,0,0,.16); }
-  @media (prefers-color-scheme: dark) { .cap { background: linear-gradient(#48484a, #3a3a3c); color: #f5f5f7;
-    box-shadow: 0 0 0 .5px rgba(0,0,0,.6), 0 1.5px 0 rgba(0,0,0,.6); } }
+    font: 500 12px system-ui; background: var(--well); color: var(--fg); box-shadow: inset 0 0 0 .5px var(--line); }
   /* a second shortcut in a row: a field that records like the big one, with its own clear button */
   .keyfield { position: relative; flex: none; }
   .kf { all: unset; box-sizing: border-box; min-width: 140px; height: 28px; padding: 0 10px; border-radius: 7px; display: flex; gap: 4px;
     align-items: center; justify-content: center; font-size: 12.5px; font-weight: 500; color: var(--accent); cursor: pointer;
     background: var(--ctl); box-shadow: inset 0 0 0 .5px var(--line), 0 1px 1px rgba(0,0,0,.05); transition: box-shadow .2s; }
   .kf.set { padding-right: 30px; } .kf .cap { min-width: 20px; height: 20px; padding: 0 5px; font-size: 11px; border-radius: 4px; }
-  .kf.rec { color: var(--fg2); box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px rgba(10,132,255,.18); }
+  .kf.rec { color: var(--fg2); box-shadow: inset 0 0 0 1.5px var(--accent); }
   .kf.rec > span { animation: blink 1.4s ease-in-out infinite; } .kf.bad { box-shadow: inset 0 0 0 1.5px #ff9f0a; }
   .kf:focus-visible { outline: 2px solid rgba(10,132,255,.5); }
   .keyfield .x { position: absolute; right: 4px; top: 3px; }
@@ -218,12 +215,12 @@
 
 <nav>
   <div class="me"><img id="icon" alt=""><div><b>Delphi</b><span>Just ask.</span></div></div>
-  <button data-s="dictation" id="dictationnav"><i class="ni" style="background:#ff375f"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M8 21h8"/></svg></i>Dictation</button>
-  <button data-s="general" class="on" aria-current="page"><i class="ni" style="background:#8e8e93"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></i>General</button>
-  <button data-s="brain"><i class="ni" style="background:#d97757"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg></i>Intelligence</button>
-  <button data-s="memory"><i class="ni" style="background:#ff9f0a"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg></i>Memory</button>
-  <button data-s="account"><i class="ni" style="background:#0a84ff"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Account &amp; Access</button>
-  <button data-s="about"><i class="ni" style="background:#bf5af2"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></svg></i>About &amp; Updates</button>
+  <button data-s="dictation" id="dictationnav"><i class="ni"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M8 21h8"/></svg></i>Dictation</button>
+  <button data-s="general" class="on" aria-current="page"><i class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></i>General</button>
+  <button data-s="brain"><i class="ni"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg></i>Intelligence</button>
+  <button data-s="memory"><i class="ni"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg></i>Memory</button>
+  <button data-s="account"><i class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i>Account &amp; Access</button>
+  <button data-s="about"><i class="ni"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></svg></i>About &amp; Updates</button>
   <div class="spacer"></div>
   <div class="ver" id="ver"></div>
 </nav>
@@ -258,7 +255,7 @@
     <div class="shortcut" id="shortcut">
       <div class="caps" id="caps" aria-live="polite"></div>
       <small id="schint">Hold it, talk, let go.</small>
-      <div class="acts"><button class="btn blue" id="change">Change Shortcut</button><button class="btn" data-do="resetHotkey" id="reset">Use Default</button></div>
+      <div class="acts"><button class="btn" id="change">Change Shortcut</button><button class="btn" data-do="resetHotkey" id="reset">Use Default</button></div>
     </div>
     <div class="group">
       <div class="row"><div class="t"><b>Shortcut opens</b></div><div class="seg" data-k="input"><button data-v="voice">Voice</button><button data-v="type">Typing</button></div></div>
@@ -328,7 +325,7 @@
 
   <section id="apps">
     <button class="btn" id="appsback" onclick="st.tab('account')">← Account &amp; Access</button>
-    <h1><i class="ni" style="background:#ff453a" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i>Apps</h1>
+    <h1><i class="ni" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i>Apps</h1>
     <p class="lede">Tick the apps Delphi can control. Allow them now so it won’t stop to ask.</p>
     <div class="appbar"><div class="seg" id="appview" role="group" aria-label="App list"><button data-v="key" class="on" aria-pressed="true">Key Apps</button><button data-v="all" aria-pressed="false">All Apps</button></div>
       <input id="appq" class="search" placeholder="Search all apps" aria-label="Search all apps"><button class="btn blue" id="allow" disabled>Allow</button></div>

@@ -6,6 +6,7 @@ import tempfile
 config = tempfile.TemporaryDirectory(prefix='delphi-test-config-')
 os.environ['DELPHI_DIR'] = config.name
 os.environ['DELPHI_POSTHOG_KEY'] = ''   # tests that clear os.environ also drop DELPHI_DIR; with no key nothing reaches PostHog
+os.environ['TYPESAFE_API_KEY'] = ''   # read at import: the repo's .env key never reaches a test's Jev call
 atexit.register(config.cleanup)
 
 
