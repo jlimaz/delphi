@@ -506,7 +506,7 @@ Tools:
 - Web actions: {WEB} click <n> | fill <n> "<text>" | type-after "<exact anchor>" "<text>"; numbers come from the window read. Each returns changed page state; check it.
 - Native actions: {HANDS} see [app] | menu <app> "<path>" | click <target> [near <label>] [double] [right] | scroll down|up|left|right [pages|all] [target] | scroll-to "text" | press "cmd+t" [times] | drag <from> <to> | type <field> "text" [submit] [append] | type-after "<exact anchor>" "<text>" | wait [seconds]. Prefer labels. Returns changed state; use the window reader for document text.
 - App/site: always try; never blame sandbox/Terminal. Name the denied Settings switch.
-- System settings: shell, defaults or AppleScript first; else open the pane with --bg and use hands on its labelled control; verify. Don't renavigate an open pane.
+- System settings: shell, defaults or AppleScript first; else open the pane with --bg and use hands on its labelled control; verify. Don't renavigate an open pane. Volume: osascript. Sidecar (iPad as display): {shlex.quote(ME)} --sidecar on|off|status, never Control Center.
 - Work behind: never activate/raise unless asked to open/show/switch/focus. {SHOW} --bg "<url|path|app>" opens behind, waits until ready. {SHOW} "<target>" respects Settings. {FRONT} "<app>" ["tab words"] pictures that window in place, even covered; raises only if asked. Helpers wait; never add sleep. Chain dependent commands with && and check each result.
 - Windows: {PLACE} "<process>" <left|right|full|fullscreen|center> <laptop|monitor|current|exact Context screen name> ["title words"]. full maximizes; fullscreen enters a Space. Combine moves with +. Get names from running apps/accessibility.
 - Type at the cursor: {TYPE} "<text>".
@@ -2060,6 +2060,12 @@ def fast(text):
                 'I do not have a verified procedure for that yet. Complete the task successfully first so I can save it.')
     if t in ('no', 'yes', 'ok', 'okay', 'nevermind', 'never mind', 'cancel', 'nothing', 'thanks', 'thank you'):
         return None if os.environ.get('DELPHI_LIVE') == '1' else 'Okay.'   # stray word after a turn: no AI call; mid-sentence it starts the next words ("No, when I say …")
+    en = english(t)
+    side = sidecar_words(t) or sidecar_words(en)   # ahead of learned shortcuts: an old Control Center recording never replays over the direct call
+    if side:
+        if os.environ.get('DELPHI_LIVE') == '1': return None
+        reply = sidecar(*side)
+        return reply and (portuguese(reply) if en != t else reply)
     m = re.fullmatch(r'(?:close|quit) (.+)', t)
     app = app_named(m[1]) if m and not DEICTIC.search(m[1]) else None
     if app:
@@ -2080,7 +2086,6 @@ def fast(text):
             return None   # even a shortcut named "open Spotify" waits for confirmed words
         r = run_shortcut(k, swap, fill, t if swap else k)
         if r or replay.ran: return r
-    en = english(t)
     if en != t:   # Portuguese: the same instant commands, answered in Portuguese (learned shortcuts above keep the words they were taught in)
         reply = fast(en)
         return reply and portuguese(reply)
@@ -2090,7 +2095,10 @@ def fast(text):
     m = re.fullmatch(r'(?:turn (?:the )?volume (up|down)|turn (up|down) the volume|volume (up|down))(?: by (\w+))?|(mute|unmute)', t)
     if m:
         return volume(m[5] or m[1] or m[2] or m[3], STEPS.get(m[4] or 'one'))
-    tab = next(((key, said) for pattern, key, said in TABS if re.fullmatch(pattern, t)), None)
+    m = VOLUME_TO.fullmatch(t)
+    if m:
+        return volume('set', level=int(m[1]) if m[1] else LEVELS[m[2] or m[3] or 'max'])
+    tab =next(((key, said) for pattern, key, said in TABS if re.fullmatch(pattern, t)), None)
     if tab:   # the front app's own shortcut, as the AI would press it
         r = fast_hands(f'press {tab[0]}')
         return tab[1] if r and r.startswith('Pressed') else r
@@ -2241,8 +2249,42 @@ def media(action):
     return f'Playing {track} in {app}.' if track else f'Playing {app}.'
 
 
-def volume(change, steps=1):
-    """up|down by the volume keys' step (1/16), mute or unmute; replies with the volume it read back."""
+SIDECAR = re.compile(r'(?:(turn on|switch on|start|enable|connect|use|open|activate)|(turn off|switch off|stop|end|disable|disconnect|close|quit|deactivate)) '
+                     r'(?:the |my )?sidecar(?: (?:with|on|to|for|using|from) (?:the |my )?(.+))?|sidecar (on|off)')
+VOLUME_TO = re.compile(r'(?:(?:set|put|change|turn|make|bring) (?:the |my )?volume|volume) (?:to |at |on )?(?:(\d{1,3})(?: ?%| percent)?|(?:the )?(max|maximum|full|min|minimum|zero|half|halfway|middle))'
+                       r'|(max|full|half|min) volume|max (?:out )?(?:the )?volume')
+LEVELS = {'max': 100, 'maximum': 100, 'full': 100, 'min': 0, 'minimum': 0, 'zero': 0, 'half': 50, 'halfway': 50, 'middle': 50}
+
+
+def sidecar_words(t):
+    """"turn on sidecar with my ipad", "turn sidecar off", "sidecar on" -> ('on'|'off', device words), or None."""
+    m = SIDECAR.fullmatch(re.sub(r'^(turn|switch) (?:the |my )?sidecar (on|off)\b', r'\1 \2 sidecar', t))
+    if not m or m[3] and MORE.search(m[3]): return None   # "… with my ipad and open notes" is two steps: the AI's
+    return 'on' if m[1] or m[4] == 'on' else 'off', m[3] or ''
+
+
+def sidecar(action, device=''):
+    """on|off|status by SidecarCore in Delphi.app, no Control Center clicks. None when this macOS has no such API: the AI clicks instead."""
+    cmd = [APP, '--sidecar', action] + ([device] if device else [])
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode not in (0, 1) or not r.stdout.strip(): return None
+    if not r.returncode and action != 'status': fast.cmds = [shlex.join([ME, '--sidecar', action] + ([device] if device else []))]
+    return r.stdout.strip()
+
+
+def volume(change, steps=1, level=None):
+    """up|down by the volume keys' step (1/16), to a level (0-100), mute or unmute; replies with the volume it read back."""
+    if change == 'set':
+        if level is None or not 0 <= level <= 100: return None
+        script = f'set volume output volume {level}' + (' without output muted' if level else '')
+        osa(script)
+        read = osa('output volume of (get volume settings)')
+        if not read.isdigit(): return None
+        fast.cmds = [shlex.join(['osascript', '-e', script])]
+        return f'Volume {read}%.'
     if change in ('mute', 'unmute'):
         osa(f'set volume {"with" if change == "mute" else "without"} output muted')
         fast.cmds = [shlex.join(['osascript', '-e', f'set volume {"with" if change == "mute" else "without"} output muted'])]
@@ -2289,6 +2331,12 @@ def english(t):
     if m:
         steps = PT_STEPS.get(m[2] or 'um')
         return f'turn volume {"up" if m[1] else "down"} by {steps}' if steps else t
+    m = re.fullmatch(r'(?:(?:coloc|bot|deix|põe|poe|por|mud|ajust|aument|sob|sub|baix|abaix|diminu)\w* )?(?:o )?(?:volume|som) (?:em |no |na |pra |pro |para |a |ao )?'
+                     r'(?:o |a )?(?:(\d{1,3})(?: ?%| por cento)?|(máximo|maximo|mínimo|minimo|metade|meio|zero))', p)
+    if m: return f'set volume to {m[1]}' if m[1] else 'set volume to ' + {'máximo': 'max', 'maximo': 'max', 'mínimo': 'min', 'minimo': 'min'}.get(m[2], 'half' if m[2] in ('metade', 'meio') else 'zero')
+    m = re.fullmatch(r'(?:(lig[ae]r?|ligue|ativ[ae]r?|ative|inici[ae]r?|abr[aei]r?|conect[ae]r?|us[ae]r?)|(deslig[ae]r?|desligue|desativ[ae]r?|desative|desconect[ae]r?|fech[ae]r?|encerr[ae]r?|par[ae]r?)) '
+                     r'(?:o )?sidecar(?: (?:com|n[oa]|pr[oa]|para(?: o| a)?|usando) (?:o |a )?(?:meu |minha )?(.+))?', p)
+    if m and not PT_MORE.search(m[3] or ''): return f'turn {"on" if m[1] else "off"} sidecar' + (f' with {m[3]}' if m[3] else '')
     if re.fullmatch(r'(?:muta|mute|mutar|silencia|silenciar|tira o som)', p): return 'mute'
     if re.fullmatch(r'(?:desmuta|desmute|desmutar|volta o som|ativa o som|liga o som)', p): return 'unmute'
     m = re.fullmatch(r'(?:toc[ae]r?|bot[ae] pra tocar) ' + PT_THE + r'(?:playlist |música |musica )?(?:d[eoa] )?(.+?)( no spotify)?', p)
@@ -2329,7 +2377,11 @@ def portuguese(reply):
                           (r'Playing (.+?)(?: on Spotify)?\.', lambda m: f'Tocando {m[1]}' + (' no Spotify.' if m[0].endswith(' on Spotify.') else '.')),
                           (r'Reloaded the page\.', lambda m: 'Atualizei a página.'), (r'Started the screen saver\.', lambda m: 'Liguei o descanso de tela.'),
                           (r'Turned the display off\.', lambda m: 'Desliguei a tela.'),
-                          (r'Volume (\d+)%\.', lambda m: f'Volume em {m[1]}%.'), (r'Muted\.', lambda m: 'Som mutado.'), (r'Unmuted\.', lambda m: 'Som ativado.'),
+                          (r'Volume (\d+)%\.', lambda m: f'Volume em {m[1]}%.'),
+                          (r'Sidecar is on with (.+)\.', lambda m: f'Liguei o Sidecar com o {m[1]}.'), (r'Sidecar is already on with (.+)\.', lambda m: f'O Sidecar já está ligado com o {m[1]}.'),
+                          (r'Sidecar is off\.', lambda m: 'Desliguei o Sidecar.'), (r'Sidecar is already off\.', lambda m: 'O Sidecar já está desligado.'),
+                          (r'No iPad is available for Sidecar\..*', lambda m: 'Nenhum iPad disponível para o Sidecar. Veja se ele está perto, desbloqueado e na mesma conta Apple.'),
+                          (r'Could not turn (on|off) Sidecar: (.+)', lambda m: f'Não consegui {"ligar" if m[1] == "on" else "desligar"} o Sidecar: {m[2]}'), (r'Muted\.', lambda m: 'Som mutado.'), (r'Unmuted\.', lambda m: 'Som ativado.'),
                           (r'I have saved the procedure for next time\.', lambda m: 'Já salvei como fazer isso para a próxima vez.'),
                           (r'I do not have a verified procedure.*', lambda m: 'Ainda não sei fazer isso de um jeito verificado. Faça a tarefa uma vez com sucesso para eu salvar.'),
                           (r'([^:;]+): (left|right|full screen|full|center)(?: on (laptop|monitor))?\.',
@@ -2401,7 +2453,8 @@ def jev_sites():
 
 BROWSER = re.compile(r'\b(Chrome|Brave|Safari|Firefox|Arc|Edge|Opera|Vivaldi|Orion|Dia|Zen|Chromium)\b')
 JEV_SAID = {'play': 'play', 'pause': 'pause', 'next': 'next', 'previous': 'previous', 'mute': 'mute', 'unmute': 'unmute',
-            'new_tab': 'new tab', 'close_tab': 'close tab', 'reload': 'reload', 'screen_saver': 'screen saver', 'display_off': 'turn off the display'}
+            'new_tab': 'new tab', 'close_tab': 'close tab', 'reload': 'reload', 'screen_saver': 'screen saver', 'display_off': 'turn off the display',
+            'sidecar_on': 'turn on sidecar', 'sidecar_off': 'turn off sidecar'}
 
 
 def jev(text):
@@ -2423,6 +2476,7 @@ def jev(text):
             'volume_up': 'Turn the volume up, louder', 'volume_down': 'Turn the volume down, quieter', 'mute': 'Mute the sound', 'unmute': 'Unmute the sound',
             'site': 'Open a website (not an app)', 'new_tab': 'Open a new browser tab', 'close_tab': 'Close the current browser tab',
             'reload': 'Reload or refresh the current page', 'screen_saver': 'Start the screen saver', 'display_off': 'Turn off or sleep the display',
+            'sidecar_on': 'Turn on Sidecar: use the iPad as a second display', 'sidecar_off': 'Turn off Sidecar: stop using the iPad as a display',
             'other': 'Anything else: a question, typing, searching, a message, a file, a setting, or more than one step'}},
         'app': {'type': 'choice', 'instructions': 'The app the request names or clearly means',
                 'criteria': {**{a: None for a in jev_apps()}, 'none': 'No app in this list is named or clearly meant'}},
@@ -5557,6 +5611,11 @@ def main():
         except (OSError, ValueError) as e: return print(f'search failed ({e}); use WebSearch')
     if args[:1] == ['--calendar']:
         return print(calendar_tool(args[1:]))
+    if args[:1] == ['--sidecar']:
+        if args[1:2] not in (['on'], ['off'], ['status']): return print('usage: --sidecar on|off|status [device]')
+        reply = sidecar(args[1], ' '.join(args[2:]))
+        if reply is None: sys.exit(print('Sidecar is not available here; use hands on Control Center > Screen Mirroring.') or 1)
+        return print(reply) if not reply.startswith(('Could not', 'No iPad', 'Sidecar is not on')) else sys.exit(print(reply) or 1)
     if args[:1] == ['--contacts']:
         return print(contacts(' '.join(args[1:])))
     if args[:1] == ['--read']:

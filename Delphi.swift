@@ -5440,6 +5440,48 @@ if CommandLine.arguments.dropFirst() == ["--calendar"] {
     if let json = try? JSONSerialization.data(withJSONObject: result), let text = String(data: json, encoding: .utf8) { print(text) }
     exit(0)
 }
+// Sidecar has no public API, AppleScript or defaults key: SidecarCore's display manager connects an iPad directly, no Control Center clicks.
+// Exit 0 done, 1 failed (the line says why), 2 usage, 3 SidecarCore missing or changed (the caller falls back to the AI).
+enum Sidecar {
+    static func run(_ args: [String]) -> Int32 {
+        guard let verb = args.first, ["on", "off", "status"].contains(verb) else { print("Use --sidecar on|off|status [device]."); return 2 }
+        let selectors = ["devices", "connectedDevices", "connectToDevice:completion:", "disconnectFromDevice:completion:"].map(NSSelectorFromString)
+        guard dlopen("/System/Library/PrivateFrameworks/SidecarCore.framework/SidecarCore", RTLD_LAZY) != nil,
+              let type = NSClassFromString("SidecarDisplayManager") as? NSObject.Type, type.responds(to: NSSelectorFromString("sharedManager")),
+              let manager = type.perform(NSSelectorFromString("sharedManager"))?.takeUnretainedValue() as? NSObject,
+              selectors.allSatisfy(manager.responds) else { print("Sidecar is not available on this Mac."); return 3 }
+        let list = { (s: Selector) in (manager.perform(s)?.takeUnretainedValue() as? [NSObject]) ?? [] }
+        let name = { (d: NSObject) in d.value(forKey: "name") as? String ?? "iPad" }
+        let words = args.dropFirst().joined(separator: " ").lowercased().trimmingCharacters(in: .whitespaces)
+        // the named device, or the only one when the words don't name any ("my tablet")
+        let pick = { (ds: [NSObject]) in words.isEmpty ? ds.first : ds.first { name($0).lowercased().contains(words) || words.contains(name($0).lowercased()) } ?? (ds.count == 1 ? ds.first : nil) }
+        let connected = list(selectors[1])
+        if verb == "status" {
+            print(connected.isEmpty ? "Sidecar is off." + (list(selectors[0]).isEmpty ? "" : " Available: " + list(selectors[0]).map(name).joined(separator: ", ") + ".")
+                                    : "Sidecar is on with " + connected.map(name).joined(separator: ", ") + ".")
+            return 0
+        }
+        if verb == "on", let d = pick(connected) { print("Sidecar is already on with \(name(d))."); return 0 }
+        if verb == "off", connected.isEmpty { print("Sidecar is already off."); return 0 }
+        guard let device = pick(verb == "on" ? list(selectors[0]) : connected) else {
+            print(verb == "on" ? "No iPad is available for Sidecar. Check that it is nearby, unlocked and signed in to the same Apple Account." : "Sidecar is not on with \(words)."); return 1
+        }
+        let done = DispatchSemaphore(value: 0); var failure: String?
+        let completion: @convention(block) (NSError?) -> Void = { error in failure = error?.localizedDescription; done.signal() }
+        manager.perform(verb == "on" ? selectors[2] : selectors[3], with: device, with: unsafeBitCast(completion, to: AnyObject.self))
+        let deadline = Date().addingTimeInterval(20)   // the reply may come on the main queue: keep its run loop turning
+        while done.wait(timeout: .now()) == .timedOut {
+            if Date() > deadline { print("Could not turn \(verb) Sidecar: the iPad did not answer."); return 1 }
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        }
+        for _ in 0..<60 {   // the completion is not proof either way (a first connect can report "disconnected" and still connect): the connected list is
+            if list(selectors[1]).contains(where: { name($0) == name(device) }) == (verb == "on") { print(verb == "on" ? "Sidecar is on with \(name(device))." : "Sidecar is off."); return 0 }
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.1))
+        }
+        print("Could not turn \(verb) Sidecar: " + (failure ?? "\(name(device)) did not \(verb == "on" ? "connect" : "disconnect").")); return 1
+    }
+}
+if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "--sidecar" { exit(Sidecar.run(Array(CommandLine.arguments.dropFirst(2)))) }
 if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "--hands" { exit(Hands.cli(Array(CommandLine.arguments.dropFirst(2)))) }
 if CommandLine.arguments.dropFirst() == ["--draw-target"] {
     let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [[String:Any]] ?? []
