@@ -58,6 +58,22 @@ class JevTests(unittest.TestCase):
         _, fast, _ = self.ask('move slack', answers('move', 'Slack', 'none', 'current'))
         fast.assert_not_called()
 
+    def test_a_reworded_or_misheard_saved_task_replays_it(self):
+        learned = {'ligue o sidecar com meu ipad': {'cmds': ['x'], 'reply': 'On.', 'at': '2026-10-28'},
+                   'pesquisar {q} na amazon': {'cmds': ['x'], 'reply': '', 'slot': 'plus'}}   # needs a value: never a Jev pick
+        reply = answers('other', 'none')
+        reply['answers']['shortcut'] = {'type': 'choice', 'choice': 'ligue o sidecar com meu ipad', 'confidence': .93}
+        with patch.object(delphi, 'skills', return_value=learned), patch.object(delphi, 'run_shortcut', return_value='Sidecar is on.') as run:
+            result, fast, sent = self.ask('ligar sicore com meu ipad', reply)
+        self.assertEqual(result, 'Sidecar is on.')
+        run.assert_called_once_with('ligue o sidecar com meu ipad'); fast.assert_not_called()
+        self.assertTrue(delphi.jev.hit and delphi.jev.known)   # already learned: main saves no second copy
+        self.assertEqual(set(json.loads(sent[0][0].data)['questions']['shortcut']['criteria']), {'ligue o sidecar com meu ipad', 'none'})
+        reply['answers']['shortcut']['confidence'] = .7
+        with patch.object(delphi, 'skills', return_value=learned), patch.object(delphi, 'run_shortcut') as run:
+            result, _, _ = self.ask('ligar sicore com meu ipad', reply)
+        self.assertIsNone(result); run.assert_not_called()
+
     def test_unsure_answers_go_to_the_ai(self):
         for reply in (answers(sure=.6), answers(one=.5), answers(app='none'), answers(action='other'),
                       answers('quit', 'Slack', sure=.85)):   # quitting needs more certainty than opening

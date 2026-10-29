@@ -245,6 +245,26 @@ class OpenAppsAndSitesTests(Ask):
         self.assertEqual(said, 'Safari ist offen.')
         self.show.assert_called_once_with('Safari', False)   # front, as the model opened it; the focus words are English-only
 
+    def test_a_learned_site_search_replays_instantly_for_any_value(self):
+        url = 'https://shop.fixture.example/s?k=sab%C3%A3o'
+        said, pill, model = self.ask('Look for sabão at the fixture shop', 'The "sabão" results are open.',
+                                     [f'{delphi.SHOW} --bg "{url}" && {delphi.WINDOW} "fixture" --offset 0 | head -40'])   # its check read is not part of the replay
+        self.assertTrue(model)
+        self.show.reset_mock()
+        said, pill, model = self.ask('Look for ear buds at the fixture shop')
+        self.assertFalse(model)
+        self.assertEqual(said, 'The "ear buds" results are open.')
+        self.show.assert_called_once_with('https://shop.fixture.example/s?k=ear+buds', True)
+        self.show.reset_mock()
+        said, pill, model = self.ask('Look for "a&b" $(say hi) at the fixture shop')   # the value only ever lands encoded inside the URL
+        self.assertFalse(model)
+        self.show.assert_called_once_with('https://shop.fixture.example/s?k=%22a%26b%22+%24%28say+hi%29', True)
+
+    def test_a_search_becomes_a_template_only_when_its_words_name_the_site(self):
+        self.ask('look for airpods', 'Opened the results.', [f'{delphi.SHOW} "https://shop.example/s?k=airpods"'])   # nothing says where: "look for the weather" must not go there
+        self.ask('Open the fixture shop', 'Opened it.', [f'{delphi.SHOW} "https://shop.fixture.example"'])
+        self.assertEqual([k for k in delphi.skills() if '{q}' in k], [])
+
 
 if __name__ == '__main__':
     unittest.main()

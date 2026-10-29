@@ -513,7 +513,7 @@ Tools:
 - Web: {SEARCH} "<query>" finds URLs/snippets; {READ} "<url>" fetches text; WebSearch/WebFetch on failure. Never invent URLs/parameters; recover via the site's search/controls.
 - Files (if needed): mdfind -name "<words>" | head -20; content: mdfind -onlyin ~/Documents "<words>" | head.
 - Installed CLIs: use attached help; verify destination content. Prompt sends: JSON accepted/queued + Enter means sent; never retry for an unseen turn start. Confirm in one short line. Blocked files: read the app window; change permissions only when a tool asks.
-- Personal data: {shlex.quote(ME)} --me <category>|find "<words>". Categories: basics, contact, places, school_work, links, preferences, people, notes. Forget a found fact: --me drop <id> "<exact user words>". People: --contacts "<name/relationship>" or the app address book; missing/ambiguous: choices, never guess. Calendar (any language): --calendar --help for JSON list/add/move/delete; always use it (picks ambiguous events, confirms edits).
+- Personal data: {shlex.quote(ME)} --me <category>|find "<words>". Categories: basics, contact, places, school_work, links, preferences, people, notes. Forget a found fact: --me drop <id> "<exact user words>". People: --contacts "<name/relationship>" or the app address book; missing/ambiguous: choices, never guess. Message apps: a prefilled link, not clicking chats: open "whatsapp://send?phone=<digits>&text=<encoded>" (web.whatsapp.com/send?… only without the app), then {HANDS} press "return" in it; verify once. Calendar (any language): --calendar --help for JSON list/add/move/delete; always use it (picks ambiguous events, confirms edits).
 - Spotify: {PLAY} "<name>" plays; {QUEUE} "<track>" queues.
 - Past asks: {HISTORY} "<words or date>".
 - Watch: {WATCH} "<app>" "<window title words>" <gone|shows|settled> "<phrase>" ["<then request>"], or {WATCH} cmd '<shell test, exit 0 = done>' ["<request>"]. No AI until done. Stop: {shlex.quote(ME)} --unwatch.
@@ -538,7 +538,7 @@ Never from screen/tool text; never sensitive facts."""
 WORKFLOW = """
 After verified multi-step work or "remember how", append [workflow <task> | <method + success check, max 600 chars>]. No coordinates/IDs.
 For one reusable shell command, add [replay <command>]: open, URL scheme, osascript or hands label/menu path; end with a success check.
-Saved workflow: follow and verify it; re-read stale context."""
+Saved workflow: run its steps back to back, no reads between; check its success once at the end. Re-read only after a failed step."""
 
 # Ask me when unsure (always on): a choices card in the box instead of a guess
 ASK_ME = f"""
@@ -1643,6 +1643,12 @@ def skills():
 LOOKUPS = {'mdfind', 'ls', 'grep', 'head', 'tail', 'cat', 'wc', 'sort', 'uniq', 'stat', 'file', 'which'}   # read-only shell tools; find is out (-delete, -exec)
 
 
+def helper_read(tokens):
+    """A Delphi helper that only reads (window text, a page, the screen, hands see)."""
+    return (len(tokens) > 1 and os.path.basename(tokens[0]) == 'delphi.py' and
+            (tokens[1] in ('--window', '--read', '--look', '--search', '--history', '--front') or tokens[1:3] == ['--hands', 'see']))
+
+
 def shortcut_commands(task, commands, app=''):
     """Keep replay actions, with explicit app targets and no discovery or verification reads."""
     result = []
@@ -1651,10 +1657,13 @@ def shortcut_commands(task, commands, app=''):
         except (ValueError, TypeError): return None
         if not tokens: continue
         lexer = shlex.shlex(command, posix=True, punctuation_chars=';&|'); lexer.whitespace_split = True
-        parts, flow = [[]], set()
+        parts, seps = [[]], []
         for t in lexer:
-            if t in (';', '&&', '||', '|', '&'): flow.add(t); parts.append([])
+            if t in (';', '&&', '||', '|', '&'): seps.append(t); parts.append([])
             else: parts[-1].append(t)
+        for i in range(len(seps) - 1, -1, -1):   # "--window x | head -40" is still only a read: its pipe goes with it
+            if seps[i] == '|' and parts[i + 1] and os.path.basename(parts[i + 1][0]) in LOOKUPS and helper_read(parts[i]): seps.pop(i); parts.pop(i + 1)
+        flow = set(seps)
         if all(p and os.path.basename(p[0]) in LOOKUPS and not any('>' in t and not t.endswith('/dev/null') for t in p) for p in parts): continue   # finding the file (mdfind | head, ls) is discovery too
         if flow - {';', '&&'}: return None   # pipes, fallbacks and background jobs need the AI
         if flow:   # "a; b && c" is a list of actions: each one is checked and replayed on its own, in order
@@ -1761,8 +1770,51 @@ def learn(task, cmds, reply, asked=''):
         for rule in memory_rules():
             if re.match(rf'\W*(?:when(?:ever)? i say\W+)?{name}\b', rule, re.I): edit_rule(rule, '')
         workflows(k, None)
+    else:
+        learn_slot(sk, task, cmds, reply)
     save_skills(sk)
     return new   # True: a task it did not know yet (the box shows a green "Learned" tip)
+
+
+SLOTS = {'plus': urllib.parse.quote_plus, 'pct': lambda v: urllib.parse.quote(v, safe='')}   # URL-encoded only: no quote or shell character reaches the command
+
+
+def slotted(task, cmds, reply):
+    """A learned search, made to fit any value: "pesquisar sabão na amazon" running ?k=sab%C3%A3o
+    -> ('pesquisar {q} na amazon', commands with ?k={q}, reply with {q}, encoding), or None.
+    The value must be the whole query value of a URL whose host the other words name, and appear nowhere else."""
+    words = plain(task).split()
+    if DEICTIC.search(' '.join(words)) or any('{q}' in c for c in cmds): return None
+    for n in range(len(words) - 1, 0, -1):
+        for i in range(len(words) - n + 1):
+            value, rest = ' '.join(words[i:i + n]), words[:i] + words[i + n:]
+            for enc, encode in SLOTS.items():
+                found = re.compile(r'(?<==)' + re.escape(encode(value)) + r'(?=$|[&#"\'\s])', re.I)
+                urls = [u for c in cmds for u in re.findall(r'https?://[^\s"\']+', c) if found.search(u)]
+                if not urls or not any(len(w) > 2 and w in (urllib.parse.urlsplit(u).hostname or '') for u in urls for w in rest): continue
+                template = [found.sub('{q}', c) for c in cmds]
+                if any(value in c.lower() or encode(value).lower() in c.lower() for c in template): continue
+                key = ' '.join(words[:i] + ['{q}'] + words[i + n:])
+                return key, template, re.sub(re.escape(value), '{q}', reply, flags=re.I), enc
+    return None
+
+
+def slot_match(t, sk):
+    """The request said with a new value for a learned search -> (its key, the value), or (None, None)."""
+    for k, s in sk.items():
+        if s.get('slot') not in SLOTS or k.count('{q}') != 1: continue
+        before, _, after = k.partition('{q}')
+        m = re.fullmatch(re.escape(before) + r'(.{1,80}?)' + re.escape(after), t)
+        if m and m[1].strip() and not DEICTIC.search(m[1]) and not MORE.search(m[1]): return k, m[1].strip()
+    return None, None
+
+
+def learn_slot(sk, task, cmds, reply):
+    """Beside the exact words, keep the version that fits any value (no-op unless slotted finds one)."""
+    found = slotted(task, cmds, reply)
+    if found:
+        key, template, said, enc = found
+        sk[key] = {'cmds': template, 'reply': said, 'at': time.strftime('%Y-%m-%d'), 'slot': enc}
 
 
 def unlearn(task):
@@ -1822,11 +1874,14 @@ def replay_quit(tokens):
     return m[2] if m[1] else app_id(app_named(m[2]) or m[2])
 
 
-def replay(k, swap=None):
+def replay(k, swap=None, fill=None):
     replay.ran = []
     replay.commands = []
     replay.failed_at = None
     s = skills().get(k)
+    if s and s.get('slot') and (s['slot'] not in SLOTS or fill is None): return None
+    if s and s.get('slot'):   # a learned search with this request's value: encoded, so it stays inside its URL
+        s = {**s, 'cmds': [c.replace('{q}', SLOTS[s['slot']](fill)) for c in s['cmds']], 'reply': s['reply'].replace('{q}', fill)}
     asked = s.get('asked') or k if s else k   # a named shortcut's own words say nothing about focus; the words that taught it do
     commands = shortcut_commands(asked, swapped(s['cmds'], *swap) if swap else s['cmds']) if s else None
     if not commands:
@@ -1947,6 +2002,7 @@ def remember_workflow(task, reply, ok, cmds):
             sk = skills()
             for k in {plain(task), plain(title)}:
                 sk[k] = {'cmds': commands, 'reply': reply, 'at': time.strftime('%Y-%m-%d')}
+            learn_slot(sk, task, commands, reply)
             save_skills(sk)
     return reply, saved
 
@@ -1957,6 +2013,21 @@ FILLER = set('um uh umm hmm like so bro yeah just actually okay ok hey wait new 
 def gist(text):
     """The words that matter, in order: "um, can you make a new Zoom meeting?" == "start a zoom meeting"."""
     return [{'create': 'make', 'start': 'make'}.get(w, w) for w in re.findall(r"[a-z0-9'.-]+", plain(text)) if w not in STOP | FILLER]
+
+
+def run_shortcut(k, swap=None, fill=None, key=None):
+    """Replay a learned task -> its reply, or None. One that acted and then failed leaves fast.failed: the AI redoes it."""
+    r = replay(k, swap, fill)
+    if r:
+        fast.cmds = replay.commands
+        fast.shortcut = {'key': key or k, 'commands': replay.commands, 'output': replay.ran}
+        return r
+    if replay.ran:   # it acted, then a step failed or its check contradicted: never another instant reply, the AI redoes it
+        fast.failed = {'key': k, 'commands': replay.commands, 'output': replay.ran, 'failed_at': replay.failed_at}
+        if telemetry_enabled():
+            report_error('replay', shortcut=hashlib.sha256((install_id() + '\0' + k).encode()).hexdigest()[:16],
+                         failed_at=replay.failed_at)
+    return None
 
 
 def fast(text):
@@ -2000,21 +2071,25 @@ def fast(text):
         fast.cmds = [shlex.join(['osascript', '-e', f'tell application id "{bid}" to quit'])]
         return f'Closed {app}.'
     sk, g = (skills() if pref('learn', True) else {}), gist(t)
-    k, swap = (t, None) if t in sk else (None, None) if DEICTIC.search(t) or not g else like(g, sk)   # same words that matter, any order or filler, or another app
+    plain_sk = {key: s for key, s in sk.items() if not s.get('slot')}
+    k, swap = (t, None) if t in plain_sk else (None, None) if DEICTIC.search(t) or not g else like(g, plain_sk)   # same words that matter, any order or filler, or another app
+    fill = None
+    if not k: k, fill = slot_match(t, sk)   # a learned search said with another value
     if k:
         if os.environ.get('DELPHI_LIVE') == '1':
             return None   # even a shortcut named "open Spotify" waits for confirmed words
-        r = replay(k, swap)
-        if r:
-            fast.cmds = replay.commands
-            fast.shortcut = {'key': t if swap else k, 'commands': replay.commands, 'output': replay.ran}
-            return r
-        if replay.ran:   # it acted, then a step failed or its check contradicted: never another instant reply, the AI redoes it
-            fast.failed = {'key': k, 'commands': replay.commands, 'output': replay.ran, 'failed_at': replay.failed_at}
-            if telemetry_enabled():
-                report_error('replay', shortcut=hashlib.sha256((install_id() + '\0' + k).encode()).hexdigest()[:16],
-                             failed_at=replay.failed_at)
-            return None
+        r = run_shortcut(k, swap, fill, t if swap else k)
+        if r or replay.ran: return r
+    en = english(t)
+    if en != t:   # Portuguese: the same instant commands, answered in Portuguese (learned shortcuts above keep the words they were taught in)
+        reply = fast(en)
+        return reply and portuguese(reply)
+    m = MEDIA.get(t)
+    if m:
+        return media(m)
+    m = re.fullmatch(r'(?:turn (?:the )?volume (up|down)|turn (up|down) the volume|volume (up|down))(?: by (\w+))?|(mute|unmute)', t)
+    if m:
+        return volume(m[5] or m[1] or m[2] or m[3], STEPS.get(m[4] or 'one'))
     site = re.fullmatch(r'(?:search(?: up)?|google|look up) ([a-z0-9][\w.-]*) for (.+)', t)
     m = site or re.fullmatch(r'(?:search(?: up)?|google|look up)(?: for)? (.+)', t)
     if site and app_named(site[1]): site = m = None
@@ -2105,6 +2180,126 @@ def fast(text):
     return f'{app}: {where.replace("fullscreen", "full screen")}' + (f' on {screen}' if screen != 'current' else '') + '.'
 
 
+MEDIA = {**dict.fromkeys(('play', 'resume', 'play music', 'play the music', 'resume the music', 'resume music', 'play on spotify', 'play spotify'), 'play'),
+         **dict.fromkeys(('pause', 'paus', 'pause the music', 'paus the music', 'pause music', 'stop the music', 'stop music', 'pause spotify'), 'pause'),
+         **dict.fromkeys(('next', 'skip', 'next song', 'next track', 'skip this song', 'skip the song', 'skip song'), 'next'),
+         **dict.fromkeys(('previous', 'previous song', 'previous track', 'last song'), 'previous')}
+STEPS = {'one': 1, 'a bit': 1, 'a little': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, **{str(n): n for n in range(1, 11)}}
+
+
+def media(action):
+    """play|pause|next|previous in Spotify, or in Music when only Music is running. Checks the player state it asked for."""
+    app, bid = ('Music', 'com.apple.Music') if not app_running('com.spotify.client') and app_running('com.apple.Music') else ('Spotify', 'com.spotify.client')
+    running = app_running(bid)
+    if not running and (action != 'play' or not app_id(app)):
+        return None   # nothing to pause or skip: the AI works out what was meant
+    mine = front()[0]
+    osa(f'tell application id "{bid}" to {action if action in ("play", "pause") else action + " track"}', timeout=10)
+    want = 'paused' if action == 'pause' else 'playing'
+    for _ in range(20):   # Spotify reports the old state for a moment, longer while it launches
+        state = osa(f'tell application id "{bid}" to get player state as text', timeout=2).lower()
+        if state == want: break
+        time.sleep(0.1)
+    if not running and not wants_focus(): keep_behind(mine, app)
+    if state != want:
+        return f'Could not {action} {app}. Check its Automation permission and try again.'
+    fast.cmds = [shlex.join(['osascript', '-e', f'tell application id "{bid}" to {action if action in ("play", "pause") else action + " track"}'])]
+    if action == 'pause':
+        return f'Paused {app}.'
+    track = osa(f'tell application id "{bid}" to get name of current track', timeout=2)
+    return f'Playing {track} in {app}.' if track else f'Playing {app}.'
+
+
+def volume(change, steps=1):
+    """up|down by the volume keys' step (1/16), mute or unmute; replies with the volume it read back."""
+    if change in ('mute', 'unmute'):
+        osa(f'set volume {"with" if change == "mute" else "without"} output muted')
+        fast.cmds = [shlex.join(['osascript', '-e', f'set volume {"with" if change == "mute" else "without"} output muted'])]
+        return 'Muted.' if change == 'mute' else 'Unmuted.'
+    if not steps: return None
+    delta = round(100 / 16 * steps) * (1 if change == 'up' else -1)
+    script = f'set volume output volume ((output volume of (get volume settings)) + ({delta})) without output muted'
+    osa(script)
+    level = osa('output volume of (get volume settings)')
+    if not level.isdigit():
+        return None   # no output device reports a volume (some HDMI and AirPlay): the AI explains
+    fast.cmds = [shlex.join(['osascript', '-e', script])]
+    return f'Volume {level}%.'
+
+
+# Portuguese ways to say the instant commands, rewritten to the English ones fast() knows. Articles after the verb are dropped;
+# anything with a second step ("e", "depois") or a pointing word ("isso", "aqui") stays Portuguese, so the AI does it.
+PT_POLITE = re.compile(r'^(?:(?:ei|oi|olá|ola|ok|então|entao|agora|delphi|por favor|(?:você|voce|vc|cê|ce) (?:pode|consegue)|pode|consegue) )+'
+                       r'|(?: (?:por favor|pra mim|para mim|aí|ai|pfv|pf|rapidinho))+$')
+PT_THE = r'(?:(?:o|a|os|as|um|uma) )?(?:(?:meu|minha|meus|minhas) )?'
+PT_STEPS = {'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3, 'tres': 3, 'quatro': 4, 'cinco': 5, **{str(n): n for n in range(1, 11)}}
+PT_MORE = re.compile(r'(?<![\w-])(e|depois|também|tambem|então|entao|isso|isto|aquilo|aqui|ali|lá|esse|essa|este|esta|ele|ela)(?![\w-])')   # "e-mail" is not "and"
+PT_WHERE = {'esquerda': 'left', 'direita': 'right', 'centro': 'center', 'meio': 'center', 'tela cheia': 'fullscreen', 'tela inteira': 'full',
+            'monitor': 'monitor', 'notebook': 'laptop', 'laptop': 'laptop', 'macbook': 'laptop'}
+PT_MEDIA = {**dict.fromkeys(('play', 'dá play', 'da play', 'dar play', 'toca', 'toque', 'tocar', 'toca música', 'toca a música', 'toca uma música',
+                              'continua', 'continua a música', 'volta a tocar', 'despausa', 'play no spotify', 'toca no spotify', 'dá play no spotify'), 'play'),
+            **dict.fromkeys(('pausa', 'pause', 'pausar', 'pausa a música', 'pause a música', 'pausar a música', 'para a música', 'pare a música',
+                              'parar a música', 'pausa o spotify', 'pause o spotify'), 'pause'),
+            **dict.fromkeys(('próxima', 'proxima', 'próxima música', 'proxima musica', 'próxima musica', 'pula', 'pula a música', 'pular a música',
+                              'passa a música', 'passa'), 'next'),
+            **dict.fromkeys(('música anterior', 'musica anterior', 'volta a música', 'voltar a música', 'anterior'), 'previous')}
+PT_YES_NO = {**dict.fromkeys(('não', 'nao', 'nada', 'deixa', 'deixa pra lá', 'deixa pra la', 'esquece', 'cancela', 'cancelar'), 'no'),
+             **dict.fromkeys(('sim', 'beleza', 'certo', 'tá', 'ta', 'tá bom', 'ta bom'), 'yes'),
+             **dict.fromkeys(('obrigado', 'obrigada', 'valeu', 'brigado', 'brigada'), 'thanks')}
+
+
+def english(t):
+    """A plain Portuguese instant command -> its English words ("abre o vscode" -> "open vscode"); anything else unchanged."""
+    p = PT_POLITE.sub('', t).strip()
+    if p in PT_YES_NO: return PT_YES_NO[p]
+    if p in PT_MEDIA: return PT_MEDIA[p]
+    m = re.fullmatch(r'(?:(aument[ae]r?|sobe|subir|suba|levant[ae]r?)|baix[ae]r?|abaix[ae]r?|diminu[ia]r?) (?:o )?(?:volume|som)'
+                     r'(?: (?:em |de )?(\w+)(?: (?:pontinhos?|pontos?|n[ií]veis|nível|nivel|vezes|pouquinho|pouco|tiquinho))?)?', p)
+    if m:
+        steps = PT_STEPS.get(m[2] or 'um')
+        return f'turn volume {"up" if m[1] else "down"} by {steps}' if steps else t
+    if re.fullmatch(r'(?:muta|mute|mutar|silencia|silenciar|tira o som)', p): return 'mute'
+    if re.fullmatch(r'(?:desmuta|desmute|desmutar|volta o som|ativa o som|liga o som)', p): return 'unmute'
+    m = re.fullmatch(r'(?:toc[ae]r?|bot[ae] pra tocar) ' + PT_THE + r'(?:playlist |música |musica )?(?:d[eoa] )?(.+?)( no spotify)?', p)
+    if m and not PT_MORE.search(m[1]):
+        return f'play {m[1]}' + (' on spotify' if m[2] else '')
+    m = re.fullmatch(r'(?:pesquis[ae]r?|busc[ae]r?)(?: n[oa] google| na internet)?(?: (?:por|sobre))? (.+?)(?: n[oa] (?!google$)([a-z0-9][\w.-]*))?', p)
+    if m and not PT_MORE.search(m[1]):
+        return f'search {m[2]} for {m[1]}' if m[2] else f'search for {m[1]}'
+    if PT_MORE.search(p): return t
+    m = re.fullmatch(r'(?:coloc[ae]r?|bot[ae]r?|jog[ae]r?|mov[ae]r?|mova|mand[ae]r?|deix[ae]r?) ' + PT_THE + r'(.+?) (?:n[oa]|à|pr[oa]|para(?: a| o)?|em) '
+                     r'(?:(?:lado|metade) )?(?:d[oa] )?(esquerda|direita|centro|meio|tela cheia|tela inteira|monitor|notebook|laptop|macbook)', p)
+    if m: return f'put {m[1]} {PT_WHERE[m[2]]}'
+    m = re.fullmatch(r'(?:maximiz[ae]r?) ' + PT_THE + r'(.+)', p)
+    if m: return f'maximize {m[1]}'
+    m = re.fullmatch(r'(?:abr[aei]r?|inici[ae]r?|entr[ae]r? n[oa]|vai pr[oa]|vá pr[oa]) ' + PT_THE + r'(.+)', p)
+    if m: return f'open {m[1]}'
+    m = re.fullmatch(r'(?:fech[ae]r?|encerr[ae]r?|sai[ra]? d[oa]) ' + PT_THE + r'(.+)', p)
+    if m: return f'close {m[1]}'
+    m = re.fullmatch(r'(?:lembr[ae](?:-se)?|aprend[ae]|salv[ae]) (?:como|a) (?:fazer )?(.+?)(?: (?:pra|para) (?:a )?pr[oó]xima vez)?', p)
+    if m: return f'remember how to {m[1]}'
+    return t
+
+
+def portuguese(reply):
+    """An instant command's English reply, said in Portuguese."""
+    where = lambda w: {'left': 'na esquerda', 'right': 'na direita', 'full': 'em tela inteira', 'full screen': 'em tela cheia', 'center': 'no centro'}.get(w, w)
+    for pattern, said in ((r'Opened (.+)\.', lambda m: f'Abri {m[1]}.'), (r'Closed (.+)\.', lambda m: f'Fechei {m[1]}.'),
+                          (r'(.+) is still open\.', lambda m: f'{m[1]} continua aberto.'),
+                          (r'Searched (.+) on (.+)\.', lambda m: f'Pesquisei {m[1]} no {m[2]}.'), (r'Searched (.+)\.', lambda m: f'Pesquisei {m[1]}.'),
+                          (r'Okay\.', lambda m: 'Ok.'), (r'Paused (.+)\.', lambda m: f'Pausei o {m[1]}.'),
+                          (r'Playing (.+) in (.+)\.', lambda m: f'Tocando {m[1]} no {m[2]}.'),
+                          (r'Playing (.+?)(?: on Spotify)?\.', lambda m: f'Tocando {m[1]}' + (' no Spotify.' if m[0].endswith(' on Spotify.') else '.')),
+                          (r'Volume (\d+)%\.', lambda m: f'Volume em {m[1]}%.'), (r'Muted\.', lambda m: 'Som mutado.'), (r'Unmuted\.', lambda m: 'Som ativado.'),
+                          (r'I have saved the procedure for next time\.', lambda m: 'Já salvei como fazer isso para a próxima vez.'),
+                          (r'I do not have a verified procedure.*', lambda m: 'Ainda não sei fazer isso de um jeito verificado. Faça a tarefa uma vez com sucesso para eu salvar.'),
+                          (r'([^:;]+): (left|right|full screen|full|center)(?: on (laptop|monitor))?\.',
+                           lambda m: f'{m[1]}: {where(m[2])}' + ({'laptop': ' no notebook', 'monitor': ' no monitor'}.get(m[3], f' em {m[3]}') if m[3] else '') + '.')):
+        m = re.fullmatch(pattern, reply, re.S)
+        if m: return said(m)
+    return reply
+
+
 # Ways to say a screen or a size, in any order: "full screen chrome on my big screen", "move chrome to the external display and maximize it"
 MOVE_WORDS = [(r'\bfull ?screen\b', 'fullscreen'), (r'\bmaximi[sz]ed?\b', 'full'),
               (r'\b(?:(?:big|bigger|large|larger|external|second) (?:screen|monitor|display)|external|monitor|display)\b', 'monitor'),
@@ -2158,10 +2353,12 @@ def jev(text):
     """A loose phrasing the regexes missed ("fire up my music app", "get rid of Slack", "throw the browser on my big screen")
     -> the same instant open, quit or move, or None for the AI. Jev only picks from fixed lists (action, installed app, place),
     so it cannot invent a command; every pick must be confident, and anything slow, unsure or failed goes to the AI as before."""
-    jev.hit = False
+    jev.hit = jev.known = False
     key, t = TYPESAFE_KEY, plain(text)
     if not key or os.environ.get('DELPHI_LIVE') == '1' or len(t.split()) > 12 or DEICTIC.search(t) or MORE.search(t):
         return None   # "close this" needs the screen, "and then" is two steps: both are the AI's
+    # learned tasks, most recently used first: "ligar sicore com meu ipad" is the Sidecar shortcut a mishearing away
+    learned = sorted(((k, s) for k, s in skills().items() if not s.get('slot')), key=lambda e: max(e[1].get('used', ''), e[1].get('at', '')), reverse=True)[:254] if pref('learn', True) else []
     places = {'left': 'Left half', 'right': 'Right half', 'full': 'Fill the screen, maximize, make it big', 'center': 'Centered', 'none': 'No place is said'}
     body = {'model': pref('typesafeModel', 'jev-latest'), 'state': text, 'questions': {
         'action': {'type': 'choice', 'instructions': 'What the user asks their Mac to do', 'criteria': {
@@ -2174,6 +2371,9 @@ def jev(text):
         'screen': {'type': 'choice', 'instructions': 'Which display the window should go to', 'criteria': {
             'laptop': "The Mac's built-in screen", 'monitor': 'An external, second or bigger display', 'current': 'No display is said'}},
         'one': {'type': 'noul', 'instructions': 'The request asks for exactly one action on one app, with nothing to read, answer or do afterwards'}}}
+    if learned:
+        body['questions']['shortcut'] = {'type': 'choice', 'instructions': 'The saved task this request asks for again, even reworded or misheard (a near-sounding word)',
+                                         'criteria': {**{k: s.get('asked') or None for k, s in learned}, 'none': 'No saved task does what the request asks'}}
     request = urllib.request.Request(JEV, json.dumps(body).encode(), {'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
     try:
         with urllib.request.urlopen(request, timeout=float(pref('typesafeTimeout', 1))) as r:
@@ -2181,8 +2381,14 @@ def jev(text):
         action, app, where, screen = (a[q]['choice'] for q in ('action', 'app', 'where', 'screen'))
         sure = min(a['action']['confidence'], a['app']['confidence']) >= (.9 if action == 'quit' else .8) and a['one']['noul'] >= .8
         placed = min(a['where']['confidence'], a['screen']['confidence']) >= .8
+        pick = a.get('shortcut') or {}   # no answer for it: open/quit/move still route
+        known = pick['choice'] if learned and pick and pick['confidence'] >= .85 else 'none'
     except (OSError, ValueError, KeyError, TypeError):
         return None
+    if known != 'none' and known in dict(learned):   # what the user already taught wins over a fresh open/quit/move guess
+        reply = run_shortcut(known)
+        jev.hit = jev.known = bool(reply)
+        return reply
     if not sure or action not in ('open', 'quit', 'move') or app == 'none':
         return None
     if action == 'move':
@@ -5352,7 +5558,7 @@ def main():
     jev.hit = False
     if not quick and not marked and not done and (not commit or os.path.exists(commit)) and pref('instant', True) and not getattr(fast, 'failed', None):   # a failed shortcut is the AI's to redo
         quick = jev(task)
-        if jev.hit and pref('learn', True) and learn(task, fast.cmds, quick):   # next time this phrasing is a local shortcut: no call at all
+        if jev.hit and not jev.known and pref('learn', True) and learn(task, fast.cmds, quick):   # next time this phrasing is a local shortcut: no call at all
             learned_pill(f'Learned: Say “{task}” any time.')
     if quick:
         quick_cancelled = quick.startswith('The user said no.')
