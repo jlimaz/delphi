@@ -25,7 +25,7 @@ All requests and interrupted steps go to ~/.config/delphi/log.jsonl with their c
 import shlex
 import platform
 import fcntl
-import atexit, base64, difflib, hashlib, html, json, plistlib, shutil, threading, os, re, select, signal, subprocess, sys, tempfile, time, urllib.parse, urllib.request
+import atexit, base64, collections, difflib, hashlib, html, json, plistlib, shutil, threading, os, re, select, signal, subprocess, sys, tempfile, time, urllib.parse, urllib.request
 import unicodedata
 import uuid
 import traceback
@@ -2090,6 +2090,26 @@ def fast(text):
     m = re.fullmatch(r'(?:turn (?:the )?volume (up|down)|turn (up|down) the volume|volume (up|down))(?: by (\w+))?|(mute|unmute)', t)
     if m:
         return volume(m[5] or m[1] or m[2] or m[3], STEPS.get(m[4] or 'one'))
+    tab = next(((key, said) for pattern, key, said in TABS if re.fullmatch(pattern, t)), None)
+    if tab:   # the front app's own shortcut, as the AI would press it
+        r = fast_hands(f'press {tab[0]}')
+        return tab[1] if r and r.startswith('Pressed') else r
+    if t in SCREEN_SAVER or t in DISPLAY_OFF:
+        if os.environ.get('DELPHI_LIVE') == '1': return None
+        cmd = ['open', '-a', 'ScreenSaverEngine'] if t in SCREEN_SAVER else ['pmset', 'displaysleepnow']
+        try:
+            if subprocess.run(cmd).returncode: return None
+        except OSError:
+            return None
+        fast.cmds = [shlex.join(cmd)]
+        return 'Started the screen saver.' if t in SCREEN_SAVER else 'Turned the display off.'
+    app = app_named(t) if len(t.split()) <= 3 and os.environ.get('DELPHI_LIVE') != '1' else None
+    key = lambda n: re.sub(r'[^a-z0-9]', '', n.lower())
+    if app and key(app_words(t)) in (key(app), key(app.split()[-1]), key(''.join(p[0] for p in app.split()[:-1]) + app.split()[-1])):   # just an app's name ("Calculator."): open it; live words may still go on ("Spotify, play jazz")
+        return fast(f'open {app}')
+    m = re.fullmatch(r'(?:search(?: up)?|look up) (?:for )?(.+?) (?:on|in) ([a-z0-9][\w.-]*)', t)
+    if m and (m[2] in SITE_WORDS or '.' in m[2]) and not app_named(m[2]):   # "search up airpods on amazon" = "search amazon for airpods"
+        t = f'search {m[2]} for {m[1]}'
     site = re.fullmatch(r'(?:search(?: up)?|google|look up) ([a-z0-9][\w.-]*) for (.+)', t)
     m = site or re.fullmatch(r'(?:search(?: up)?|google|look up)(?: for)? (.+)', t)
     if site and app_named(site[1]): site = m = None
@@ -2184,6 +2204,17 @@ MEDIA = {**dict.fromkeys(('play', 'resume', 'play music', 'play the music', 'res
          **dict.fromkeys(('pause', 'paus', 'pause the music', 'paus the music', 'pause music', 'stop the music', 'stop music', 'pause spotify'), 'pause'),
          **dict.fromkeys(('next', 'skip', 'next song', 'next track', 'skip this song', 'skip the song', 'skip song'), 'next'),
          **dict.fromkeys(('previous', 'previous song', 'previous track', 'last song'), 'previous')}
+TABS = ((r'(?:open )?(?:a )?new tab', 'cmd+t', 'Opened a new tab.'),
+        (r'close (?:the |this |that |current |my )?(?:current )?tab', 'cmd+w', 'Closed the tab.'),
+        (r'(?:reload|refresh)(?: (?:the|this|my) (?:page|tab))?', 'cmd+r', 'Reloaded the page.'))
+SCREEN_SAVER = {'screen saver', 'screensaver', 'start the screen saver', 'start screen saver', 'turn on the screen saver', 'turn on screen saver'}
+DISPLAY_OFF = {'turn off the screen', 'turn off the display', 'turn off my screen', 'turn off my display', 'sleep the display', 'sleep display',
+               'turn the screen off', 'turn the display off'}
+SITES = {'amazon.com': 'Amazon', 'mail.google.com': 'Gmail, my email, my inbox', 'google.com': 'Google', 'youtube.com': 'YouTube',
+         'web.whatsapp.com': 'WhatsApp in the browser (WhatsApp Web)', 'calendar.google.com': 'Google Calendar', 'drive.google.com': 'Google Drive',
+         'docs.google.com': 'Google Docs', 'github.com': 'GitHub', 'netflix.com': 'Netflix', 'chatgpt.com': 'ChatGPT', 'gemini.google.com': 'Gemini',
+         'claude.ai': 'Claude', 'x.com': 'X (Twitter)', 'linkedin.com': 'LinkedIn', 'reddit.com': 'Reddit', 'instagram.com': 'Instagram'}
+SITE_WORDS = {d.split('.')[-2] for d in SITES} | {'youtube', 'ebay', 'wikipedia', 'mercadolivre', 'twitter'}
 STEPS = {'one': 1, 'a bit': 1, 'a little': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, **{str(n): n for n in range(1, 11)}}
 
 
@@ -2266,6 +2297,11 @@ def english(t):
     m = re.fullmatch(r'(?:pesquis[ae]r?|busc[ae]r?)(?: n[oa] google| na internet)?(?: (?:por|sobre))? (.+?)(?: n[oa] (?!google$)([a-z0-9][\w.-]*))?', p)
     if m and not PT_MORE.search(m[1]):
         return f'search {m[2]} for {m[1]}' if m[2] else f'search for {m[1]}'
+    if re.fullmatch(r'(?:(?:abr[aei]r?|cri[ae]r?) )?(?:uma )?nova (?:aba|guia)', p): return 'new tab'
+    if re.fullmatch(r'(?:fech[ae]r?) (?:a |essa |esta )?(?:aba|guia)(?: atual)?', p): return 'close tab'
+    if re.fullmatch(r'(?:atualiz[ae]r?|recarreg[ae]r?) (?:a |essa |esta )?(?:página|pagina|aba)(?: atual)?', p): return 'reload'
+    if re.fullmatch(r'(?:lig[ae]r?|ligue|ativ[ae]r?|inici[ae]r?) (?:o )?(?:descanso|protetor|economizador) de tela', p): return 'screen saver'
+    if re.fullmatch(r'(?:deslig[ae]r?|desligue|apag[ae]r?|apague) (?:a )?tela(?: d[oa] (?:meu |minha )?(?:computador|mac|notebook|macbook))?', p): return 'turn off the display'
     if PT_MORE.search(p): return t
     m = re.fullmatch(r'(?:coloc[ae]r?|bot[ae]r?|jog[ae]r?|mov[ae]r?|mova|mand[ae]r?|deix[ae]r?) ' + PT_THE + r'(.+?) (?:n[oa]|à|pr[oa]|para(?: a| o)?|em) '
                      r'(?:(?:lado|metade) )?(?:d[oa] )?(esquerda|direita|centro|meio|tela cheia|tela inteira|monitor|notebook|laptop|macbook)', p)
@@ -2284,12 +2320,15 @@ def english(t):
 def portuguese(reply):
     """An instant command's English reply, said in Portuguese."""
     where = lambda w: {'left': 'na esquerda', 'right': 'na direita', 'full': 'em tela inteira', 'full screen': 'em tela cheia', 'center': 'no centro'}.get(w, w)
-    for pattern, said in ((r'Opened (.+)\.', lambda m: f'Abri {m[1]}.'), (r'Closed (.+)\.', lambda m: f'Fechei {m[1]}.'),
+    for pattern, said in ((r'Opened a new tab\.', lambda m: 'Abri uma nova aba.'), (r'Closed the tab\.', lambda m: 'Fechei a aba.'),
+                          (r'Opened (.+) in (.+)\.', lambda m: f'Abri {m[1]} no {m[2]}.'), (r'Opened (.+)\.', lambda m: f'Abri {m[1]}.'), (r'Closed (.+)\.', lambda m: f'Fechei {m[1]}.'),
                           (r'(.+) is still open\.', lambda m: f'{m[1]} continua aberto.'),
                           (r'Searched (.+) on (.+)\.', lambda m: f'Pesquisei {m[1]} no {m[2]}.'), (r'Searched (.+)\.', lambda m: f'Pesquisei {m[1]}.'),
                           (r'Okay\.', lambda m: 'Ok.'), (r'Paused (.+)\.', lambda m: f'Pausei o {m[1]}.'),
                           (r'Playing (.+) in (.+)\.', lambda m: f'Tocando {m[1]} no {m[2]}.'),
                           (r'Playing (.+?)(?: on Spotify)?\.', lambda m: f'Tocando {m[1]}' + (' no Spotify.' if m[0].endswith(' on Spotify.') else '.')),
+                          (r'Reloaded the page\.', lambda m: 'Atualizei a página.'), (r'Started the screen saver\.', lambda m: 'Liguei o descanso de tela.'),
+                          (r'Turned the display off\.', lambda m: 'Desliguei a tela.'),
                           (r'Volume (\d+)%\.', lambda m: f'Volume em {m[1]}%.'), (r'Muted\.', lambda m: 'Som mutado.'), (r'Unmuted\.', lambda m: 'Som ativado.'),
                           (r'I have saved the procedure for next time\.', lambda m: 'Já salvei como fazer isso para a próxima vez.'),
                           (r'I do not have a verified procedure.*', lambda m: 'Ainda não sei fazer isso de um jeito verificado. Faça a tarefa uma vez com sucesso para eu salvar.'),
@@ -2349,9 +2388,25 @@ def jev_apps():
                    if os.path.isdir(d) for f in os.listdir(d) if f.endswith('.app')})[:254]
 
 
+def jev_sites():
+    """Sites Jev may open: the common ones, then the hosts earlier asks opened (most often first). Hosts only, so it never makes up a path."""
+    seen = collections.Counter(h.lower().removeprefix('www.') for r in read_rows(os.path.join(DIR, 'log.jsonl')) for c in r.get('ran') or () if isinstance(c, str)
+                               for h in re.findall(r'(?:--show(?: --bg)?|\bopen(?: -a [^"\s]+| -a "[^"]+")?) "?https?://([a-z0-9-]+(?:\.[a-z0-9-]+)+)', c, re.I))
+    sites = dict(SITES)
+    for host, _ in seen.most_common():
+        if len(sites) >= 120: break
+        sites.setdefault(host, None)
+    return sites
+
+
+BROWSER = re.compile(r'\b(Chrome|Brave|Safari|Firefox|Arc|Edge|Opera|Vivaldi|Orion|Dia|Zen|Chromium)\b')
+JEV_SAID = {'play': 'play', 'pause': 'pause', 'next': 'next', 'previous': 'previous', 'mute': 'mute', 'unmute': 'unmute',
+            'new_tab': 'new tab', 'close_tab': 'close tab', 'reload': 'reload', 'screen_saver': 'screen saver', 'display_off': 'turn off the display'}
+
+
 def jev(text):
-    """A loose phrasing the regexes missed ("fire up my music app", "get rid of Slack", "throw the browser on my big screen")
-    -> the same instant open, quit or move, or None for the AI. Jev only picks from fixed lists (action, installed app, place),
+    """A loose phrasing the regexes missed ("fire up my music app", "get rid of Slack", "turn it down a little", "pull up my email")
+    -> the same instant command, or None for the AI. Jev only picks from fixed lists (action, installed app, site, place, amount),
     so it cannot invent a command; every pick must be confident, and anything slow, unsure or failed goes to the AI as before."""
     jev.hit = jev.known = False
     key, t = TYPESAFE_KEY, plain(text)
@@ -2362,15 +2417,24 @@ def jev(text):
     places = {'left': 'Left half', 'right': 'Right half', 'full': 'Fill the screen, maximize, make it big', 'center': 'Centered', 'none': 'No place is said'}
     body = {'model': pref('typesafeModel', 'jev-latest'), 'state': text, 'questions': {
         'action': {'type': 'choice', 'instructions': 'What the user asks their Mac to do', 'criteria': {
-            'open': 'Open, launch, show or switch to an app', 'quit': 'Quit or close an app',
+            'open': "Open, launch, show or switch to an app, or say only an app's name", 'quit': 'Quit or close an app',
             'move': "Move, snap, resize or maximize an app's window",
-            'other': 'Anything else: a question, typing, searching, a website, a file, a setting, or more than one step'}},
+            'play': 'Play or resume music', 'pause': 'Pause or stop the music', 'next': 'Skip to the next song', 'previous': 'Go back to the previous song',
+            'volume_up': 'Turn the volume up, louder', 'volume_down': 'Turn the volume down, quieter', 'mute': 'Mute the sound', 'unmute': 'Unmute the sound',
+            'site': 'Open a website (not an app)', 'new_tab': 'Open a new browser tab', 'close_tab': 'Close the current browser tab',
+            'reload': 'Reload or refresh the current page', 'screen_saver': 'Start the screen saver', 'display_off': 'Turn off or sleep the display',
+            'other': 'Anything else: a question, typing, searching, a message, a file, a setting, or more than one step'}},
         'app': {'type': 'choice', 'instructions': 'The app the request names or clearly means',
                 'criteria': {**{a: None for a in jev_apps()}, 'none': 'No app in this list is named or clearly meant'}},
+        'site': {'type': 'choice', 'instructions': 'The website the request names or clearly means',
+                 'criteria': {**jev_sites(), 'none': 'No website in this list is named or clearly meant'}},
         'where': {'type': 'choice', 'instructions': 'Where on the screen the window should go', 'criteria': places},
         'screen': {'type': 'choice', 'instructions': 'Which display the window should go to', 'criteria': {
             'laptop': "The Mac's built-in screen", 'monitor': 'An external, second or bigger display', 'current': 'No display is said'}},
-        'one': {'type': 'noul', 'instructions': 'The request asks for exactly one action on one app, with nothing to read, answer or do afterwards'}}}
+        'amount': {'type': 'choice', 'instructions': 'How many volume steps the request asks for', 'criteria': {
+            '1': 'One step, a bit, a little, or no amount said', '2': 'Two steps', '3': 'Three steps, a lot', '4': 'Four steps', '5': 'Five steps'}},
+        'one': {'type': 'noul', 'instructions': 'The request asks for exactly one action, with nothing to read, answer or do afterwards'},
+        'portuguese': {'type': 'noul', 'instructions': 'The request is in Portuguese'}}}
     if learned:
         body['questions']['shortcut'] = {'type': 'choice', 'instructions': 'The saved task this request asks for again, even reworded or misheard (a near-sounding word)',
                                          'criteria': {**{k: s.get('asked') or None for k, s in learned}, 'none': 'No saved task does what the request asks'}}
@@ -2379,27 +2443,55 @@ def jev(text):
         with urllib.request.urlopen(request, timeout=float(pref('typesafeTimeout', 1))) as r:
             a = json.load(r)['answers']
         action, app, where, screen = (a[q]['choice'] for q in ('action', 'app', 'where', 'screen'))
-        sure = min(a['action']['confidence'], a['app']['confidence']) >= (.9 if action == 'quit' else .8) and a['one']['noul'] >= .8
-        placed = min(a['where']['confidence'], a['screen']['confidence']) >= .8
-        pick = a.get('shortcut') or {}   # no answer for it: open/quit/move still route
+        sure_of = lambda q, at=.8: (a.get(q) or {}).get('confidence', 0) >= at
+        undoable = action in ('play', 'pause', 'next', 'previous', 'volume_up', 'volume_down', 'mute', 'unmute', 'new_tab', 'reload', 'screen_saver')
+        sure = sure_of('action', .9 if action in ('quit', 'close_tab') else .8) and a['one']['noul'] >= (.7 if undoable and sure_of('action', .95) else .8)   # "baixe um pouquinho": surely volume, less surely one step
+        app = app if sure_of('app') else 'none'
+        placed = sure_of('where') and sure_of('screen')
+        site = a['site']['choice'] if a.get('site') and sure_of('site') else 'none'   # no answer for it: the others still route
+        steps = a['amount']['choice'] if a.get('amount') and sure_of('amount') else '1'
+        pt = (a.get('portuguese') or {}).get('noul', 0) >= .8
+        pick = a.get('shortcut') or {}
         known = pick['choice'] if learned and pick and pick['confidence'] >= .85 else 'none'
     except (OSError, ValueError, KeyError, TypeError):
         return None
-    if known != 'none' and known in dict(learned):   # what the user already taught wins over a fresh open/quit/move guess
+    if known != 'none' and known in dict(learned):   # what the user already taught wins over a fresh guess
         reply = run_shortcut(known)
         jev.hit = jev.known = bool(reply)
         return reply
-    if not sure or action not in ('open', 'quit', 'move') or app == 'none':
+    if not sure or action == 'other':
         return None
+    if action in ('open', 'quit', 'move') and app == 'none':
+        return None
+    if action in ('new_tab', 'close_tab', 'reload') and app != 'none' and app != (os.environ.get('DELPHI_FRONT') or front()[0]):
+        return None   # "close the Brave tab" while Brave is behind: the AI brings it forward first
     if action == 'move':
         if not placed or (where, screen) == ('none', 'current'):
             return None
         said = ' '.join(['move', app] + [w for w in (where, screen) if w not in ('none', 'current')])
+    elif action == 'site':
+        if site == 'none' or (app != 'none' and not BROWSER.search(app)):
+            return None
+        if app != 'none':   # "open my email in Brave": that browser, not the default one
+            url = 'https://' + site
+            try:
+                if subprocess.run(['open', '-a', app, url]).returncode: return None
+            except OSError:
+                return None
+            fast.cmds = [shlex.join(['open', '-a', app, url])]
+            jev.hit = True
+            reply = f'Opened {SITES.get(site, site).split(",")[0]} in {app}.'
+            return portuguese(reply) if pt else reply
+        said = f'open {site}'
+    elif action in ('volume_up', 'volume_down'):
+        said = f'turn volume {action[7:]} by {steps}'
+    elif action in JEV_SAID:
+        said = JEV_SAID[action]
     else:
         said = f'{action} {app}'
     reply = fast(said)   # the existing instant command does the work, checks it and fills fast.cmds
     jev.hit = bool(reply)
-    return reply
+    return portuguese(reply) if reply and pt else reply
 
 
 def look(cleanup=True, window=None):

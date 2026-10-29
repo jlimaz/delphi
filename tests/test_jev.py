@@ -12,10 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import delphi
 
 
-def answers(action='open', app='Spotify', where='none', screen='current', sure=1.0, one=.97):
+def answers(action='open', app='Spotify', where='none', screen='current', sure=1.0, one=.97, site='none', amount='1', pt=.02):
     choice = lambda c: {'type': 'choice', 'choice': c, 'confidence': sure, 'probabilities': {c: sure}}
     return {'model': 'jev-1.13.0', 'answers': {'action': choice(action), 'app': choice(app), 'where': choice(where),
-                                               'screen': choice(screen), 'one': {'type': 'noul', 'noul': one}}}
+                                               'screen': choice(screen), 'site': choice(site), 'amount': choice(amount),
+                                               'one': {'type': 'noul', 'noul': one}, 'portuguese': {'type': 'noul', 'noul': pt}}}
 
 
 class JevTests(unittest.TestCase):
@@ -27,7 +28,8 @@ class JevTests(unittest.TestCase):
             if error: raise error
             return io.BytesIO(json.dumps(reply or answers()).encode())
         with patch.object(delphi, 'TYPESAFE_KEY', key), patch.object(delphi, 'pref', side_effect=lambda k, d: prefs.get(k, d)), \
-             patch.object(delphi, 'jev_apps', return_value=['Google Chrome', 'Slack', 'Spotify']), \
+             patch.object(delphi, 'jev_apps', return_value=['Brave Browser', 'Google Chrome', 'Slack', 'Spotify']), \
+             patch.object(delphi, 'jev_sites', return_value={'amazon.com': 'Amazon', 'mail.google.com': 'Gmail'}), \
              patch.object(delphi.urllib.request, 'urlopen', side_effect=urlopen), \
              patch.object(delphi, 'fast', return_value='Done.') as fast, \
              patch.dict(os.environ, env or {}):
@@ -46,7 +48,7 @@ class JevTests(unittest.TestCase):
         self.assertEqual(request.get_header('Authorization'), 'Bearer ts-fixture')
         self.assertEqual(body['state'], 'could you fire up my music app')
         self.assertEqual(body['model'], 'jev-latest')
-        self.assertEqual(set(body['questions']['app']['criteria']), {'Google Chrome', 'Slack', 'Spotify', 'none'})
+        self.assertEqual(set(body['questions']['app']['criteria']), {'Brave Browser', 'Google Chrome', 'Slack', 'Spotify', 'none'})
         self.assertEqual(timeout, 1)
 
     def test_move_says_only_the_place_and_screen_it_heard(self):
@@ -57,6 +59,58 @@ class JevTests(unittest.TestCase):
         fast.assert_called_once_with('move Slack full')
         _, fast, _ = self.ask('move slack', answers('move', 'Slack', 'none', 'current'))
         fast.assert_not_called()
+
+    def test_music_volume_tabs_and_screen_use_the_instant_commands(self):
+        for action, amount, said in (('pause', '1', 'pause'), ('next', '1', 'next'), ('volume_up', '2', 'turn volume up by 2'),
+                                     ('volume_down', '1', 'turn volume down by 1'), ('mute', '1', 'mute'), ('new_tab', '1', 'new tab'),
+                                     ('reload', '1', 'reload'), ('screen_saver', '1', 'screen saver'), ('display_off', '1', 'turn off the display')):
+            with self.subTest(action=action):
+                _, fast, _ = self.ask('baixe um pouquinho', answers(action, 'none', amount=amount))
+                fast.assert_called_once_with(said)
+
+    def test_an_undoable_action_jev_is_sure_of_allows_a_less_sure_one_step(self):
+        _, fast, _ = self.ask('baixe um pouquinho', answers('volume_down', 'none', one=.74))
+        fast.assert_called_once_with('turn volume down by 1')
+        for reply in (answers('volume_down', 'none', one=.74, sure=.9), answers('quit', 'Slack', one=.74)):
+            _, fast, _ = self.ask('baixe um pouquinho', reply)
+            fast.assert_not_called()
+
+    def test_closing_a_tab_needs_more_certainty_and_the_named_app_in_front(self):
+        _, fast, _ = self.ask('get rid of this tab', answers('close_tab', 'none', sure=.85))
+        fast.assert_not_called()
+        _, fast, _ = self.ask('feche a aba do brave', answers('close_tab', 'Brave Browser'), env={'DELPHI_FRONT': 'Slack'})
+        fast.assert_not_called()
+        _, fast, _ = self.ask('feche a aba do brave', answers('close_tab', 'Brave Browser'), env={'DELPHI_FRONT': 'Brave Browser'})
+        fast.assert_called_once_with('close tab')
+
+    def test_a_site_opens_by_its_host_or_in_the_named_browser(self):
+        _, fast, _ = self.ask('abra amazon pra mim', answers('site', 'none', site='amazon.com'))
+        fast.assert_called_once_with('open amazon.com')
+        ok = delphi.subprocess.CompletedProcess([], 0)
+        with patch.object(delphi.subprocess, 'run', return_value=ok) as run:
+            result, fast, _ = self.ask('abre meu e-mail no brave', answers('site', 'Brave Browser', site='mail.google.com', pt=.97))
+        run.assert_called_once_with(['open', '-a', 'Brave Browser', 'https://mail.google.com'])
+        fast.assert_not_called(); self.assertTrue(delphi.jev.hit)
+        self.assertEqual(result, 'Abri Gmail no Brave Browser.')
+        for reply in (answers('site', 'none', site='none'), answers('site', 'Slack', site='amazon.com')):   # no site, or "in Slack"
+            _, fast, _ = self.ask('open amazon', reply)
+            fast.assert_not_called()
+
+    def test_portuguese_requests_get_portuguese_replies(self):
+        with patch.object(delphi, 'TYPESAFE_KEY', 'ts-fixture'):
+            result, _, _ = self.ask('bota pra tocar', answers('open', 'Spotify', pt=.95))
+        self.assertEqual(result, 'Done.')   # an unknown reply stays as it is
+        with patch.object(delphi, 'portuguese', return_value='Abri Spotify.') as pt:
+            result, _, _ = self.ask('bota o spotify', answers('open', 'Spotify', pt=.95))
+        self.assertEqual(result, 'Abri Spotify.'); pt.assert_called_once_with('Done.')
+
+    def test_site_list_adds_hosts_earlier_asks_opened(self):
+        rows = [{'ran': ['/x/delphi.py --show --bg "https://www.amazon.com.br/s?k=a"', 'open -a "Brave Browser" "https://resultados.tse.jus.br/"',
+                         'curl "https://api.example.com/x"']}]
+        with patch.object(delphi, 'read_rows', return_value=rows):
+            sites = delphi.jev_sites()
+        self.assertIn('amazon.com.br', sites); self.assertIn('resultados.tse.jus.br', sites); self.assertNotIn('api.example.com', sites)
+        self.assertEqual(sites['amazon.com'], 'Amazon')
 
     def test_a_reworded_or_misheard_saved_task_replays_it(self):
         learned = {'ligue o sidecar com meu ipad': {'cmds': ['x'], 'reply': 'On.', 'at': '2026-10-28'},

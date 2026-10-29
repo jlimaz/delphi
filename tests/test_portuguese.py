@@ -28,6 +28,38 @@ class PortugueseTests(unittest.TestCase):
                               ('lembra como mandar mensagem pra letícia', 'remember how to mandar mensagem pra letícia')]:
             self.assertEqual(delphi.english(said), english, said)
 
+    def test_tabs_and_the_screen_become_english_commands(self):
+        for said, english in [('abrir nova aba', 'new tab'), ('abre uma nova guia', 'new tab'), ('fecha essa aba', 'close tab'),
+                              ('atualize a página', 'reload'), ('ligar descanso de tela', 'screen saver'), ('liga o economizador de tela', 'screen saver'),
+                              ('desliga a tela do meu computador', 'turn off the display')]:
+            self.assertEqual(delphi.english(said), english, said)
+        for reply, said in [('Opened a new tab.', 'Abri uma nova aba.'), ('Closed the tab.', 'Fechei a aba.'), ('Reloaded the page.', 'Atualizei a página.'),
+                            ('Opened Gmail in Brave Browser.', 'Abri Gmail no Brave Browser.'), ('Turned the display off.', 'Desliguei a tela.')]:
+            self.assertEqual(delphi.portuguese(reply), said)
+
+    def test_tabs_screen_bare_app_names_and_site_searches_need_no_ai(self):
+        pressed = lambda t: f'Pressed "{t[6:]}" in Brave Browser' if t.startswith('press ') else None
+        with patch.object(delphi, 'fast_hands', side_effect=pressed) as hands:
+            self.assertEqual(delphi.fast('Abrir nova aba.'), 'Abri uma nova aba.')
+            hands.assert_called_with('press cmd+t')
+            self.assertEqual(delphi.fast('refresh the page'), 'Reloaded the page.')
+        ok = subprocess.CompletedProcess([], 0)
+        with patch.object(delphi.subprocess, 'run', return_value=ok) as run:
+            self.assertEqual(delphi.fast('Desliga a tela do meu computador.'), 'Desliguei a tela.')
+            self.assertEqual(run.call_args.args[0], ['pmset', 'displaysleepnow'])
+            self.assertEqual(delphi.fast('Start the screen saver.'), 'Started the screen saver.')
+            self.assertEqual(run.call_args.args[0], ['open', '-a', 'ScreenSaverEngine'])
+        with patch.object(delphi, 'app_named', side_effect=lambda n: 'Calculator' if n in ('calculator', 'Calculator') else None), \
+             patch.object(delphi, 'app_heard', return_value=None), patch.object(delphi.subprocess, 'run', return_value=ok) as run:
+            self.assertEqual(delphi.fast('Calculator.'), 'Opened Calculator.')
+            self.assertEqual(run.call_args.args[0], ['open', '-a', 'Calculator'])
+            with patch.dict(delphi.os.environ, {'DELPHI_LIVE': '1'}):
+                self.assertIsNone(delphi.fast('Calculator'))   # live words may still go on
+        with patch.object(delphi, 'app_named', return_value=None), patch.object(delphi, 'show', return_value='opened it in the background') as show:
+            self.assertEqual(delphi.fast('Search up AirPods on Amazon.'), 'Searched airpods on amazon.')
+            self.assertIn('%21amazon', show.call_args.args[0].replace('!', '%21'))
+            self.assertEqual(delphi.fast('search up the weather in boston'), 'Searched the weather in boston.')   # boston is not a site
+
     def test_second_steps_pointing_words_and_questions_stay_with_the_ai(self):
         for said in ('abre a amazon e pesquisa pra mim sei lá livros', 'fecha isso', 'fecha aqui',
                      'pesquisa livros e abre o primeiro', 'me mostra na tela onde está a resposta final', 'baixe um pouquinho',
