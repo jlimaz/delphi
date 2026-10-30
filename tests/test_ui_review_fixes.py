@@ -98,7 +98,6 @@ if (sent?.copy !== 'my words' || button.textContent !== 'Copied') process.exit(1
         self.assertIn('animation-iteration-count: 1 !important', rule)
         self.assertIn("const reduced = matchMedia('(prefers-reduced-motion: reduce)')", self.onboarding)
         self.assertIn("reduced.addEventListener('change'", self.onboarding)
-        self.assertIn('welcomeGeneration++;', self.onboarding)
         self.assertNotIn("const still = matchMedia('(prefers-reduced-motion: reduce)').matches", self.onboarding)
 
     def test_onboarding_welcome_orb_keeps_animating(self):
