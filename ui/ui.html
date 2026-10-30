@@ -22,7 +22,7 @@
   #status.live span { background: linear-gradient(90deg, var(--fg2) 0%, #fff 45%, var(--fg2) 90%); background-size: 200% 100%;
     -webkit-background-clip: text; color: transparent; animation: in .35s var(--ease) both, shimmer 1.5s linear infinite; }
 
-  #thread { container-type: inline-size; max-height: 420px; min-height: 0; overflow-y: auto; scroll-behavior: smooth; padding-top: 2px;
+  #thread { container-type: inline-size; max-height: 420px; min-height: 0; overflow-y: auto; padding-top: 2px;   /* no smooth scroll: fit() and follow() set scrollTop every update and frame, and each restarted animation shook the thread */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 100%); }
   #thread::-webkit-scrollbar { width: 0; }
   #thread:empty { display: none; }
