@@ -256,6 +256,9 @@ try Hands.mouse(CGPoint(x:10,y:20),a,front:true); MiniScreen.workInFront=true; t
 MiniScreen.workInFront=false; Hands.window=0; try Hands.mouse(CGPoint(x:10,y:20),a,to:CGPoint(x:50,y:60))
 precondition(Hands.front == ["mouse","wheel","mouse"] && traces.isEmpty, "front work or an unknown window posted background events")
 precondition(Hands.focused == [77,-77,77,-77,77,-77,77,-77,88,-88] && Hands.restored == 5, "each background gesture keys the window under the point for that gesture only and puts the app's window order back")
+traces=[]; Hands.front=[]; Hands.window=0; try Hands.wheel("down",CGPoint(x:5,y:6),a)
+Hands.window=77; try Hands.wheel("down",CGPoint(x:5,y:6),a,front:true)
+precondition(Hands.front.isEmpty && traces.isEmpty, "a background scroll raised its app or sent the real wheel, which lands in whatever app is under the pointer")
 print("hands Quartz spies ok")
 '''
         path = self.root / 'event-spies.swift'; path.write_text(swift)

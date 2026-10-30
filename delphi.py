@@ -507,7 +507,7 @@ Tools:
 - Native actions: {HANDS} see [app] | menu <app> "<path>" | click <target> [near <label>] [double] [right] | scroll down|up|left|right [pages|all] [target] | scroll-to "text" | press "cmd+t" [times] | drag <from> <to> | type <field> "text" [submit] [append] | type-after "<exact anchor>" "<text>" | wait [seconds]. Prefer labels. Returns changed state; use the window reader for document text.
 - App/site: always try; never blame sandbox/Terminal. Name the denied Settings switch.
 - System settings: shell, defaults or AppleScript first; else open the pane with --bg and use hands on its labelled control; verify. Don't renavigate an open pane. Volume: osascript. Sidecar (iPad as display): {shlex.quote(ME)} --sidecar on|off|status, never Control Center.
-- Work behind: never activate/raise unless asked to open/show/switch/focus. {SHOW} --bg "<url|path|app>" opens behind, waits until ready. {SHOW} "<target>" respects Settings. {FRONT} "<app>" ["tab words"] pictures that window in place, even covered; raises only if asked. Helpers wait; never add sleep. Chain dependent commands with && and check each result.
+- Work behind: never activate/raise unless asked to open/show/switch/focus. {SHOW} --bg "<url|path|app>" opens behind, waits until ready. {SHOW} "<target>" respects Settings. {FRONT} "<app>" ["tab words"] pictures that window in place, even covered; raises only if asked. Window text, see and scroll work on covered windows: never raise to read. Helpers wait; never add sleep. Chain dependent commands with && and check each result.
 - Windows: {PLACE} "<process>" <left|right|full|fullscreen|center> <laptop|monitor|current|exact Context screen name> ["title words"]. full maximizes; fullscreen enters a Space. Combine moves with +. Get names from running apps/accessibility.
 - Type at the cursor: {TYPE} "<text>".
 - Web: {SEARCH} "<query>" finds URLs/snippets; {READ} "<url>" fetches text; WebSearch/WebFetch on failure. Never invent URLs/parameters; recover via the site's search/controls.
@@ -919,15 +919,22 @@ def wants_focus(task=None, sites=False):
             try:
                 with open(request_file(ask)) as f: task = f.read()
             except OSError: pass
-    if re.search(r'\b(background|behind)\b', task, re.I): return False
+    if BEHIND.search(task): return False
     return sites or asks_front(task)
 
 
+BEHIND = re.compile(r'\b(background|behind)\b|\bem segundo plano\b|\bpor tr[aá]s\b', re.I)
+# English and Portuguese: "abre o Spotify", "mostra o Chrome", "muda pra Notas" ask to see it as much as "open Spotify" does
+FRONT_WORDS = re.compile(r'\b(open|show|switch to|focus|bring up|bring .{0,40}forward|full ?screen|foreground|in front|'
+                         r'abr(?:e|a|ir|ra)|mostr(?:e|a|ar)|(?:mude|muda|mudar|troque|troca|trocar|v[aá]|vai|ir) (?:para|pra)|traz(?:er)?|traga|'
+                         r'tela cheia|primeiro plano|na frente)(?!\w)', re.I)
+
+
 def asks_front(task):
-    return not re.search(r'\b(background|behind)\b', task, re.I) and any(
-        (m[1].lower() != 'open' or re.match(r'\s+\w', task[m.end():]) and not re.search(r'\b(is|are|was|were|be|already)\s*$', task[:m.start()], re.I)) and
-        not re.search(r"\b(don.t|do not|never|without|avoid|no need to)\b[^,;.]*$", task[:m.start()].rsplit(' but ', 1)[-1], re.I)
-        for m in re.finditer(r'\b(open|show|switch to|focus|bring up|bring .{0,40}forward|full ?screen|foreground|in front)\b', task, re.I))
+    return not BEHIND.search(task) and any(
+        (not re.fullmatch(r'open|abr\w+', m[1], re.I) or re.match(r'\s+\w', task[m.end():]) and not re.search(r'\b(is|are|was|were|be|already|est[aá]|j[aá])\s*$', task[:m.start()], re.I)) and
+        not re.search(r"\b(don.t|do not|never|without|avoid|no need to)\b[^,;.]*$|(?<!\w)(n[aã]o|nunca|sem)(?!\w)[^,;.]*$", re.split(r'\s(?:but|mas)\s', task[:m.start()])[-1], re.I)
+        for m in FRONT_WORDS.finditer(task))
 
 
 def preview_app(app, action='work', title='', directory=None, frame=None):
@@ -938,7 +945,8 @@ def preview_app(app, action='work', title='', directory=None, frame=None):
             pinned = mapped.get('windowFrame')
             if isinstance(pinned, list) and len(pinned) == 4: frame = pinned
         r = subprocess.run([APP, '--window-target', app, title] + ([json.dumps(frame)] if frame else []), capture_output=True, text=True, timeout=2,
-                           env={**os.environ, 'DELPHI_FOCUS_REQUESTED': '1' if wants_focus() else '0'})
+                           env={**os.environ, 'DELPHI_FOCUS_REQUESTED': '1' if wants_focus() else '0',
+                                'DELPHI_NO_RAISE': '1' if action in ('read', 'wait') else '0'})   # a read pictures the window where it sits
         if r.returncode or not r.stdout.strip(): return
         target = json.loads(r.stdout)
         emit(['▣ ' + json.dumps({**target, 'action': action})], directory)
@@ -949,7 +957,7 @@ def preview_app(app, action='work', title='', directory=None, frame=None):
 def window_target(app, title=''):
     """The app's window (title words): id, frame, minimized, and visible (on a display, uncovered); {} if none. Never activates."""
     try:
-        r = subprocess.run([APP, '--window-target', app, title], capture_output=True, text=True, timeout=2, env={**os.environ, 'DELPHI_FOCUS_REQUESTED': '0'})
+        r = subprocess.run([APP, '--window-target', app, title], capture_output=True, text=True, timeout=2, env={**os.environ, 'DELPHI_FOCUS_REQUESTED': '0', 'DELPHI_NO_RAISE': '1'})
         target = json.loads(r.stdout)
         return target if isinstance(target, dict) and str(target.get('windowID', '')).isdigit() else {}
     except (OSError, ValueError, subprocess.TimeoutExpired): return {}
@@ -1022,6 +1030,15 @@ def free_focus(user=False):
 def allow_focus(task):
     if wants_focus(task) or pref('workIn', 'back') == 'front':
         free_focus(user=True)
+        allow_focus.at = time.time()
+
+
+def open_in_front():
+    """An instant "open" brings the app forward: the guard stands aside unless allow_focus just did (Jev's "fire up Spotify", a learned
+    shortcut, a Portuguese ask: none had to use the English focus words)."""
+    if time.time() - getattr(allow_focus, 'at', 0) > 2:
+        free_focus(user=True)
+        allow_focus.at = time.time()
 
 
 def restore_focus(app, task, cmds):
@@ -2143,7 +2160,7 @@ def fast(text):
     m = re.fullmatch(r'(?:open(?: up)?|launch|start|pull up|bring up|focus(?: on)?|switch to|go to)\s+(?!up$)(.+?)'
                      r'(?:\s+(?:on|to|in|at)\s+(?:the\s+|my\s+)?(left|right|full ?screen|center|middle|laptop|monitor)(?:\s+(?:side|half|screen))?)?', t)
     if m and m[2]:   # "open Chrome on my monitor": open it, then the move command below
-        if not asks_front(text): free_focus(user=True)   # the inner "open" skips this, as if allow_focus had seen these words
+        open_in_front()
         if not fast(f'open {m[1]}'):
             return None
         opened = fast.cmds[:]
@@ -2159,7 +2176,7 @@ def fast(text):
         site = target.replace(' dot ', '.')
         site = next((w.rstrip('.,!?') for w in text.split() if plain(w) == target), site)
         if re.fullmatch(r'(?:https?://)?[\w-]+(\.[\w-]+)+(/\S*)?', site) and not re.search(r'\.(pdf|docx?|xlsx?|pptx?|txt|csv|png|jpe?g|heic|key|pages|numbers|zip|mp[34]|mov|md|py|java)$', target):
-            if not asks_front(text): free_focus(user=True)   # "go to", "launch", "pull up" ask to see it too; the guard must not pull it back
+            open_in_front()   # "go to", "launch", "pull up" ask to see it too; the guard must not pull it back
             try:
                 opened = subprocess.run(['open', site if site.startswith(('https://', 'http://')) else 'https://' + site])
             except OSError:
@@ -2175,7 +2192,7 @@ def fast(text):
             if not str(show(app)).startswith('opened '):   # Settings: open on the other screen and keep focus (slower, ~1-3 s)
                 return None
         else:
-            if not asks_front(text): free_focus(user=True)
+            open_in_front()
             try:
                 opened = subprocess.run(['open', '-a', app])   # plain open, ~0.1 s: here and in front
             except OSError:

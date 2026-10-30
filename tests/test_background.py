@@ -36,12 +36,14 @@ class BackgroundTests(unittest.TestCase):
              patch.object(delphi, 'app_named', return_value='Fixture'), patch.object(delphi, 'skills', return_value={}), \
              patch.object(delphi, 'pref', side_effect=lambda k, v=None: v), patch.object(delphi.subprocess, 'run', side_effect=run):
             for words in ('launch fixture', 'open fixture'):
-                calls.clear()
+                calls.clear(); delphi.allow_focus.at = 0
                 with self.subTest(words=words):
                     self.assertEqual(delphi.fast(words), 'Opened Fixture.')
-                    self.assertEqual(calls[-1], ['open', '-a', 'Fixture'])
-                    self.assertEqual(calls[:-1], [[delphi.APP, '--raise', 'user']] if words.startswith('launch') else [])   # "open" was freed by allow_focus already
-            calls.clear()
+                    self.assertEqual(calls, [[delphi.APP, '--raise', 'user'], ['open', '-a', 'Fixture']])   # Jev and shortcuts reach "open" without allow_focus
+                    calls.clear()
+                    self.assertEqual(delphi.fast(words), 'Opened Fixture.')
+                    self.assertEqual(calls, [['open', '-a', 'Fixture']])   # freed a moment ago: no second raise
+            calls.clear(); delphi.allow_focus.at = 0
             with patch.object(delphi, 'move_target', return_value=('Fixture', 'left', 'current')), \
                  patch.object(delphi, 'place', return_value='Fixture window -> left of Main'):
                 self.assertEqual(delphi.fast('launch fixture on the left'), 'Fixture: left.')
@@ -173,6 +175,37 @@ class BackgroundTests(unittest.TestCase):
                  patch.object(delphi, 'emit'), patch.object(delphi.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(self.target))) as run:
                 delphi.preview_app('Fixture')
                 self.assertEqual(run.call_args.kwargs['env']['DELPHI_FOCUS_REQUESTED'], '1' if requested else '0')
+
+    def test_reads_never_ask_native_apps_to_raise(self):
+        with patch.object(delphi, 'wants_focus', return_value=True), patch.object(delphi, 'emit'), \
+             patch.object(delphi.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(self.target))) as run:
+            for action, raises in (('read', False), ('wait', False), ('open', True), ('work', True)):
+                with self.subTest(action=action):
+                    delphi.preview_app('Fixture', action)
+                    self.assertEqual(run.call_args.kwargs['env']['DELPHI_NO_RAISE'], '0' if raises else '1')
+            delphi.window_target('Fixture')
+            self.assertEqual(run.call_args.kwargs['env']['DELPHI_NO_RAISE'], '1')
+
+    def test_portuguese_open_words_ask_for_the_front(self):
+        for request in ('abre o Spotify', 'abra o Chrome pra mim', 'mostra o Notas', 'muda pra Safari', 'coloca o Chrome em tela cheia'):
+            with self.subTest(request=request):
+                self.assertTrue(delphi.wants_focus(request))
+        for request in ('não abre o Spotify, só toca a música', 'abre o Spotify em segundo plano', 'o Chrome já está aberto?'):
+            with self.subTest(request=request):
+                self.assertFalse(delphi.wants_focus(request))
+
+    def test_instant_open_frees_the_guard_even_without_focus_words(self):
+        # Jev turns "fire up my music app" into "open Spotify": the guard must not pull Spotify back behind the user's app.
+        for freed_just_now, frees in ((False, 1), (True, 0)):
+            with self.subTest(freed_just_now=freed_just_now), patch.object(delphi, 'free_focus') as free, \
+                 patch.object(delphi, 'app_named', return_value='Spotify'), patch.object(delphi, 'pref', side_effect=lambda k, d: d), \
+                 patch.object(delphi.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, \
+                 patch.object(delphi, 'LAST', os.path.join(os.environ['DELPHI_ASK'], 'last')):
+                delphi.allow_focus.at = delphi.time.time() if freed_just_now else 0
+                self.assertEqual(delphi.fast('open Spotify'), 'Opened Spotify.')
+                self.assertEqual(run.call_args.args[0], ['open', '-a', 'Spotify'])
+                self.assertEqual(free.call_count, frees)
+                if frees: free.assert_called_with(user=True)
 
     def test_explicit_focus_is_not_undone_by_the_shared_fallback(self):
         with patch.dict(os.environ, {'DELPHI_REQUEST': 'focus Fixture'}), patch.object(delphi, 'osa') as osa:

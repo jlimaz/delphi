@@ -235,6 +235,10 @@ precondition(MiniScreen.restored == nil, "background mode raised a non-browser a
 setenv("DELPHI_FOCUS_REQUESTED", "1", 1)
 MiniScreen.work(temporary)
 precondition(MiniScreen.restored == temporary.processIdentifier, "explicit focus in background mode was ignored")
+MiniScreen.restored = nil; setenv("DELPHI_NO_RAISE", "1", 1)
+MiniScreen.work(temporary)
+precondition(MiniScreen.restored == nil, "a read raised the window it reads")
+unsetenv("DELPHI_NO_RAISE")
 unsetenv("DELPHI_FOCUS_REQUESTED")
 Prefs.mode = "front"
 MiniScreen.work(temporary)

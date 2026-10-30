@@ -179,7 +179,7 @@ class NightTests(unittest.TestCase):
         with patch.object(delphi, 'app_named', side_effect=lambda t: 'Fixture' if t == 'fixture' else None), \
              patch.object(delphi.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as open_:
             self.assertEqual(delphi.fast(', and open fixture'), 'Opened Fixture.')
-            open_.assert_called_once_with(['open', '-a', 'Fixture'])
+            open_.assert_called_with(['open', '-a', 'Fixture'])
         self.assertEqual(delphi.plain('; then search example.test for reports'), 'search example.test for reports')
 
     def test_saved_moves_run_in_process_without_shell_or_duplicate_preview(self):

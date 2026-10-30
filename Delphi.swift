@@ -1493,7 +1493,8 @@ final class MiniScreen: NSObject, SCStreamOutput, SCStreamDelegate {
     }
     static var workInFront: Bool { Prefs.str("workIn") == "front" || ProcessInfo.processInfo.environment["DELPHI_FOCUS_REQUESTED"] == "1" }
     static func work(_ app: NSRunningApplication) {
-        guard workInFront, NSWorkspace.shared.frontmostApplication != app else { return }
+        // Reading never raises: a background window is read (AX, page, picture) where it sits, even in front mode.
+        guard workInFront, ProcessInfo.processInfo.environment["DELPHI_NO_RAISE"] != "1", NSWorkspace.shared.frontmostApplication != app else { return }
         DistributedNotificationCenter.default().postNotificationName(.init("delphi.raise"), object: "user", deliverImmediately: true)
         usleep(50_000); activate(app.processIdentifier)
     }
@@ -4272,11 +4273,12 @@ enum Hands {
         return String(parts.joined(separator:" ").prefix(160))
     }
     static func trusted() throws { guard AXIsProcessTrusted() else { throw Failure("Allow Delphi in System Settings → Privacy & Security → Accessibility") }; AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(),0.15) }
-    static func app(_ request: String? = nil) throws -> NSRunningApplication {
+    // raise false: a read (read, identify) looks at the window where it sits and never brings its app forward.
+    static func app(_ request: String? = nil, raise: Bool = true) throws -> NSRunningApplication {
         if let request, !request.isEmpty {
-            if let pid = Int32(request), let a = NSRunningApplication(processIdentifier: pid) { MiniScreen.work(a); return a }
+            if let pid = Int32(request), let a = NSRunningApplication(processIdentifier: pid) { if raise { MiniScreen.work(a) }; return a }
             let apps = NSWorkspace.shared.runningApplications.filter { normalized($0.localizedName ?? "") == normalized(request) || $0.bundleIdentifier == request }
-            guard apps.count == 1 else { throw Failure("No unique running app named \(request).") }; MiniScreen.work(apps[0]); return apps[0]
+            guard apps.count == 1 else { throw Failure("No unique running app named \(request).") }; if raise { MiniScreen.work(apps[0]) }; return apps[0]
         }
         guard let a = NSWorkspace.shared.frontmostApplication else { throw Failure("No front app.") }; return a
     }
@@ -4923,6 +4925,12 @@ enum Hands {
         let lease = try screenLease(); defer { unlock(lease) }
         let restore = restoreFocus(a); defer { usleep(30_000); restore() }
         try raise(a)
+        // The real wheel goes to whatever window is under the pointer: scroll only when that is this app's, never another app's.
+        let mine = Bundle.main.bundleIdentifier, top = ((CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String:Any]]) ?? []).first {
+            ($0[kCGWindowAlpha as String] as? Double ?? 1) > 0 && ($0[kCGWindowBounds as String] as? NSDictionary).flatMap { CGRect(dictionaryRepresentation:$0) }?.contains(spot) == true &&
+            (mine == nil || ($0[kCGWindowOwnerPID as String] as? NSNumber).flatMap { NSRunningApplication(processIdentifier: $0.int32Value)?.bundleIdentifier } != mine)   // Delphi's own box and mini screen
+        }
+        guard (top?[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == a.processIdentifier else { throw Failure("Another app's window is over \(a.localizedName ?? "the app") there. Nothing was scrolled.") }
         guard let source = CGEventSource(stateID: .privateState), let saved = CGEvent(source: source)?.location else { throw Failure("Could not create scroll event.") }
         defer { CGWarpMouseCursorPosition(saved) }; CGWarpMouseCursorPosition(spot)
         let vertical = ["down","up"].contains(direction), amount = Int32(((["down","right"].contains(direction) ? -500.0 : 500.0) * fraction).rounded())
@@ -4942,7 +4950,8 @@ enum Hands {
     static func wheel(_ direction: String, _ spot: CGPoint, _ a: NSRunningApplication, fraction: Double = 1, front: Bool = false) throws {
         guard env["DELPHI_AX_ONLY"] != "1" else { throw Failure("Quartz mouse actions disabled for this fixture.") }
         let pid = a.processIdentifier, window = targetWindow(a)
-        if front || window == 0 || MiniScreen.workInFront { return try frontWheel(direction, spot, a, fraction: fraction) }
+        // The foreground wheel raises the app: only for work the user wants in front. A background scroll stays in its own app or does nothing.
+        if front || window == 0 || MiniScreen.workInFront { if MiniScreen.workInFront { try frontWheel(direction, spot, a, fraction: fraction) }; return }
         guard let source = CGEventSource(stateID: .hidSystemState) else { throw Failure("Could not create scroll event.") }
         let vertical = ["down","up"].contains(direction), amount = Int32(((["down","right"].contains(direction) ? -500.0 : 500.0) * fraction).rounded())
         guard let move = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: spot, mouseButton: .left),
@@ -4981,7 +4990,7 @@ enum Hands {
                 { if env["DELPHI_AX_ONLY"] != "1" { try wheel(direction, CGPoint(x: frame(area).midX,y: positive ? frame(area).maxY - 10 : frame(area).minY + 10), a, fraction:fraction) } },
                 { if env["DELPHI_AX_ONLY"] != "1" { try wheel(direction, target ?? CGPoint(x: frame(area).midX,y: frame(area).midY), a, fraction:fraction, front:true) } }
             ]
-            // AX and PID-key paths first; the background wheel next; the foreground wheel only after nothing else moved.
+            // AX and PID-key paths first; the background wheel next; the foreground wheel only after nothing else moved, and only in front work.
             if all, let bar { var writable = DarwinBoolean(false); AXUIElementIsAttributeSettable(bar,kAXValueAttribute as CFString,&writable); if writable.boolValue { methods.insert({ _ = AXUIElementSetAttributeValue(bar,kAXValueAttribute as CFString,NSNumber(value:end)) },at:0) } }
             var changed = false
             for method in methods {
@@ -5271,12 +5280,12 @@ enum Hands {
             if input.first == "identify" {
                 guard input.count <= 2 else { throw Failure("Use identify [app].") }
                 try trusted()
-                print(String(data: try JSONSerialization.data(withJSONObject: identify(try app(input.count > 1 ? input[1] : nil))), encoding: .utf8)!); return 0
+                print(String(data: try JSONSerialization.data(withJSONObject: identify(try app(input.count > 1 ? input[1] : nil, raise: false))), encoding: .utf8)!); return 0
             }
             if input.first == "read" {
                 guard input.count <= 3 && (input.count < 3 || input[2] == "more") else { throw Failure("Use read [app] [more].") }
                 try trusted()
-                let text = try read(try app(input.count > 1 ? input[1] : nil), more: input.count == 3, head: env["DELPHI_HANDS_HEAD"] == "1")
+                let text = try read(try app(input.count > 1 ? input[1] : nil, raise: false), more: input.count == 3, head: env["DELPHI_HANDS_HEAD"] == "1")
                 print(String(data: try JSONSerialization.data(withJSONObject: text), encoding: .utf8)!); return 0
             }
             try validate(input); try trusted()
