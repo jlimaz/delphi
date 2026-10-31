@@ -37,6 +37,8 @@ DIR = os.environ.get('DELPHI_DIR') or os.path.join(HOME, '.config/delphi')   # D
 ME = os.path.abspath(__file__)   # inside Delphi.app once built, so the AI's helper commands point here
 PLACE, LOOK, SEARCH, READ, SHOW, REMEMBER, FORGET, TYPE, PLAY, QUEUE, ABOUT, SHORTCUT, FRONT, WATCH, PICK, SET, WEB, HISTORY, HANDS, WINDOW = (shlex.quote(ME) + f' --{c}' for c in ('place', 'look', 'search', 'read', 'show', 'remember', 'forget', 'type', 'play', 'queue', 'me add', 'shortcut', 'front', 'watch', 'pick', 'set', 'web', 'history', 'hands', 'window'))
 DRAW = shlex.quote(ME) + " --draw"
+LED_TOOL = os.path.join(os.path.dirname(ME), 'tools', 'led.py')   # Bluetooth LED strip; build.sh copies tools/ next to delphi.py
+LED = shlex.quote(LED_TOOL)
 MEMORY, RECENT = os.path.join(DIR, 'memory.md'), os.path.join(DIR, 'recent.jsonl')
 PREFS = os.path.join(DIR, 'settings.json')   # written by the Settings window
 # $5 once, sold on Gumroad. shortcut: the source is public, so a coder can delete this check; fine for a $5 app.
@@ -515,6 +517,7 @@ Tools:
 - Installed CLIs: use attached help; verify destination content. Prompt sends: JSON accepted/queued + Enter means sent; never retry for an unseen turn start. Confirm in one short line. Blocked files: read the app window; change permissions only when a tool asks.
 - Personal data: {shlex.quote(ME)} --me <category>|find "<words>". Categories: basics, contact, places, school_work, links, preferences, people, notes. Forget a found fact: --me drop <id> "<exact user words>". People: --contacts "<name/relationship>" or the app address book; missing/ambiguous: choices, never guess. Message apps: a prefilled link, not clicking chats: open "whatsapp://send?phone=<digits>&text=<encoded>" (web.whatsapp.com/send?… only without the app), then {HANDS} press "return" in it; verify once. Calendar (any language): --calendar --help for JSON list/add/move/delete; always use it (picks ambiguous events, confirms edits).
 - Spotify: {PLAY} "<name>" plays; {QUEUE} "<track>" queues.
+- LED strip ("my lights"): {LED} on|off | color <R G B> | brightness <0-100> | mode <fade|strobe|jump|red fade|...> [speed 1-100, 100 fastest]. Turn any described color into R G B yourself (lavender: 170 110 255). Dim/brighten = brightness; party mode = mode jump 80. One call, then repeat its one-line result; never scan unless it says not found.
 - Past asks: {HISTORY} "<words or date>".
 - Watch: {WATCH} "<app>" "<window title words>" <gone|shows|settled> "<phrase>" ["<then request>"], or {WATCH} cmd '<shell test, exit 0 = done>' ["<request>"]. No AI until done. Stop: {shlex.quote(ME)} --unwatch.
 Earlier supplies follow-ups. "this"/"here" = front window; "it" after a task = Last task window. Answer/draw from open content (video, page, doc) unless told not to.
@@ -639,6 +642,17 @@ def risky(cmd):
         if 'osascript' in part and re.search(r'(keystroke\s+(return|enter|"[qwd]")|key code\s+(36|76|51|117|12|13|2|53))\s+using\s+(\{[^}]*)?command down', part, re.I):
             return 'Press this key?'   # ⌘Return sends, ⌘Delete deletes, ⌘Q/⌘W close without asking
     return ''
+
+
+LED_ARGS = {'on': r'', 'off': r'', 'color': r'(\d{1,3} \d{1,3} \d{1,3}|#[0-9a-fA-F]{6}|[a-zA-Z]+( [a-zA-Z]+)?)', 'brightness': r'\d{1,3}%?',
+            'mode': r'[a-zA-Z]+( [a-zA-Z]+){0,2}( \d{1,3})?', 'scan': r'(--all)?'}
+
+
+def led_command(tokens):
+    """Exactly the LED tool with a known subcommand and plain words/numbers: no shell operators, redirects or other programs.
+    It only talks to the user's light strip, so even safe mode and Devin/Pi run it without an Allow card."""
+    args = tokens[1:] if tokens[:1] == [LED_TOOL] else tokens[2:] if tokens[:2] == ['python3', LED_TOOL] else []
+    return bool(args) and args[0] in LED_ARGS and re.fullmatch(LED_ARGS[args[0]], ' '.join(args[1:])) is not None
 
 
 def wait_commit():
@@ -768,7 +782,7 @@ def gate():
         '--calendar' in tokens and any(t == APP or os.path.basename(t) in ('Delphi', 'Delphi-real') for t in tokens[:tokens.index('--calendar')])):
         decision(False, 'Use delphi.py --hands or --calendar; native actions and safety overrides are not model tools.')
         return
-    q = '' if trusted_read else risky(cmd) or ('Run outside the safe folder?' if inp.get('dangerouslyDisableSandbox') or external and cmd else '')
+    q = '' if trusted_read or led_command(tokens) else risky(cmd) or ('Run outside the safe folder?' if inp.get('dangerouslyDisableSandbox') or external and cmd else '')
     if not q or not os.environ.get('DELPHI_ASK') or not pref('safe', True):
         if os.environ.get('DELPHI_ASK'): preview_commands(cmd)
         record_external()

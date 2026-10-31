@@ -20,6 +20,7 @@ cp delphi.py "$APP/Contents/Resources/"
 if [ -f .env ]; then install -m 600 .env "$APP/Contents/Resources/.env"; else rm -f "$APP/Contents/Resources/.env"; fi   # TYPESAFE_API_KEY for Jev
 cp ui/*.html ui/*.js "$APP/Contents/Resources/ui/"
 cp ui/AppIcon.icns "$APP/Contents/Resources/"
+mkdir -p "$APP/Contents/Resources/tools" && cp tools/*.py tools/requirements.txt "$APP/Contents/Resources/tools/"   # device helpers (LED strip)
 cat > "$APP/Contents/Info.plist" <<P
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -36,6 +37,7 @@ cat > "$APP/Contents/Info.plist" <<P
 <key>NSMicrophoneUsageDescription</key><string>Delphi listens when you use its shortcut or microphone button.</string>
 <key>NSAppleEventsUsageDescription</key><string>Delphi controls apps like Finder, Chrome and Music when you ask it to.</string>
 <key>NSCalendarsFullAccessUsageDescription</key><string>Delphi reads your calendar, adds events you request, and asks before moving or deleting existing events. Calendar details are sent to your chosen AI model.</string>
+<key>NSBluetoothAlwaysUsageDescription</key><string>Delphi controls your Bluetooth LED lights when you ask it to.</string>
 <key>NSSpeechRecognitionUsageDescription</key><string>Delphi turns your words into text on this Mac.</string>
 </dict></plist>
 P
@@ -59,6 +61,11 @@ AGENT=~/Library/LaunchAgents/com.delphi.app.plist   # starts at login, restarts 
 # Delphi was called Atticus: keep its settings, chat, rules and history.
 [ -d ~/.config/atticus ] && [ ! -e ~/.config/delphi ] && mv ~/.config/atticus ~/.config/delphi
 mkdir -p ~/Library/LaunchAgents ~/.config/delphi
+# The device tools' packages (bleak) go in their own venv, so delphi.py stays stdlib-only. Offline or failing: the build goes on.
+TOOLS_VENV=~/.config/delphi/tools-venv
+{ [ -x "$TOOLS_VENV/bin/python" ] || python3 -m venv "$TOOLS_VENV"; } &&
+  { "$TOOLS_VENV/bin/python" -c 'import bleak' 2>/dev/null || "$TOOLS_VENV/bin/python" -m pip install -q --disable-pip-version-check -r tools/requirements.txt; } ||
+  echo "Note: could not install the LED tool's packages (bleak). Delphi works without them; run ./build.sh again when online."
 cat > "$AGENT" <<P
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
